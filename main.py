@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Form, Request, Depends
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 
+# Serve static HTML directly to avoid Jinja2 cache incompatibilities on some hosts
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -14,16 +14,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-templates = Jinja2Templates(directory="templates")
-
 # Initial placeholder data
 latest_stats = {"level": "0", "timestamp": "Waiting for device..."}
 
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    # Render the template; the page will poll `/stats` for live updates
-    return templates.TemplateResponse("index.html", {"request": request})
+    # Return the static HTML file (client-side JS polls `/stats`)
+    return FileResponse("templates/index.html", media_type="text/html")
 
 
 class BatteryReport(BaseModel):
