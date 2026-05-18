@@ -5,35 +5,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anasio | Battery Telemetry</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Auto-refresh every 30 seconds to see new data -->
-    <meta http-equiv="refresh" content="30">
+    <meta name="theme-color" content="#ffffff">
+    <style>
+        /* small battery bar styling */
+        .battery {
+            width: 160px;
+            height: 28px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            position: relative;
+            background: #fff;
+        }
+        .battery-level {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 400ms ease, background 400ms ease;
+        }
+        .battery-tip {
+            position: absolute;
+            right: -10px;
+            top: 6px;
+            width: 6px;
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
-    <div class="max-w-2xl mx-auto py-20 px-6">
-        <header class="mb-12">
+    <div class="max-w-2xl mx-auto py-16 px-6">
+        <header class="mb-8">
             <h1 class="text-4xl font-bold tracking-tight">Device Status</h1>
-            <p class="text-gray-500 mt-2">Real-time telemetry from duchamp</p>
+            <p class="text-gray-500 mt-2">Real-time telemetry dashboard</p>
         </header>
 
         <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
                 <div>
                     <p class="text-sm font-medium text-gray-400 uppercase tracking-widest">Battery Level</p>
-                    <p class="text-6xl font-bold mt-2">{{ level }}%</p>
+                    <p id="level-text" class="text-6xl font-bold mt-2">--%</p>
                 </div>
-                <!-- Simple battery icon logic -->
-                <div class="h-16 w-16 bg-green-100 rounded-2xl flex items-center justify-center">
-                    <div class="text-green-600 text-2xl font-bold">⚡</div>
+
+                <div class="flex flex-col items-end gap-3">
+                    <div class="battery" aria-hidden>
+                        <div id="battery-fill" class="battery-level" style="width:0%"></div>
+                        <div class="battery-tip"></div>
+                    </div>
+                    <div id="status-dot" class="flex items-center text-sm text-gray-400">
+                        <span id="dot" class="h-2 w-2 bg-gray-300 rounded-full mr-2"></span>
+                        <span id="status-text">Offline</span>
+                    </div>
                 </div>
             </div>
-            
-            <div class="mt-8 pt-8 border-t border-gray-50 flex justify-between items-center text-sm text-gray-400">
-                <span>Last updated: {{ timestamp }}</span>
-                <span class="flex items-center">
-                    <span class="h-2 w-2 bg-green-500 rounded-full mr-2"></span> System Online
-                </span>
+
+            <div class="mt-8 pt-8 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-sm text-gray-400">
+                <span>Last updated: <span id="timestamp">--:--:--</span></span>
+
+                <div class="flex items-center gap-4">
+                    <form id="post-form" class="flex items-center gap-2">
+                        <label for="level-input" class="sr-only">Level</label>
+                        <input id="level-input" type="number" min="0" max="100" placeholder="Level" class="px-3 py-2 border rounded-md w-24" />
+                        <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded-md">Send</button>
+                    </form>
+
+                    <button id="refresh" class="text-sm text-gray-500 underline">Refresh Now</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <script>
+        const levelText = document.getElementById('level-text');
+        const batteryFill = document.getElementById('battery-fill');
+        const timestampEl = document.getElementById('timestamp');
+        const statusDot = document.getElementById('dot');
+        const statusText = document.getElementById('status-text');
+
+        function colorForLevel(n){
+            if(n >= 80) return '#16a34a';
+            if(n >= 40) return '#f59e0b';
+            return '#ef4444';
+        }
+
+        async function fetchStats(){
+            try{
+                const res = await fetch('/stats');
+                if(!res.ok) throw new Error('no stats');
+                const data = await res.json();
+                const n = parseInt(data.level || 0, 10);
+                levelText.textContent = n + '%';
+                batteryFill.style.width = Math.max(0, Math.min(100, n)) + '%';
+                const c = colorForLevel(n);
+                batteryFill.style.background = c;
+                timestampEl.textContent = data.timestamp || '--:--:--';
+                statusDot.style.background = '#10b981';
+                statusText.textContent = 'System Online';
+            }catch(e){
+                statusDot.style.background = '#9ca3af';
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        // Poll every 5 seconds
+        fetchStats();
+        const poll = setInterval(fetchStats, 5000);
+
+        document.getElementById('refresh').addEventListener('click', (e)=>{ e.preventDefault(); fetchStats(); });
+
+        // simple test form that POSTs form-encoded data
+        document.getElementById('post-form').addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const val = document.getElementById('level-input').value;
+            if(!val && val !== '0') return;
+            try{
+                const fd = new FormData();
+                fd.append('level', String(val));
+                await fetch('/battery_report', { method: 'POST', body: fd });
+                document.getElementById('level-input').value = '';
+                fetchStats();
+            }catch(err){
+                console.error(err);
+            }
+        });
+    </script>
 </body>
 </html>

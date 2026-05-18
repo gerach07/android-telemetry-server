@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: android-telemetry-server
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT --workers 2
+    autoDeploy: true
