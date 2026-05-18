@@ -93,26 +93,41 @@
 
         const dotIcon = L.divIcon({
             className: 'custom-icon',
-            html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white"></div>`,
+            html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white hover:bg-blue-500 hover:scale-125 transition-all"></div>`,
             iconSize: [12, 12],
             iconAnchor: [6, 6]
         });
+
+        let currentDataHash = "";
+        let mapMarkers = [];
+        let isFirstLoad = true;
 
         async function fetchAvailableDevices() {
             try {
                 const devRes = await fetch('/devices');
                 const devData = await devRes.json();
                 if (devData.devices && devData.devices.length > 0) {
+                    const currentVal = selectEl.value;
                     selectEl.innerHTML = '';
                     devData.devices.forEach(did => {
                         const opt = document.createElement('option');
                         opt.value = did; opt.textContent = did;
                         selectEl.appendChild(opt);
                     });
+                    if (currentVal && devData.devices.includes(currentVal)) {
+                        selectEl.value = currentVal;
+                    }
                 } else {
                     selectEl.innerHTML = '<option value="">No devices</option>';
                 }
             } catch(err) { console.error(err); }
+        }
+
+        function highlightOnMap(lat, lon, i) {
+            map.setView([lat, lon], 17, {animate: true});
+            if(mapMarkers[i]) {
+                mapMarkers[i].openPopup();
+            }
         }
 
         async function fetchHistory() {
@@ -123,14 +138,33 @@
                 const res = await fetch(`/history_detailed?device_id=${encodeURIComponent(activeDevice)}`);
                 const data = await res.json();
                 
+                if(!data.history) return;
+                
+                // Determine if we need to redraw
+                const newHash = data.history.length > 0 ? (data.history[0].time + data.history.length) : "empty";
+                if(newHash === currentDataHash) return; // Skip redraw if no new GPS pings
+                currentDataHash = newHash;
+
                 tableBody.innerHTML = '';
                 markersGroup.clearLayers();
+                mapMarkers = [];
                 
                 if(data.history && data.history.length > 0) {
-                    // Populate Table
-                    data.history.forEach(row => {
+                    // Update Map
+                    const pathCoords = data.history.slice().reverse().map(r => [r.lat, r.lon]);
+                    pathLine.setLatLngs(pathCoords);
+                    
+                    data.history.forEach((row, i) => {
+                        const marker = L.marker([row.lat, row.lon], {icon: dotIcon})
+                         .bindPopup(`<b>Time:</b> ${row.time}<br><b>Lat:</b> ${row.lat.toFixed(5)}<br><b>Lon:</b> ${row.lon.toFixed(5)}`)
+                         .addTo(markersGroup);
+                         
+                        mapMarkers.push(marker);
+
+                        // Populate Table Row
                         const tr = document.createElement('tr');
-                        tr.className = "border-b border-gray-50 hover:bg-gray-50 transition";
+                        tr.className = "border-b border-gray-100 hover:bg-blue-50 transition cursor-pointer";
+                        tr.onclick = () => highlightOnMap(row.lat, row.lon, i);
                         tr.innerHTML = `
                             <td class="py-2 text-xs font-mono font-bold text-gray-800">${row.time}</td>
                             <td class="py-2 ml-2">${row.lat.toFixed(5)}</td>
@@ -139,17 +173,10 @@
                         tableBody.appendChild(tr);
                     });
 
-                    // Update Map (History arrives sorted newest first for table, we need newest last for path drawing)
-                    const pathCoords = data.history.slice().reverse().map(r => [r.lat, r.lon]);
-                    pathLine.setLatLngs(pathCoords);
-                    
-                    data.history.forEach(row => {
-                        L.marker([row.lat, row.lon], {icon: dotIcon})
-                         .bindPopup(`<b>Time:</b> ${row.time}<br><b>Lat:</b> ${row.lat}<br><b>Lon:</b> ${row.lon}`)
-                         .addTo(markersGroup);
-                    });
-
-                    map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
+                    if (isFirstLoad) {
+                        map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
+                        isFirstLoad = false;
+                    }
                 } else {
                     tableBody.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-xs text-gray-400">No GPS data found</td></tr>';
                     pathLine.setLatLngs([]);
@@ -162,9 +189,21 @@
         async function init() {
             await fetchAvailableDevices();
             await fetchHistory();
+            
+            // Poll for history every 3 seconds
+            setInterval(() => {
+                if (!document.hidden) {
+                    fetchAvailableDevices();
+                    fetchHistory();
+                }
+            }, 3000);
         }
 
-        selectEl.addEventListener('change', fetchHistory);
+        selectEl.addEventListener('change', () => {
+            currentDataHash = "";
+            isFirstLoad = true;
+            fetchHistory();
+        });
         init();
     </script>
 </body>

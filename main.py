@@ -192,11 +192,13 @@ async def receive_battery(
     new_ts = time.strftime("%H:%M:%S")
     unix_now = time.time()
     ping_interval = existing['ping_interval'] if existing else 60
+    notif_state = existing['notif_state'] if existing and 'notif_state' in existing.keys() else 0
+    notif_text = existing['notif_text'] if existing and 'notif_text' in existing.keys() else ""
 
     c.execute('''
-        INSERT OR REPLACE INTO devices (device_id, level, lat, lon, timestamp, ping_interval)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (did, new_lvl, new_lat, new_lon, new_ts, ping_interval))
+        INSERT OR REPLACE INTO devices (device_id, level, lat, lon, timestamp, ping_interval, notif_state, notif_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (did, new_lvl, new_lat, new_lon, new_ts, ping_interval, notif_state, notif_text))
     
     if lat_val is not None and lon_val is not None:
         if not existing or existing['lat'] != lat_val or existing['lon'] != lon_val:
