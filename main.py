@@ -1,20 +1,25 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 import time
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-# Global variable to store the latest data for testing
-latest_stats = {"level": "Unknown", "timestamp": None}
+# Initial placeholder data
+latest_stats = {"level": "0", "timestamp": "Waiting for device..."}
 
-@app.get("/")
-def read_root():
-    return {"status": "online", "last_update": latest_stats}
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    # This sends our data variables to the HTML file
+    return templates.TemplateResponse("index.html", {
+        "request": request, 
+        "level": latest_stats["level"], 
+        "timestamp": latest_stats["timestamp"]
+    })
 
 @app.post("/battery_report")
 async def receive_battery(level: str = Form(...)):
-    # This matches your C++ daemon's "level=X" format
     latest_stats["level"] = level
-    latest_stats["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    
-    print(f"Received battery update: {level}%")
-    return {"status": "success", "received": level}
+    latest_stats["timestamp"] = time.strftime("%H:%M:%S")
+    return {"status": "success"}
