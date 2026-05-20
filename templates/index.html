@@ -138,6 +138,19 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- Audio Blast Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Max Volume Audio Blast</p>
+                        <span id="audio-badge" class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Inactive</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3">Overrides DND & silent mode. Plays loud alarm sound on target.</p>
+                    <div class="flex gap-2">
+                        <button type="button" id="play-audio-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Blast Audio</button>
+                        <button type="button" id="stop-audio-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Cancel</button>
+                    </div>
+                </div>
                 
             </div>
 
@@ -263,6 +276,15 @@
                         document.getElementById('notif-badge').textContent = "Inactive";
                     }
 
+                    // Audio State Logic
+                    if(data.play_audio === 1) {
+                        document.getElementById('audio-badge').className = "bg-purple-100 text-purple-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
+                        document.getElementById('audio-badge').textContent = "Playing";
+                    } else {
+                        document.getElementById('audio-badge').className = "bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
+                        document.getElementById('audio-badge').textContent = "Inactive";
+                    }
+
                     // Map Logic
                     if(data.lat && data.lon) {
                         const lat = parseFloat(data.lat);
@@ -340,6 +362,25 @@
             document.getElementById('notif-message').value = "";
             setNotificationCmd(0, "");
         });
+
+        // Remote Audio Command Logic
+        async function setAudioCmd(play_audio) {
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return alert("Wait for a device to connect first.");
+            try {
+                const fd = new FormData();
+                fd.append('device_id', activeDevice);
+                fd.append('play_audio', play_audio);
+                await fetch('/set_audio', { method: 'POST', body: fd });
+                alert(play_audio === 1 ? "Audio blast command activated." : "Audio blast revoked.");
+                fetchStats();
+            } catch(err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('play-audio-btn').addEventListener('click', () => setAudioCmd(1));
+        document.getElementById('stop-audio-btn').addEventListener('click', () => setAudioCmd(0));
     </script>
 </body>
 </html>
