@@ -37,7 +37,6 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
-    conn = get_db()
     c = conn.cursor()
     c.execute("PRAGMA journal_mode=WAL;")
     c.execute('''
