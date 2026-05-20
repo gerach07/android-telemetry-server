@@ -71,6 +71,8 @@
                     <span id="status-text" class="text-xs font-bold tracking-wide text-gray-500 uppercase">Offline</span>
                 </div>
                 
+                <button type="button" id="delete-device-btn" class="text-[11px] font-bold bg-gray-800 text-white px-3 py-2 rounded-xl hover:bg-gray-700 transition shadow-sm uppercase tracking-wide">Delete Target</button>
+                
                 <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
             </div>
         </nav>
@@ -254,9 +256,15 @@
                     timestampEl.textContent = data.timestamp;
                     activityText.textContent = data.activity || 'Stationary';
                     
-                    statusDot.className = "h-2 w-2 bg-green-500 rounded-full mr-2 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse";
-                    statusText.textContent = 'Online';
-                    statusText.className = "text-xs font-bold tracking-wide text-green-600 uppercase";
+                    if (data.is_online) {
+                        statusDot.className = "h-2 w-2 bg-green-500 rounded-full mr-2 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse";
+                        statusText.textContent = 'Online';
+                        statusText.className = "text-xs font-bold tracking-wide text-green-600 uppercase";
+                    } else {
+                        statusDot.className = "h-2 w-2 bg-gray-400 rounded-full mr-2 shadow-sm";
+                        statusText.textContent = 'Offline';
+                        statusText.className = "text-xs font-bold tracking-wide text-gray-600 uppercase";
+                    }
 
                     if(data.ping_interval) {
                         document.getElementById('interval-select').value = data.ping_interval;
@@ -379,8 +387,25 @@
             }
         }
 
+
         document.getElementById('play-audio-btn').addEventListener('click', () => setAudioCmd(1));
         document.getElementById('stop-audio-btn').addEventListener('click', () => setAudioCmd(0));
+
+        document.getElementById('delete-device-btn').addEventListener('click', async () => {
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return alert("Select a target to delete first.");
+            if(!confirm(`WARNING: Erase ${activeDevice} and its location history completely?`)) return;
+            
+            try {
+                const fd = new FormData();
+                fd.append('device_id', activeDevice);
+                const res = await fetch('/delete_device', { method: 'POST', body: fd });
+                if(res.ok) {
+                    alert('Target device and history wiped successfully.');
+                    window.location.reload();
+                }
+            } catch(e) { console.error(e); }
+        });
     </script>
 </body>
 </html>

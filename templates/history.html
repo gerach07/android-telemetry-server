@@ -148,7 +148,16 @@
             if(!activeDevice) return;
             
             try {
-                const res = await fetch(`/history_detailed?device_id=${encodeURIComponent(activeDevice)}`);
+                
+                let qs = `?device_id=${encodeURIComponent(activeDevice)}`;
+                const startD = document.getElementById('start-date').value;
+                const endD = document.getElementById('end-date').value;
+                if(startD && endD) {
+                    const st = new Date(startD).getTime() / 1000;
+                    const et = new Date(endD).getTime() / 1000;
+                    qs += `&start_time=${st}&end_time=${et}`;
+                }
+                const res = await fetch(`/history_detailed${qs}`);
                 const data = await res.json();
                 
                 if(!data.history) return;
