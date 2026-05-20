@@ -23,7 +23,7 @@ app.add_middleware(
 
 DB_FILE = "telemetry.db"
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = hashlib.sha256("SuperSecret2027".encode()).hexdigest()
+ADMIN_PASSWORD_HASH = hashlib.sha256("160307Adrians".encode()).hexdigest()
 IMPLANT_KEY = "DeltaForce2027"
 
 def haversine(lat1, lon1, lat2, lon2):
