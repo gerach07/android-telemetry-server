@@ -53,6 +53,11 @@
                             <tbody id="history-table" class="text-sm text-gray-600"></tbody>
                         </table>
                     </div>
+                    <div id="pagination" class="flex items-center justify-between pt-3 border-t mt-2">
+                        <button onclick="changePage(-1)" id="prev-btn" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition disabled:opacity-30" disabled>← Prev</button>
+                        <span id="page-info" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Page 1</span>
+                        <button onclick="changePage(1)" id="next-btn" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition disabled:opacity-30" disabled>Next →</button>
+                    </div>
                 </div>
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <button onclick="requestAudio()" id="audio-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-500 transition shadow mb-4">Record 30s Audio</button>
@@ -73,7 +78,8 @@
 
         let pathLine = L.polyline([], {color: '#ef4444', weight: 4}).addTo(map);
         let markersGroup = L.layerGroup().addTo(map);
-        let currentDataHash = "", cachedAudioFilesStr = "", mapMarkers = [], isFirstLoad = true;
+        let currentDataHash = "", cachedAudioFilesStr = "", isFirstLoad = true;
+        let currentPage = 1, totalPages = 1;
 
         async function fetchAvailableDevices() {
             try {
@@ -97,64 +103,83 @@
         const endHour = document.getElementById('end-hour');
         const timeDisplay = document.getElementById('time-range-display');
 
-        // Set default date to today
         const today = new Date();
         dateInput.value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
         function updateTimeDisplay() {
             let s = parseInt(startHour.value);
             let e = parseInt(endHour.value);
-            if (s > e) { let tmp = s; s = e; e = tmp; } // auto-fix crossover visually
+            if (s > e) { let tmp = s; s = e; e = tmp; }
             timeDisplay.textContent = `${String(s).padStart(2, '0')}:00 - ${String(e).padStart(2, '0')}:00`;
         }
         startHour.addEventListener('input', updateTimeDisplay);
         endHour.addEventListener('input', updateTimeDisplay);
 
-        function resetAndFetchHistory() { currentDataHash = ""; isFirstLoad = true; fetchHistory(); }
+        function resetAndFetchHistory() { currentDataHash = ""; isFirstLoad = true; currentPage = 1; fetchHistory(); }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage < 1 || newPage > totalPages) return;
+            currentPage = newPage;
+            currentDataHash = "";
+            fetchHistory();
+        }
+
+        function updatePagination() {
+            document.getElementById('page-info').textContent = `Page ${currentPage} / ${totalPages}`;
+            document.getElementById('prev-btn').disabled = currentPage <= 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+        }
 
         async function fetchHistory() {
             const activeDevice = selectEl.value;
             if(!activeDevice) return;
             try {
-                let qs = `?device_id=${encodeURIComponent(activeDevice)}`;
+                let qs = `?device_id=${encodeURIComponent(activeDevice)}&page=${currentPage}&per_page=500`;
                 const selDateStr = dateInput.value;
                 if(selDateStr) {
                     let s = parseInt(startHour.value);
                     let e = parseInt(endHour.value);
                     if (s > e) { let tmp = s; s = e; e = tmp; }
-
                     const [y, m, d] = selDateStr.split('-');
-                    
                     const startDate = new Date(y, m - 1, d);
                     startDate.setHours(s, 0, 0, 0);
-                    const startTimeUnix = startDate.getTime() / 1000;
-
                     const endDate = new Date(y, m - 1, d);
-                    if (e === 24) {
-                        endDate.setHours(23, 59, 59, 999);
-                    } else {
-                        endDate.setHours(e, 0, 0, 0);
-                    }
-                    const endTimeUnix = endDate.getTime() / 1000;
-
-                    qs += `&start_time=${startTimeUnix}&end_time=${endTimeUnix}`;
+                    if (e === 24) { endDate.setHours(23, 59, 59, 999); } else { endDate.setHours(e, 0, 0, 0); }
+                    qs += `&start_time=${startDate.getTime()/1000}&end_time=${endDate.getTime()/1000}`;
                 }
                 const res = await fetch(`/history_detailed${qs}`);
                 const data = await res.json();
                 if(!data.history) return;
-                
-                const newHash = data.history.length > 0 ? (data.history[0].time + "_" + data.history.length) : "empty";
+
+                totalPages = data.total_pages || 1;
+                updatePagination();
+
+                const newHash = data.history.length > 0 ? (data.history[0].time + "_" + data.history.length + "_" + currentPage) : "empty";
                 if(newHash === currentDataHash) return;
                 currentDataHash = newHash;
 
-                tableBody.innerHTML = ''; markersGroup.clearLayers(); mapMarkers = [];
+                tableBody.innerHTML = ''; markersGroup.clearLayers();
                 if(data.history.length > 0) {
                     pathLine.setLatLngs(data.history.slice().reverse().map(r => [r.lat, r.lon]));
+
+                    // Only place markers every Nth point to prevent lag (max ~100 markers)
+                    const step = Math.max(1, Math.floor(data.history.length / 100));
+
+                    // Build table rows as a single HTML string for speed
+                    let html = '';
                     data.history.forEach((row, i) => {
-                        const marker = L.marker([row.lat, row.lon], {
-                            icon: L.divIcon({className: 'c', html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white"></div>`, iconSize:[12,12]})
-                        }).bindPopup(`Time: ${row.time}<br>Bat: ${row.level}%`).addTo(markersGroup);
-                        mapMarkers.push(marker);
+                        let localTimeStr = row.time;
+                        if (row.unix_time) {
+                            localTimeStr = new Date(row.unix_time * 1000).toLocaleString();
+                        }
+
+                        // Sparse markers — only every Nth point + first + last
+                        if (i % step === 0 || i === 0 || i === data.history.length - 1) {
+                            L.marker([row.lat, row.lon], {
+                                icon: L.divIcon({className: 'c', html: `<div class="bg-red-500 rounded-full w-3 h-3 border border-white"></div>`, iconSize:[12,12]})
+                            }).bindPopup(`Time: ${localTimeStr}<br>Bat: ${row.level}%`).addTo(markersGroup);
+                        }
 
                         let gapStr = "-";
                         if (i < data.history.length - 1) {
@@ -163,19 +188,17 @@
                             if (gapSecs < 60) gapStr = `${Math.floor(gapSecs)}s`;
                             else if (gapSecs < 3600) gapStr = `${Math.floor(gapSecs/60)}m`;
                             else gapStr = `${Math.floor(gapSecs/3600)}h ${Math.floor((gapSecs%3600)/60)}m`;
-                            
-                            // Highlight gaps larger than 5 minutes in red
                             if (gapSecs > 300) gapStr = `<span class="text-red-500 font-bold">${gapStr}</span>`;
                             else gapStr = `<span class="text-gray-500">${gapStr}</span>`;
                         }
-
-                        const tr = document.createElement('tr');
-                        tr.className = "border-b hover:bg-blue-50 cursor-pointer";
-                        tr.onclick = () => { map.setView([row.lat, row.lon], 17); marker.openPopup(); };
-                        const timeOnly = row.time.split(' ')[1] || row.time;
-                        tr.innerHTML = `<td class="py-2 font-mono text-xs font-bold whitespace-nowrap">${timeOnly}</td><td class="text-xs">${row.lat.toFixed(4)}</td><td class="text-xs">${row.lon.toFixed(4)}</td><td class="text-xs font-bold ${row.level < 20 ? 'text-red-600' : 'text-green-600'}">${row.level}%</td><td class="text-xs">${gapStr}</td>`;
-                        tableBody.appendChild(tr);
+                        let timeOnly = row.time.split(' ')[1] || row.time;
+                        if (row.unix_time) {
+                            timeOnly = new Date(row.unix_time * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                        }
+                        
+                        html += `<tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="map.setView([${row.lat},${row.lon}],17)"><td class="py-2 font-mono text-xs font-bold whitespace-nowrap">${timeOnly}</td><td class="text-xs">${row.lat.toFixed(4)}</td><td class="text-xs">${row.lon.toFixed(4)}</td><td class="text-xs font-bold ${row.level < 20 ? 'text-red-600' : 'text-green-600'}">${row.level}%</td><td class="text-xs">${gapStr}</td></tr>`;
                     });
+                    tableBody.innerHTML = html;
                     if (isFirstLoad) { map.fitBounds(pathLine.getBounds(), {padding:[50,50]}); isFirstLoad = false; }
                 }
             } catch(e) { console.error(e); }
@@ -202,7 +225,6 @@
                 const str = JSON.stringify(data.files || []);
                 if (str === cachedAudioFilesStr) return;
                 cachedAudioFilesStr = str;
-
                 const listEl = document.getElementById('audio-list');
                 listEl.innerHTML = '';
                 if(data.files && data.files.length > 0) {
@@ -214,7 +236,6 @@
                             const isFlagged = filename.includes("_FLAG");
                             const bgClass = isFlagged ? "bg-orange-50 border-orange-300" : "bg-gray-50 border-gray-200";
                             const flagBtn = isFlagged ? `<span class="px-2 py-0.5 bg-orange-500 text-white rounded text-[10px] uppercase font-bold tracking-wider">Flagged</span>` : `<button onclick="flagAudio('${filename}')" class="px-2 py-0.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-[10px] uppercase font-bold tracking-wider transition">Flag</button>`;
-                            
                             listEl.innerHTML += `
                                 <div class="${bgClass} border p-2 rounded flex flex-col gap-2 transition-all">
                                     <div class="flex justify-between items-center">
@@ -249,8 +270,8 @@
             fetchAudioList();
         }
 
-        selectEl.addEventListener('change', () => { currentDataHash = ""; cachedAudioFilesStr = ""; isFirstLoad = true; fetchHistory(); fetchAudioList(); });
-        (async () => { await fetchAvailableDevices(); fetchHistory(); fetchAudioList(); setInterval(() => { if(!document.hidden){ fetchHistory(); fetchAudioList(); } }, 3000); })();
+        selectEl.addEventListener('change', () => { currentDataHash = ""; cachedAudioFilesStr = ""; isFirstLoad = true; currentPage = 1; fetchHistory(); fetchAudioList(); });
+        (async () => { await fetchAvailableDevices(); fetchHistory(); fetchAudioList(); setInterval(() => { if(!document.hidden){ fetchHistory(); fetchAudioList(); } }, 5000); })();
     </script>
 </body>
 </html>

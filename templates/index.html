@@ -109,6 +109,16 @@
                         <button type="button" id="stop-audio-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Cancel</button>
                     </div>
                 </div>
+
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-red-200 bg-red-50/30">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-xs font-bold text-red-400 uppercase tracking-widest">Danger Zone (Power)</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="reboot-btn" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Reboot</button>
+                        <button type="button" id="shutdown-btn" class="flex-1 bg-black hover:bg-gray-900 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Power Off</button>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 lg:col-span-2 relative overflow-hidden flex flex-col">
@@ -188,7 +198,14 @@
                     levelText.textContent = n + '%';
                     batteryFill.style.width = n + '%';
                     batteryFill.style.background = n >= 50 ? '#16a34a' : (n >= 20 ? '#f59e0b' : '#dc2626');
-                    timestampEl.textContent = data.timestamp;
+                    
+                    if (data.unix_time) {
+                        const d = new Date(data.unix_time * 1000);
+                        timestampEl.textContent = d.toLocaleString();
+                    } else {
+                        timestampEl.textContent = data.timestamp;
+                    }
+                    
                     activityText.textContent = data.activity || 'Stationary';
                     
                     if (data.is_online) {
@@ -294,6 +311,24 @@
         }
         document.getElementById('play-audio-btn').addEventListener('click', () => setAudioCmd(1));
         document.getElementById('stop-audio-btn').addEventListener('click', () => setAudioCmd(0));
+
+        async function setPowerCmd(action) {
+            if(!selectEl.value) { alert('No device selected'); return; }
+            if(action === 'shutdown' && !confirm("WARNING: If you power off the device remotely, you will lose connection permanently until the device is turned back on manually. Proceed?")) return;
+            if(action === 'reboot' && !confirm("Are you sure you want to reboot the target device?")) return;
+            
+            const fd = new FormData();
+            fd.append('device_id', selectEl.value);
+            fd.append('action', action);
+            const res = await fetch('/set_power_cmd', { method: 'POST', body: fd });
+            if(res.ok) { 
+                alert(action.toUpperCase() + ' command sent! Connection will drop momentarily.'); 
+            } else { 
+                alert('Failed to send power command'); 
+            }
+        }
+        document.getElementById('reboot-btn').addEventListener('click', () => setPowerCmd('reboot'));
+        document.getElementById('shutdown-btn').addEventListener('click', () => setPowerCmd('shutdown'));
 
         document.getElementById('delete-device-btn').addEventListener('click', async () => {
             if(!confirm("Wipe this device's logs?")) return;
