@@ -5,6 +5,7 @@ import hashlib
 import os
 import math
 import shutil
+import threading
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, Request, Depends, HTTPException, status, UploadFile, File, Body
@@ -739,6 +740,17 @@ async def delete_device(device_id: str = Form(...), request: Request = Depends(v
     c.execute("DELETE FROM history WHERE device_id = ?", (device_id,))
     db.commit()
     return {"status": "success"}
+
+@app.post("/stop_server")
+async def stop_server(request: Request):
+    verify_session(request)
+
+    def _shutdown():
+        time.sleep(0.5)
+        os._exit(0)
+
+    threading.Thread(target=_shutdown, daemon=True).start()
+    return JSONResponse({"status": "success", "message": "Server shutdown initiated."})
 
 @app.post("/upload_audio")
 async def upload_audio(

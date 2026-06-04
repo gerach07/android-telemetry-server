@@ -140,10 +140,11 @@
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-bold text-red-400 uppercase tracking-widest">Danger Zone (Power)</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button type="button" id="reboot-btn" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Reboot</button>
-                        <button type="button" id="shutdown-btn" class="flex-1 bg-black hover:bg-gray-900 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Power Off</button>
-                        <button type="button" id="factory-reset-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Factory Reset</button>
+                    <div class="flex gap-2 flex-wrap">
+                        <button type="button" id="reboot-btn" class="flex-1 min-w-[110px] bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Reboot</button>
+                        <button type="button" id="shutdown-btn" class="flex-1 min-w-[110px] bg-black hover:bg-gray-900 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Power Off</button>
+                        <button type="button" id="factory-reset-btn" class="flex-1 min-w-[110px] bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Factory Reset</button>
+                        <button type="button" id="stop-server-btn" class="flex-1 min-w-[110px] bg-red-700 hover:bg-red-800 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Stop Server</button>
                     </div>
                 </div>
 
@@ -542,6 +543,16 @@
             fd.append('device_id', selectEl.value);
             await fetch('/delete_device', { method: 'POST', body: fd });
             window.location.reload();
+        });
+
+        document.getElementById('stop-server-btn').addEventListener('click', async () => {
+            if(!confirm('Stop the web server now? This will end the current session and close the app.')) return;
+            const res = await fetch('/stop_server', { method: 'POST' });
+            if(res.ok) {
+                alert('Server shutdown initiated. The app will stop shortly.');
+            } else {
+                alert('Failed to initiate server shutdown.');
+            }
         });
     </script>
 </body>

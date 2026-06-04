@@ -13,6 +13,10 @@
 !/web/templates/**
 !/web/static/
 !/web/static/**
+!/README.md
+!/web/**
+!/system/
+!/system/**
 
 # Ignore generated web/ artifacts and environment files
 /web/venv/
