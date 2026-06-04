@@ -42,3 +42,22 @@ export IMPLANT_KEY=<your-implant-key>
 - The server now uses `web/main.py` and serves files from `web/templates` and `web/static`.
 - The `web/start_commands.txt` file has been updated to point to the `web/` application folder.
 - If you want to stop the server from the browser, use the Stop Server button after logging in.
+
+## System app APKs
+- The Android audio component is now packaged as a privileged system app APK at `system/priv-app/StealthAudio/StealthAudio.apk`.
+- The implant `reporter.cpp` audio task now launches `com.stealthaudio/.StealthAudioActivity` with a `play` command.
+- A second privileged alert app is added at `system/priv-app/StealthAlert/StealthAlert.apk`.
+- The implant `reporter.cpp` alert task now launches `com.stealthalert/.AlertActivity` with `title` and `text` extras.
+- To rebuild the APKs locally, run:
+
+```bash
+cd android/StealthAudioApp
+./build_apk.sh
+```
+
+and
+
+```bash
+cd android/StealthAlertApp
+./build_apk.sh
+```
