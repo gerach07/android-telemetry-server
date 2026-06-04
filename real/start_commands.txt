@@ -1,3 +1,0 @@
-cd /home/adrians/Downloads/CloverProject-v3.7-duchamp-UNOFFICIAL-20260309-1854/real
-pkill -f 'uvicorn main:app' || true
-nohup uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
