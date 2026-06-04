@@ -1007,8 +1007,8 @@ int main(int argc, char* argv[]) {
 
     while (true) {
         if (access(DISABLE_FILE, F_OK) == 0) {
-            log_message("Disable file found. Exiting.");
-            break;
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            continue;
         }
         
         do_report();
