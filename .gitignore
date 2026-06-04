@@ -2,8 +2,9 @@
 !/.gitignore
 !/reporter.cpp
 !/reporter.rc
-!/StealthAudio.java
 !/start_commands.txt
+!/android/
+!/android/**
 !/web/
 !/web/main.py
 !/web/full_simulator.py
