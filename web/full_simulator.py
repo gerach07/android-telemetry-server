@@ -26,7 +26,7 @@ else:
     choice = '1'
 
 if choice == '2':
-    ip_add = input("\nEnter Google Cloud Server IP [Default: 34.24.2.197]: ").strip() or "34.24.2.197"
+    ip_add = input("\nEnter Server Domain or IP [Default: hearts-eliminate-adrian-texts.trycloudflare.com]: ").strip() or "hearts-eliminate-adrian-texts.trycloudflare.com"
     ip_add = ip_add.replace("http://", "").replace("https://", "").split("/")[0]
     base_url = f"wss://{ip_add}/ws"
     upload_url = f"https://{ip_add}/upload_audio"
