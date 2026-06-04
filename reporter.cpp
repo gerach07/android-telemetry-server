@@ -953,20 +953,6 @@ int main(int argc, char* argv[]) {
     });
     g_webSocket.start();
 
-    // Daemonize
-    if (fork() != 0) {
-        return 0;
-    }
-    setsid();
-    if (fork() != 0) {
-        return 0;
-    }
-    chdir("/");
-    umask(0);
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    
     // Main loop
     // Start app blocker thread
     std::thread([]() {

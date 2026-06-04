@@ -4,6 +4,6 @@ on property:sys.boot_completed=1
 service system_telemetry_service /system/bin/reporter
     class main
     user root
-    group root system shell input audio inet log inet
+    group root system shell input audio log inet net_admin net_raw
     seclabel u:r:system_server:s0
-    oneshot
+    oom_score_adjust -1000
