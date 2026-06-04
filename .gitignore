@@ -1,3 +1,29 @@
+*
+!/.gitignore
+!/reporter.cpp
+!/reporter.rc
+!/StealthAudio.java
+!/start_commands.txt
+!/real/
+!/real/main.py
+!/real/full_simulator.py
+!/real/requirements.txt
+!/real/start_commands.txt
+!/real/templates/
+!/real/templates/**
+!/real/static/
+!/real/static/**
+
+# Ignore generated real/ artifacts and environment files
+/real/venv/
+/real/__pycache__/
+/real/*.db
+/real/*.db-shm
+/real/*.db-wal
+/real/*.log
+/real/nohup.out
+
+# Ignore common generated files in the repository root
 venv/
 __pycache__/
 *.db
