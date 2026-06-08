@@ -78,6 +78,20 @@
                 </div>
 
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between mb-6">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Device Summary</p>
+                        <button id="refresh-status-btn" type="button" class="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Refresh</button>
+                    </div>
+                    <div class="grid gap-3">
+                        <div class="flex items-center justify-between text-xs text-gray-500"><span>Last Seen</span><span id="last-seen-ago" class="font-semibold text-gray-800">--</span></div>
+                        <div class="flex items-center justify-between text-xs text-gray-500"><span>Next selfie</span><span id="next-selfie-display" class="font-semibold text-gray-800">--</span></div>
+                        <div class="flex items-center justify-between text-xs text-gray-500"><span>Skip status</span><span id="selfie-skip-display" class="font-semibold text-gray-800">--</span></div>
+                        <div class="flex items-center justify-between text-xs text-gray-500"><span>Installed apps</span><span id="installed-apps-count" class="font-semibold text-gray-800">--</span></div>
+                        <div class="flex items-center justify-between text-xs text-gray-500"><span>Blocked apps</span><span id="blocked-apps-count" class="font-semibold text-gray-800">--</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Target Activity</p>
                     <div class="flex items-center gap-4">
                         <div class="bg-blue-50 p-3 rounded-full">
@@ -165,15 +179,24 @@
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Location & GPS Tracking</p>
                     </div>
                     <div class="flex flex-col gap-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold text-gray-700">Tracking:</span>
-                            <span id="loc-state-text" class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">?</span>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex flex-wrap items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-gray-700">Tracking (device state):</span>
+                                    <span id="loc-state-text" class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">?</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-gray-700">Tracking (server state):</span>
+                                    <span id="loc-server-text" class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">?</span>
+                                </div>
+                            </div>
+                            <p id="loc-state-note" class="text-xs text-gray-500">Device state is verified on refresh; server state is the desired tracking configuration.</p>
                         </div>
                         <div class="flex gap-2">
                             <button type="button" id="enable-location-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Enable</button>
                             <button type="button" id="disable-location-btn" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Disable</button>
                         </div>
-                        <button type="button" id="refresh-location-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Refresh State</button>
+                        <button type="button" id="refresh-location-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Refresh Device Status</button>
                     </div>
                 </div>
 
@@ -193,16 +216,64 @@
         const selectEl = document.getElementById('device-select');
         const notifBadge = document.getElementById('notif-badge');
         const audioBadge = document.getElementById('audio-badge');
+        const lastSeenAgo = document.getElementById('last-seen-ago');
+        const nextSelfieDisplay = document.getElementById('next-selfie-display');
+        const selfieSkipDisplay = document.getElementById('selfie-skip-display');
+        const installedAppsCount = document.getElementById('installed-apps-count');
+        const blockedAppsCount = document.getElementById('blocked-apps-count');
+        const refreshStatusBtn = document.getElementById('refresh-status-btn');
 
         const map = L.map('map', {zoomControl: false}).setView([0, 0], 2);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+
+        const locText = document.getElementById('loc-state-text');
+        const locServerText = document.getElementById('loc-server-text');
+        const locNote = document.getElementById('loc-state-note');
 
         const customIcon = L.divIcon({
             className: 'custom-icon',
             html: `<div class="bg-blue-600 rounded-full w-4 h-4 shadow-lg border-2 border-white"></div>`,
             iconSize: [24, 24], iconAnchor: [12, 12]
         });
+
+        function formatRelativeTime(timestamp) {
+            if (!timestamp) return '--';
+            const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+            if (isNaN(date.getTime())) return '--';
+            const diff = Date.now() - date.getTime();
+            const seconds = Math.floor(diff / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            return `${Math.floor(hours / 24)}d ago`;
+        }
+
+        async function fetchSelfieStatus(activeDevice) {
+            if (!activeDevice) return;
+            try {
+                const [scheduleResp, skipResp] = await Promise.all([
+                    fetch(`/selfie_schedule?device_id=${encodeURIComponent(activeDevice)}`),
+                    fetch(`/selfie_skip_status?device_id=${encodeURIComponent(activeDevice)}`)
+                ]);
+                const scheduleData = scheduleResp.ok ? await scheduleResp.json() : {};
+                const skipData = skipResp.ok ? await skipResp.json() : {};
+
+                if (scheduleData.next_run_at) {
+                    const nextDate = new Date(scheduleData.next_run_at);
+                    nextSelfieDisplay.textContent = isNaN(nextDate.getTime()) ? scheduleData.next_run_at : nextDate.toLocaleString();
+                } else {
+                    nextSelfieDisplay.textContent = scheduleData.next_run_at || 'Unknown';
+                }
+                selfieSkipDisplay.textContent = skipData.skipped_today ? 'Skipped Today' : 'Active';
+            } catch (err) {
+                console.warn('Selfie status update failed', err);
+                nextSelfieDisplay.textContent = '--';
+                selfieSkipDisplay.textContent = '--';
+            }
+        }
 
         let marker = L.marker([0, 0], {icon: customIcon}).addTo(map);
         let pathLine = L.polyline([], {color: '#ef4444', weight: 3, opacity: 0.8}).addTo(map);
@@ -211,21 +282,23 @@
 
         async function fetchAvailableDevices() {
             try {
-                const devRes = await fetch('/devices');
-                if(!devRes.ok) return;
-                const devData = await devRes.json();
-                const currentSelected = selectEl.value;
-                if (devData.devices && devData.devices.length > 0) {
-                    if (selectEl.options.length > 0 && selectEl.options[0].value === "") { selectEl.innerHTML = ''; }
-                    devData.devices.forEach(did => {
-                        if (!Array.from(selectEl.options).some(opt => opt.value === did)) {
-                            const opt = document.createElement('option');
-                            opt.value = did; opt.textContent = did;
-                            selectEl.appendChild(opt);
-                        }
-                    });
-                    if (!currentSelected && selectEl.options.length > 0) { selectEl.value = selectEl.options[0].value; }
+                const res = await fetch('/devices');
+                if (!res.ok) return;
+                const data = await res.json();
+                const devices = data.devices || [];
+                const previousSelection = selectEl.value;
+                selectEl.innerHTML = '';
+                if (devices.length === 0) {
+                    selectEl.innerHTML = '<option value="">No devices connected</option>';
+                    return;
                 }
+                devices.forEach(did => {
+                    const opt = document.createElement('option');
+                    opt.value = did;
+                    opt.textContent = did;
+                    selectEl.appendChild(opt);
+                });
+                selectEl.value = devices.includes(previousSelection) ? previousSelection : devices[0];
             } catch(err) { console.error(err); }
         }
 
@@ -292,6 +365,11 @@
                         audioBadge.className = 'bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
                     }
 
+                    // Show server-side desired tracking state immediately
+                    if (data.location_tracking !== undefined) {
+                        locServerText.innerText = data.location_tracking === 1 ? 'ON' : 'OFF';
+                    }
+
                     // Sync the interval dropdown with actual device config
                     const intervalSelect = document.getElementById('interval-select');
                     if (data.ping_interval && document.activeElement !== intervalSelect) {
@@ -308,6 +386,11 @@
                     const screenText = document.getElementById('screen-time-text');
                     const minutes = parseInt(data.screen_time_minutes || 0, 10);
                     screenText.textContent = `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+
+                    lastSeenAgo.textContent = data.unix_time ? formatRelativeTime(new Date(data.unix_time * 1000)) : formatRelativeTime(data.timestamp);
+                    installedAppsCount.textContent = Array.isArray(data.installed_apps) ? data.installed_apps.length : (data.installed_apps ? data.installed_apps.toString().split(',').filter(Boolean).length : '0');
+                    blockedAppsCount.textContent = Array.isArray(data.blocked_apps) ? data.blocked_apps.length : (data.blocked_apps ? data.blocked_apps.toString().split(',').filter(Boolean).length : '0');
+                    fetchSelfieStatus(activeDevice);
 
                     if(data.lat && data.lon) {
                         const lat = parseFloat(data.lat);
@@ -332,9 +415,17 @@
             } catch(e) { console.error(e); }
         }
 
-        (async () => { await fetchStats(); setInterval(fetchStats, 5000); })();
+        (async () => {
+            await fetchStats();
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    fetchStats();
+                }
+            }, 5000);
+        })();
         selectEl.addEventListener('change', () => { hasLocation = false; localPathHash = ""; fetchStats(); });
         document.getElementById('path-time-filter').addEventListener('change', () => { localPathHash = ""; fetchStats(); });
+        refreshStatusBtn.addEventListener('click', fetchStats);
 
         document.getElementById('interval-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -374,24 +465,42 @@
 
         async function refreshLocationState() {
             if(!selectEl.value) { alert('No device selected'); return; }
-            document.getElementById('loc-state-text').innerText = '...';
+            const locText = document.getElementById('loc-state-text');
+            const locNote = document.getElementById('loc-state-note');
+            locText.innerText = '...';
+            locNote.innerText = 'Checking device connectivity...';
+
             const fd = new FormData();
             fd.append('device_id', selectEl.value);
-            await fetch('/check_location_state', { method: 'POST', body: fd });
-            
-            setTimeout(async () => {
-                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
-                if(!res.ok) {
-                    document.getElementById('loc-state-text').innerText = 'ERR';
-                    return;
-                }
-                const dev = await res.json();
-                if(dev.location_tracking !== undefined) {
-                    document.getElementById('loc-state-text').innerText = dev.location_tracking === 1 ? 'ON' : 'OFF';
+            const checkRes = await fetch('/check_location_state', { method: 'POST', body: fd });
+            if (!checkRes.ok) {
+                locText.innerText = 'ERR';
+                locNote.innerText = 'Device verification failed.';
+                return;
+            }
+            const checkData = await checkRes.json();
+
+            const statsRes = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
+            if (!statsRes.ok) {
+                locText.innerText = 'ERR';
+                locNote.innerText = checkData.connected ? 'Device reachable but status fetch failed.' : 'Device unreachable; cannot verify state.';
+                return;
+            }
+            const dev = await statsRes.json();
+            const serverState = dev.location_tracking === 1 ? 'ON' : 'OFF';
+            locServerText.innerText = serverState;
+
+            if (checkData.loc_state !== null) {
+                locText.innerText = checkData.loc_state === 1 ? 'ON' : 'OFF';
+                locNote.innerText = checkData.connected ? 'Device reachable; verified tracking state from device.' : 'Last known device state used.';
+            } else {
+                locText.innerText = serverState;
+                if (checkData.connected) {
+                    locNote.innerText = 'Device reachable but state verification timed out; showing server state.';
                 } else {
-                    document.getElementById('loc-state-text').innerText = 'UNKNOWN';
+                    locNote.innerText = 'Device unreachable; showing server state.';
                 }
-            }, 1500);
+            }
         }
 
         document.getElementById('enable-location-btn').addEventListener('click', () => setLocation(1));

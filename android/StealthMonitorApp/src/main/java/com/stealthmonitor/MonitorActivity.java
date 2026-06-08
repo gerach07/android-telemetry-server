@@ -29,6 +29,7 @@ public class MonitorActivity extends Activity {
 
     private static final String LOG_FILE = "/data/local/tmp/reporter.log";
     private static final String C2_URL_FILE = "/data/local/tmp/c2_url.txt";
+    private static final String PING_INTERVAL_FILE = "/data/local/tmp/ping_interval.txt";
     private static final String LOC_FLAG_FILE = "/data/local/tmp/location_enabled";
     private static final String DISABLE_FILE = "/data/local/tmp/reporter_disable";
     private static final String COORDS_FILE = "/data/local/tmp/coords.txt";
@@ -52,6 +53,7 @@ public class MonitorActivity extends Activity {
     private Handler handler;
     private Runnable refreshRunnable;
     private long lastLogSize = 0;
+    private long lastLogModified = 0;
     private int lastLogLineCount = 0;
 
     // Status views
@@ -285,15 +287,25 @@ public class MonitorActivity extends Activity {
             reporterStatusView.setText("RUNNING (PID " + foundPid + ")");
             reporterStatusView.setTextColor(ACCENT_GREEN);
         } else {
-            // Fallback: if log was updated in the last 30s, reporter is likely running
             File logFile = new File(LOG_FILE);
-            if (logFile.exists() && (System.currentTimeMillis() - logFile.lastModified()) < 30000) {
-                reporterStatusView.setText("ACTIVE (log updating)");
-                reporterStatusView.setTextColor(ACCENT_YELLOW);
-            } else {
-                reporterStatusView.setText("NOT RUNNING");
-                reporterStatusView.setTextColor(ACCENT_RED);
+            if (logFile.exists()) {
+                long intervalSeconds = 60;
+                String intervalValue = readFileOneLine(PING_INTERVAL_FILE);
+                if (intervalValue != null) {
+                    try {
+                        long parsed = Long.parseLong(intervalValue.trim());
+                        if (parsed >= 1) intervalSeconds = parsed;
+                    } catch (NumberFormatException ignored) {}
+                }
+                long threshold = Math.max(30000L, intervalSeconds * 1000L + 15000L);
+                if ((System.currentTimeMillis() - logFile.lastModified()) < threshold) {
+                    reporterStatusView.setText("ACTIVE (log updating)");
+                    reporterStatusView.setTextColor(ACCENT_YELLOW);
+                    return;
+                }
             }
+            reporterStatusView.setText("NOT RUNNING");
+            reporterStatusView.setTextColor(ACCENT_RED);
         }
     }
 
@@ -303,8 +315,8 @@ public class MonitorActivity extends Activity {
             serverUrlView.setText(url);
             serverUrlView.setTextColor(ACCENT_BLUE);
         } else {
-            serverUrlView.setText("NOT SET");
-            serverUrlView.setTextColor(TEXT_SECONDARY);
+            serverUrlView.setText("DEFAULT");
+            serverUrlView.setTextColor(ACCENT_BLUE);
         }
     }
 
@@ -355,10 +367,11 @@ public class MonitorActivity extends Activity {
         }
 
         long currentSize = logFile.length();
-        if (currentSize == lastLogSize) return; // No changes
+        long currentModified = logFile.lastModified();
+        if (currentSize == lastLogSize && currentModified == lastLogModified) return; // No changes
 
         try {
-            // Read only the last 100 lines for performance
+            // Read only the last 150 lines for performance
             BufferedReader reader = new BufferedReader(new FileReader(logFile));
             String line;
             StringBuilder sb = new StringBuilder();
@@ -375,6 +388,7 @@ public class MonitorActivity extends Activity {
             }
 
             lastLogSize = currentSize;
+            lastLogModified = currentModified;
             logView.setText(sb.toString());
 
             // Auto-scroll to bottom
@@ -385,7 +399,7 @@ public class MonitorActivity extends Activity {
                 }
             });
         } catch (Exception e) {
-            // Silently ignore read errors
+            logView.setText("(unable to read reporter.log)");
         }
     }
 

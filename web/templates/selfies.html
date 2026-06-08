@@ -32,6 +32,7 @@
                 <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
                 <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
                 <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
+                <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
                 <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
                     <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
                     <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
@@ -49,13 +50,80 @@
                     <h2 class="text-sm font-bold text-gray-700 uppercase tracking-widest">Remote Capture</h2>
                     <p class="text-xs text-gray-400 mt-1">Force an immediate selfie capture or wait for the next scheduled one</p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <button id="force-selfie-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg uppercase tracking-wide">
                         📸 Force Selfie Now
+                    </button>
+                    <button id="skip-today-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-xl font-bold text-sm transition border border-yellow-500 uppercase tracking-wide">
+                        ⏭ Skip Today
+                    </button>
+                    <button id="undo-skip-today-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-sm transition border border-blue-500 uppercase tracking-wide hidden">
+                        ↩ Undo Skip
                     </button>
                     <button id="refresh-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-bold text-sm transition border border-gray-200">
                         ↻ Refresh
                     </button>
+                </div>
+                <p id="skip-note" class="text-xs text-gray-500 mt-2">Skip today will mark the current day as skipped for selfie capture.</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+            <div class="flex flex-col sm:flex-row items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-sm font-bold text-gray-700 uppercase tracking-widest">Selfie Schedule</h2>
+                    <p class="text-xs text-gray-400 mt-1">The server chooses the next forced selfie time. Edit it, pause auto-sends, or keep development mode enabled so the device is not contacted.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Next scheduled run</label>
+                        <div id="next-run-display" class="text-sm font-semibold text-gray-800">Loading…</div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase" for="schedule-time-input">Time</label>
+                        <input id="schedule-time-input" type="time" class="w-full rounded-xl border border-gray-200 p-3 text-sm" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase">&nbsp;</label>
+                        <button id="save-schedule-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-bold text-sm transition uppercase tracking-wide">Save Schedule</button>
+                    </div>
+                </div>
+            </div>
+                <div class="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer">
+                        <input id="schedule-enabled-checkbox" type="checkbox" class="h-4 w-4 text-emerald-600 border-gray-300 rounded" />
+                        <span class="text-sm font-bold text-gray-700">Schedule enabled</span>
+                    </label>
+                    <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer">
+                        <input id="dev-mode-checkbox" type="checkbox" class="h-4 w-4 text-yellow-500 border-gray-300 rounded" checked />
+                        <span class="text-sm font-bold text-gray-700">Development mode (no device send)</span>
+                    </label>
+                    <div class="rounded-xl border border-gray-200 px-4 py-3 bg-gray-50">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Skip status</span>
+                        <div id="skip-status-display" class="text-sm font-semibold text-gray-800 mt-2">Loading…</div>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 px-4 py-3 bg-gray-50">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Device status</span>
+                        <div id="device-status-display" class="text-sm font-semibold text-gray-800 mt-2">Loading…</div>
+                        <div id="last-seen-display" class="text-xs text-gray-500 mt-1">Waiting for device status...</div>
+                    </div>
+                </div>
+                <p id="schedule-note" class="text-xs text-gray-500 mt-4">If development mode is on, scheduled commands will be suppressed.</p>
+            </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="rounded-2xl border border-gray-200 p-4 bg-gray-50">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Selfies</p>
+                    <p id="selfie-total-count" class="text-3xl font-black text-gray-900">0</p>
+                </div>
+                <div class="rounded-2xl border border-gray-200 p-4 bg-gray-50">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Next Run In</p>
+                    <p id="selfie-next-countdown" class="text-3xl font-black text-gray-900">--</p>
+                </div>
+                <div class="rounded-2xl border border-gray-200 p-4 bg-gray-50">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Capture</p>
+                    <p id="selfie-last-capture" class="text-3xl font-black text-gray-900">--</p>
                 </div>
             </div>
         </div>
@@ -90,8 +158,12 @@
                     <p class="text-sm text-gray-500"><span class="font-bold text-gray-700">Captured:</span> <span id="modal-time"></span></p>
                     <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Battery:</span> <span id="modal-battery"></span>%</p>
                     <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Location:</span> <span id="modal-location"></span></p>
-                    <div class="mt-4 flex gap-3">
+                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Review:</span> <span id="modal-status"></span></p>
+                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Reviewed at:</span> <span id="modal-reviewed-at"></span></p>
+                    <div class="mt-4 flex flex-wrap gap-3">
                         <a id="modal-download" href="" download class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Download</a>
+                        <button id="modal-approve" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Approve</button>
+                        <button id="modal-deny" class="bg-red-50 hover:bg-red-100 text-red-700 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Deny</button>
                         <button id="modal-delete" class="bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Delete</button>
                     </div>
                 </div>
@@ -110,30 +182,185 @@ const modalTime = document.getElementById('modal-time');
 const modalBattery = document.getElementById('modal-battery');
 const modalLocation = document.getElementById('modal-location');
 const modalDownload = document.getElementById('modal-download');
+const modalApprove = document.getElementById('modal-approve');
+const modalDeny = document.getElementById('modal-deny');
 const modalDelete = document.getElementById('modal-delete');
 const modalClose = document.getElementById('modal-close');
+const skipTodayBtn = document.getElementById('skip-today-btn');
+const undoSkipTodayBtn = document.getElementById('undo-skip-today-btn');
+const deviceStatusDisplay = document.getElementById('device-status-display');
+const lastSeenDisplay = document.getElementById('last-seen-display');
+const skipStatusDisplay = document.getElementById('skip-status-display');
+const modalStatus = document.getElementById('modal-status');
+const modalReviewedAt = document.getElementById('modal-reviewed-at');
+const skipNote = document.getElementById('skip-note');
+const selfieTotalCount = document.getElementById('selfie-total-count');
+const selfieNextCountdown = document.getElementById('selfie-next-countdown');
+const selfieLastCapture = document.getElementById('selfie-last-capture');
+let nextScheduledRunTime = null;
 let currentSelfieId = null;
 let selectedDate = '';
+let skippedToday = false;
+const scheduleTimeInput = document.getElementById('schedule-time-input');
+const scheduleEnabledCheckbox = document.getElementById('schedule-enabled-checkbox');
+const devModeCheckbox = document.getElementById('dev-mode-checkbox');
+const nextRunDisplay = document.getElementById('next-run-display');
+const saveScheduleBtn = document.getElementById('save-schedule-btn');
+
+function formatSelfieScheduleDisplay(value) {
+    return value ? value.replace(' ', ' @ ') : 'Not scheduled yet';
+}
+
+async function loadSelfieSchedule() {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return;
+    try {
+        const resp = await fetch(`/selfie_schedule?device_id=${encodeURIComponent(deviceId)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        nextRunDisplay.textContent = formatSelfieScheduleDisplay(data.next_run_at);
+        nextScheduledRunTime = data.next_run_at ? new Date(data.next_run_at) : null;
+        updateNextRunCountdown();
+        scheduleTimeInput.value = data.next_run_at ? data.next_run_at.slice(11, 16) : '';
+        scheduleEnabledCheckbox.checked = data.enabled === 1 || data.enabled === true;
+        devModeCheckbox.checked = data.dev_mode === 1 || data.dev_mode === true;
+        updateScheduleNote();
+    } catch (e) {
+        console.error('Failed to load selfie schedule:', e);
+    }
+}
+
+function updateScheduleNote() {
+    if (devModeCheckbox.checked) {
+        document.getElementById('schedule-note').textContent = 'Dev mode is ON: scheduled selfie commands will not be sent to the device.';
+    } else if (!scheduleEnabledCheckbox.checked) {
+        document.getElementById('schedule-note').textContent = 'Schedule is disabled. Manual capture still works.';
+    } else {
+        document.getElementById('schedule-note').textContent = 'Dev mode is OFF: scheduled captures will be sent to the device at the chosen time.';
+    }
+}
+
+function formatDuration(ms) {
+    if (!ms || ms <= 0) return 'Due now';
+    const seconds = Math.floor(ms / 1000);
+    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(mins / 60);
+    if (hrs > 0) return `${hrs}h ${mins % 60}m`;
+    if (mins > 0) return `${mins}m ${seconds % 60}s`;
+    return `${seconds}s`;
+}
+
+function updateNextRunCountdown() {
+    if (!nextScheduledRunTime) {
+        selfieNextCountdown.textContent = 'No schedule';
+        return;
+    }
+    const diff = nextScheduledRunTime.getTime() - Date.now();
+    selfieNextCountdown.textContent = formatDuration(diff);
+}
+
+saveScheduleBtn.addEventListener('click', async () => {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return alert('No device selected');
+    const scheduledTime = scheduleTimeInput.value || '10:30';
+    const form = new FormData();
+    form.append('device_id', deviceId);
+    form.append('scheduled_time', scheduledTime);
+    form.append('enabled', scheduleEnabledCheckbox.checked ? '1' : '0');
+    form.append('dev_mode', devModeCheckbox.checked ? '1' : '0');
+
+    const btn = saveScheduleBtn;
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/set_selfie_schedule', { method: 'POST', body: form });
+        if (resp.ok) {
+            await loadSelfieSchedule();
+        }
+    } catch (e) {
+        console.error('Failed to save schedule:', e);
+    } finally {
+        btn.textContent = 'Save Schedule';
+        btn.disabled = false;
+    }
+});
 
 async function loadDevices() {
     try {
         const resp = await fetch('/devices');
+        if (!resp.ok) return;
         const data = await resp.json();
+        const selected = deviceSelect.value;
         deviceSelect.innerHTML = '';
-        if (data.devices && data.devices.length > 0) {
-            data.devices.forEach((d, i) => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                deviceSelect.appendChild(opt);
-            });
-            loadDates();
-            loadSelfies();
-        } else {
+        const devices = data.devices || [];
+        if (devices.length === 0) {
             deviceSelect.innerHTML = '<option value="">No devices</option>';
+            return;
         }
+        devices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            deviceSelect.appendChild(opt);
+        });
+        deviceSelect.value = devices.includes(selected) ? selected : devices[0];
+        loadDates();
+        loadSelfies();
+        await loadSelfieSchedule();
+        await checkSkipStatus();
+        await loadDeviceStatus();
     } catch (e) {
         console.error('Failed to load devices:', e);
+    }
+}
+
+async function checkSkipStatus() {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return;
+    try {
+        const resp = await fetch(`/selfie_skip_status?device_id=${encodeURIComponent(deviceId)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        skippedToday = data.skipped_today;
+        if (skippedToday) {
+            skipNote.textContent = `Selfie capture is skipped for today (${data.date}).`;
+            skipStatusDisplay.textContent = 'Skipped today';
+            skipTodayBtn.textContent = '✔ Skipped';
+            skipTodayBtn.disabled = true;
+            undoSkipTodayBtn.classList.remove('hidden');
+        } else {
+            skipNote.textContent = 'Skip today will mark the current day as skipped for selfie capture.';
+            skipStatusDisplay.textContent = 'Not skipped';
+            skipTodayBtn.textContent = '⏭ Skip Today';
+            skipTodayBtn.disabled = false;
+            undoSkipTodayBtn.classList.add('hidden');
+        }
+        updateScheduleNote();
+    } catch (e) {
+        console.error('Failed to check skip status:', e);
+    }
+}
+
+async function loadDeviceStatus() {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return;
+    try {
+        const resp = await fetch(`/stats?device_id=${encodeURIComponent(deviceId)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.is_online) {
+            deviceStatusDisplay.textContent = 'Online';
+            deviceStatusDisplay.className = 'text-sm font-semibold text-emerald-700 mt-2';
+        } else {
+            deviceStatusDisplay.textContent = 'Offline';
+            deviceStatusDisplay.className = 'text-sm font-semibold text-red-600 mt-2';
+        }
+        lastSeenDisplay.textContent = `Last update: ${data.timestamp || 'unknown'}`;
+    } catch (e) {
+        console.error('Failed to load device status:', e);
+        deviceStatusDisplay.textContent = 'Unavailable';
+        deviceStatusDisplay.className = 'text-sm font-semibold text-gray-700 mt-2';
+        lastSeenDisplay.textContent = 'Could not fetch device status.';
     }
 }
 
@@ -169,6 +396,8 @@ async function loadSelfies() {
         const resp = await fetch(url);
         const data = await resp.json();
         const selfies = data.selfies || [];
+        selfieTotalCount.textContent = selfies.length;
+        selfieLastCapture.textContent = selfies.length ? selfies[0].timestamp : 'None';
         selfieCount.textContent = `${selfies.length} selfie${selfies.length !== 1 ? 's' : ''} captured`;
         if (selfies.length === 0) {
             selfieGrid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400 text-sm">No selfies found for this filter.</div>';
@@ -183,6 +412,7 @@ async function loadSelfies() {
                 <div class="p-3">
                     <p class="text-xs font-bold text-gray-700 truncate">${s.timestamp}</p>
                     <p class="text-[10px] text-gray-400 mt-1">🔋 ${s.battery}% · 📍 ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</p>
+                    <p class="text-[10px] font-semibold mt-2 ${s.review_status === 'approved' ? 'text-emerald-700' : s.review_status === 'denied' ? 'text-red-700' : 'text-yellow-700'}">Status: ${s.review_status || 'pending'}</p>
                 </div>
             `;
             card.addEventListener('click', () => openModal(s));
@@ -199,6 +429,8 @@ function openModal(s) {
     modalTime.textContent = s.timestamp;
     modalBattery.textContent = s.battery;
     modalLocation.textContent = `${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}`;
+    modalStatus.textContent = s.review_status || 'pending';
+    modalReviewedAt.textContent = s.reviewed_at || 'Not reviewed yet';
     modalDownload.href = s.url;
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -212,6 +444,31 @@ function closeModal() {
 
 modalClose.addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+async function reviewSelfie(action) {
+    if (!currentSelfieId) return;
+    const form = new FormData();
+    form.append('selfie_id', currentSelfieId);
+    form.append('action', action);
+    const resp = await fetch('/review_selfie', { method: 'POST', body: form });
+    if (resp.ok) {
+        const data = await resp.json();
+        modalStatus.textContent = data.review_status;
+        modalReviewedAt.textContent = data.reviewed_at;
+        loadSelfies();
+    }
+}
+
+modalApprove.addEventListener('click', async () => {
+    if (!currentSelfieId) return;
+    await reviewSelfie('approve');
+});
+
+modalDeny.addEventListener('click', async () => {
+    if (!currentSelfieId) return;
+    if (!confirm('Deny this selfie?')) return;
+    await reviewSelfie('deny');
+});
 
 modalDelete.addEventListener('click', async () => {
     if (!currentSelfieId) return;
@@ -238,13 +495,63 @@ document.getElementById('force-selfie-btn').addEventListener('click', async () =
         btn.disabled = false;
     }, 2000);
     // Auto-refresh after a few seconds to pick up the new selfie
-    setTimeout(() => { loadSelfies(); loadDates(); }, 8000);
-    setTimeout(() => { loadSelfies(); loadDates(); }, 15000);
+    setTimeout(() => { loadSelfies(); loadDates(); checkSkipStatus(); }, 8000);
+    setTimeout(() => { loadSelfies(); loadDates(); checkSkipStatus(); }, 15000);
+});
+
+document.getElementById('skip-today-btn').addEventListener('click', async () => {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return alert('No device selected');
+    if (!confirm('Skip selfie capture for today?')) return;
+    const btn = document.getElementById('skip-today-btn');
+    btn.textContent = '⏳ Skipping...';
+    btn.disabled = true;
+
+    const form = new FormData();
+    form.append('device_id', deviceId);
+    const resp = await fetch('/skip_selfie_today', { method: 'POST', body: form });
+    if (resp.ok) {
+        skippedToday = true;
+        skipNote.textContent = 'Today is skipped for selfie capture. You can still force a selfie manually.';
+        btn.textContent = '✔ Skipped';
+        await loadSelfieSchedule();
+        await checkSkipStatus();
+    } else {
+        skipNote.textContent = 'Failed to skip today. Try again.';
+        btn.textContent = '⏭ Skip Today';
+        btn.disabled = false;
+    }
+});
+
+document.getElementById('undo-skip-today-btn').addEventListener('click', async () => {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return alert('No device selected');
+    if (!confirm('Undo today skip? The scheduled selfie will run again if still due.')) return;
+
+    const btn = document.getElementById('undo-skip-today-btn');
+    btn.textContent = '⏳ Undoing...';
+    btn.disabled = true;
+
+    const form = new FormData();
+    form.append('device_id', deviceId);
+    const resp = await fetch('/unskip_selfie_today', { method: 'POST', body: form });
+    if (resp.ok) {
+        skipNote.textContent = 'Today skip has been removed. Scheduled selfie can run again.';
+        await loadSelfieSchedule();
+        await checkSkipStatus();
+    } else {
+        skipNote.textContent = 'Failed to undo skip. Try again.';
+    }
+    btn.textContent = '↩ Undo Skip';
+    btn.disabled = false;
 });
 
 document.getElementById('refresh-btn').addEventListener('click', () => {
     loadSelfies();
     loadDates();
+    loadSelfieSchedule();
+    checkSkipStatus();
+    loadDeviceStatus();
 });
 
 document.querySelector('.date-pill[data-date=""]').addEventListener('click', () => {
@@ -254,16 +561,19 @@ document.querySelector('.date-pill[data-date=""]').addEventListener('click', () 
     loadSelfies();
 });
 
-deviceSelect.addEventListener('change', () => {
+deviceSelect.addEventListener('change', async () => {
     selectedDate = '';
     document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
     document.querySelector('.date-pill[data-date=""]').classList.add('active');
     loadDates();
     loadSelfies();
+    await checkSkipStatus();
+    await loadSelfieSchedule();
+    await loadDeviceStatus();
 });
 
 loadDevices();
-setInterval(loadSelfies, 30000);
+setInterval(() => { if (document.visibilityState === 'visible') { loadSelfies(); checkSkipStatus(); loadSelfieSchedule(); updateNextRunCountdown(); } }, 30000);
 </script>
 </body>
 </html>
