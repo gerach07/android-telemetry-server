@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.stealthaudio">
 
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
+
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
@@ -8,14 +10,13 @@
         android:label="StealthAudio"
         android:allowBackup="false"
         android:directBootAware="true">
-        <activity
-            android:name=".StealthAudioActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen">
+        <receiver
+            android:name=".StealthAudioReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </activity>
+        </receiver>
     </application>
 </manifest>

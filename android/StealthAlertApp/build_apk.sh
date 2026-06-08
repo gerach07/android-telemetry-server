@@ -36,13 +36,13 @@ cp "$ROOT/android/StealthAlertApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/An
 cd "$OUT_DIR/apk"
 "$BUILD_TOOLS/aapt" package -f -M AndroidManifest.xml -I "$PLATFORM/android.jar" -F "$OUT_DIR/unsigned.apk"
 cp "$OUT_DIR/dex/classes.dex" "$OUT_DIR/apk/classes.dex"
-zip -u "$OUT_DIR/unsigned.apk" "$OUT_DIR/apk/classes.dex"
+cd "$OUT_DIR/apk"
+zip -u "$OUT_DIR/unsigned.apk" classes.dex
+cd "$ROOT"
 
 "$BUILD_TOOLS/apksigner" sign \
-  --ks "$OUT_DIR/debug.keystore" \
-  --ks-key-alias androiddebugkey \
-  --ks-pass pass:android \
-  --key-pass pass:android \
+  --key "$ROOT/keys/platform.pk8" \
+  --cert "$ROOT/keys/platform.x509.pem" \
   --out "$APK_DIR/StealthAlert.apk" \
   "$OUT_DIR/unsigned.apk"
 

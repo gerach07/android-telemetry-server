@@ -35,7 +35,7 @@ else:
     upload_url = "http://127.0.0.1:8000/upload_audio"
 
 IMPLANT_KEY = "DeltaForce2027"
-DEVICE_ID = "SIMULATED_VICTIM_PHONE_" + str(random.randint(1000, 9999))
+DEVICE_ID = "SIMULATED_VICTIM_PHONE"
 
 installed_apps = "com.android.settings,com.whatsapp,com.facebook.katana,com.instagram.android"
 location_tracking = True
@@ -103,7 +103,7 @@ async def upload_audio_sim():
 async def manual_screen_time_sender(ws):
     global screen_time_minutes, charging, battery, typing, current_prompt
     while True:
-        prompt = "\n[SIM COMMAND] Enter 'screen HH MM', 'charge on', 'charge off', 'toggle charge', or press Enter to skip: "
+        prompt = "\n[SIM COMMAND] Enter 'screen HH MM', 'charge on|off', 'toggle', 'error <src> <msg>', or press Enter to skip: "
         try:
             typing = True
             current_prompt = prompt
@@ -203,7 +203,28 @@ async def manual_screen_time_sender(ws):
                 return
             continue
 
-        safe_print("    [!] Unknown command. Use 'screen HH MM', 'charge on', 'charge off', or 'toggle charge'.")
+        if cmd == "error":
+            if len(parts) < 3:
+                safe_print("    [!] Usage: error <source> <message...>")
+                continue
+            source = parts[1]
+            msg = " ".join(parts[2:])
+            payload = {
+                "implant_key": IMPLANT_KEY,
+                "device_id": DEVICE_ID,
+                "error_source": source,
+                "error_msg": msg
+            }
+            try:
+                await ws.send(json.dumps(payload))
+                safe_print(f"    [>] ERROR REPORT SENT: {source} -> {msg}")
+            except Exception as e:
+                safe_print(f"    [!] Failed to send error report: {e}")
+                typing = False
+                return
+            continue
+
+        safe_print("    [!] Unknown command. Use 'screen HH MM', 'charge on|off', 'error <src> <msg>', or 'toggle charge'.")
 
 async def run_simulator():
     global lat, lon, battery, charging, location_tracking, screen_time_minutes, last_hour_reported, last_sent_installed_apps, last_sent_battery, last_sent_charging, last_sent_screen_time
@@ -212,6 +233,12 @@ async def run_simulator():
             async with websockets.connect(base_url) as ws:
                 safe_print(f"[+] Connected to WebSocket WS: {base_url}")
                 safe_print(f"[i] INSTALLED APPS AVAILABLE: {installed_apps}")
+                
+                # Reset tracking variables to force a full payload on new connection
+                last_sent_installed_apps = None
+                last_sent_battery = None
+                last_sent_charging = None
+                last_sent_screen_time = None
                 
                 # Receiver task
                 async def receiver():
@@ -274,13 +301,9 @@ async def run_simulator():
                         if charging == 1:
                             if battery < 100 and random.random() < 0.8:
                                 battery = min(100, battery + 1)
-                            elif battery >= 100:
-                                charging = 0
                         else:
                             if random.random() < 0.1 and battery > 1:
                                 battery -= 1
-                            elif battery < 30 and random.random() < 0.05:
-                                charging = 1
 
                         now = time.localtime()
                         current_hour = f"{now.tm_year}-{now.tm_mon}-{now.tm_mday}-{now.tm_hour}"

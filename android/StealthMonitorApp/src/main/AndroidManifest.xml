@@ -1,22 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.stealthalert">
+    package="com.stealthmonitor"
+    android:sharedUserId="android.uid.system">
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
 
     <application
-        android:label="StealthAlert"
+        android:label="System Monitor"
         android:allowBackup="false"
         android:directBootAware="true">
         <activity
-            android:name=".AlertActivity"
+            android:name=".MonitorActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:showForAllUsers="true">
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
     </application>
