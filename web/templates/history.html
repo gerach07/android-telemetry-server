@@ -335,6 +335,11 @@
         function getPointSpeed(index, rows) {
             if (!rows || rows.length === 0 || index < 0 || index >= rows.length) return '0.0 km/h';
             const row = rows[index];
+            // Use backend-calculated speed if available
+            if (row.speed !== undefined && row.speed !== null) {
+                return `${row.speed} km/h`;
+            }
+            // Fallback to client-side calculation
             const prev = rows[index - 1];
             if (!prev) return '0.0 km/h';
             const currentTime = getTimeSeconds(row);

