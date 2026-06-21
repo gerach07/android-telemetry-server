@@ -30,7 +30,6 @@ public class GpsService extends Service implements SensorEventListener {
     private Sensor linearAccelSensor;
 
     private File coordsFile;
-    private File coordsTmpFile;  // written first, then renamed → atomic update
     private File errorFile;
     private long currentIntervalMs = 5000L; // Default 5 seconds if not provided
 
@@ -59,7 +58,6 @@ public class GpsService extends Service implements SensorEventListener {
             }
         }
         coordsFile    = new File("/data/local/tmp/coords.txt");
-        coordsTmpFile = new File("/data/local/tmp/coords.txt.tmp");
         errorFile     = new File("/data/local/tmp/gps_errors.txt");
         Log.d(TAG, "GpsService created");
     }
@@ -156,21 +154,16 @@ public class GpsService extends Service implements SensorEventListener {
             String coordsStr = location.getLatitude() + "," + location.getLongitude();
             Log.d(TAG, "Location updated: " + coordsStr);
 
-            // Atomic write: write to a .tmp file first, then rename() it into
-            // place.  rename() is atomic on Linux — reporter.cpp will never
-            // read a partially-written or truncated coords.txt file.
+            // Overwrite the existing file directly. The device-side handoff
+            // path is pre-created by the installer with writable permissions,
+            // so the service can update it without needing directory writes.
             try (OutputStreamWriter writer = new OutputStreamWriter(
-                    new FileOutputStream(coordsTmpFile, false),
+                    new FileOutputStream(coordsFile, false),
                     StandardCharsets.US_ASCII)) {
                 writer.write(coordsStr);
                 writer.write('\n');
             } catch (Exception e) {
-                logError("Failed to write coordinates to tmp file", e);
-                return;
-            }
-            // Atomic rename: reporter.cpp always sees either old or new content
-            if (!coordsTmpFile.renameTo(coordsFile)) {
-                logError("Failed to rename coords tmp file to " + coordsFile.getAbsolutePath(), null);
+                logError("Failed to write coordinates to " + coordsFile.getAbsolutePath(), e);
             }
         }
 

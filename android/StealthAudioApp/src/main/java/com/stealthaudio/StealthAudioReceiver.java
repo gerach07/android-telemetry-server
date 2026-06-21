@@ -3,7 +3,6 @@ package com.stealthaudio;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.util.Log;
 
 import java.io.File;
@@ -23,12 +22,17 @@ public class StealthAudioReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        final PendingResult pendingResult = goAsync();
         try {
-            if (intent == null) return;
+            if (intent == null) {
+                pendingResult.finish();
+                return;
+            }
 
             String action = intent.getStringExtra("action");
             if (action == null) {
                 logError("Missing 'action' extra in intent", null);
+                pendingResult.finish();
                 return;
             }
 
@@ -58,25 +62,45 @@ public class StealthAudioReceiver extends BroadcastReceiver {
                 serviceIntent.putExtra("loops", loops);
                 if (deviceId != null) serviceIntent.putExtra("device_id", deviceId);
 
-                // startForegroundService() required on Android 8+ — the service MUST
-                // call startForeground() within 5 seconds or the system throws ANR.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Start the foreground service directly; this is now allowed because
+                // the app is privileged and requests START_FOREGROUND_SERVICES_FROM_BACKGROUND.
+                try {
                     appContext.startForegroundService(serviceIntent);
-                } else {
-                    appContext.startService(serviceIntent);
+                    pendingResult.finish();
+                } catch (Exception startException) {
+                    logError("Service start failed, falling back to direct playback", startException);
+                    final Context playbackContext = appContext;
+                    final int playbackType = type;
+                    final float playbackVolume = volume;
+                    final int playbackLoops = loops;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                StealthAudio.playSound(playbackContext, playbackType, playbackVolume, playbackLoops);
+                            } catch (Exception playbackException) {
+                                logError("Direct playback failed", playbackException);
+                            } finally {
+                                pendingResult.finish();
+                            }
+                        }
+                    }, "sa-direct-playback").start();
                 }
 
             } else if ("stop".equals(action)) {
                 Log.i(TAG, "Stopping audio blast via ForegroundService");
                 serviceIntent.putExtra("action", "stop");
                 appContext.startService(serviceIntent);
+                pendingResult.finish();
 
             } else {
                 logError("Unknown action received: " + action, null);
+                pendingResult.finish();
             }
 
         } catch (Exception e) {
             logError("Crash in onReceive", e);
+            pendingResult.finish();
         }
     }
 }
