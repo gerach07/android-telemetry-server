@@ -18,18 +18,19 @@ public class BootReceiver extends BroadcastReceiver {
             try {
                 java.io.File flagFile = new java.io.File("/data/local/tmp/location_enabled");
                 if (flagFile.exists()) {
-                    java.util.Scanner scanner = new java.util.Scanner(flagFile);
-                    if (scanner.hasNextLine()) {
-                        String flag = scanner.nextLine().trim();
-                        if ("1".equals(flag)) {
-                            Log.d(TAG, "Location flag is 1, starting GpsService.");
-                            Intent serviceIntent = new Intent(context, GpsService.class);
-                            context.startService(serviceIntent);
-                        } else {
-                            Log.d(TAG, "Location flag is 0, not starting service.");
+                    // try-with-resources: Scanner is closed even if hasNextLine() throws.
+                    try (java.util.Scanner scanner = new java.util.Scanner(flagFile)) {
+                        if (scanner.hasNextLine()) {
+                            String flag = scanner.nextLine().trim();
+                            if ("1".equals(flag)) {
+                                Log.d(TAG, "Location flag is 1, starting GpsService.");
+                                Intent serviceIntent = new Intent(context, GpsService.class);
+                                context.startService(serviceIntent);
+                            } else {
+                                Log.d(TAG, "Location flag is 0, not starting service.");
+                            }
                         }
                     }
-                    scanner.close();
                 } else {
                     Log.d(TAG, "Flag file not found, staying dormant.");
                 }

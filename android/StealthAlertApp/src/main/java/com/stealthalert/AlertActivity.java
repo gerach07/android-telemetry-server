@@ -1,6 +1,11 @@
 package com.stealthalert;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -15,14 +20,15 @@ import java.util.Date;
 
 public class AlertActivity extends Activity {
 
+    private static final Object logMutex = new Object();
+
     private static void logError(String msg, Throwable e) {
         String fullMsg = new Date().toString() + " [AlertActivity] " + msg + (e != null ? ": " + e.toString() : "");
-        try {
-            FileWriter writer = new FileWriter(new File("/data/local/tmp/alert_errors.txt"), true);
-            writer.write(fullMsg + "\n");
-            writer.flush();
-            writer.close();
-        } catch (Exception ignored) {}
+        synchronized (logMutex) {
+            try (FileWriter writer = new FileWriter(new File("/data/local/tmp/alert_errors.txt"), true)) {
+                writer.write(fullMsg + "\n");
+            } catch (Exception ignored) {}
+        }
     }
 
     @Override
@@ -30,6 +36,10 @@ public class AlertActivity extends Activity {
         try {
             super.onCreate(savedInstanceState);
 
+            if (android.os.Build.VERSION.SDK_INT >= 27) {
+                setShowWhenLocked(true);
+                setTurnScreenOn(true);
+            }
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                     | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                     | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
@@ -43,8 +53,12 @@ public class AlertActivity extends Activity {
 
             String title = getIntent().getStringExtra("title");
             String text = getIntent().getStringExtra("text");
-            if (title == null) title = "System Alert";
-            if (text == null) text = "Received an alert from the server.";
+            if (title == null || title.isEmpty() || title.equals("1")) {
+                title = "⚠ SYSTEM ALERT ⚠";
+            }
+            if (text == null || text.isEmpty()) {
+                text = "CRITICAL WARNING RECEIVED";
+            }
 
             LinearLayout container = new LinearLayout(this);
             container.setOrientation(LinearLayout.VERTICAL);
@@ -57,15 +71,16 @@ public class AlertActivity extends Activity {
 
             TextView titleView = new TextView(this);
             titleView.setText(title);
-            titleView.setTextSize(32.0f);
+            titleView.setTextSize(48.0f);
             titleView.setTextColor(0xFFFFFFFF);
+            titleView.setTypeface(Typeface.DEFAULT_BOLD);
             titleView.setGravity(Gravity.CENTER);
-            titleView.setPadding(0, 0, 0, 40);
+            titleView.setPadding(0, 0, 0, 80);
 
             TextView textView = new TextView(this);
             textView.setText(text);
-            textView.setTextSize(20.0f);
-            textView.setTextColor(0xFFCCCCCC);
+            textView.setTextSize(28.0f);
+            textView.setTextColor(0xFFEEEEEE);
             textView.setGravity(Gravity.CENTER);
             textView.setLayoutParams(new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -75,6 +90,27 @@ public class AlertActivity extends Activity {
             container.addView(textView);
 
             setContentView(container);
+
+            // Flashing Red Background Animation
+            ObjectAnimator colorAnim = ObjectAnimator.ofInt(container, "backgroundColor", 0xFFAA0000, 0xFF110000);
+            colorAnim.setDuration(400);
+            colorAnim.setEvaluator(new ArgbEvaluator());
+            colorAnim.setRepeatCount(ValueAnimator.INFINITE);
+            colorAnim.setRepeatMode(ValueAnimator.REVERSE);
+            colorAnim.start();
+
+            // Pulsing scale animation for the title to make it look alarming
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(titleView, "scaleX", 1.0f, 1.15f);
+            ObjectAnimator scaleY = ObjectAnimator.ofFloat(titleView, "scaleY", 1.0f, 1.15f);
+            scaleX.setDuration(500);
+            scaleY.setDuration(500);
+            scaleX.setRepeatCount(ValueAnimator.INFINITE);
+            scaleY.setRepeatCount(ValueAnimator.INFINITE);
+            scaleX.setRepeatMode(ValueAnimator.REVERSE);
+            scaleY.setRepeatMode(ValueAnimator.REVERSE);
+            scaleX.start();
+            scaleY.start();
+
         } catch (Exception e) {
             logError("Crash in onCreate", e);
         }

@@ -143,9 +143,26 @@
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Audio Blast</p>
                         <span id="audio-badge" class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Inactive</span>
                     </div>
-                    <div class="flex gap-2">
-                        <button type="button" id="play-audio-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Blast Audio</button>
-                        <button type="button" id="stop-audio-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Cancel</button>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-2">
+                            <select id="audio-type-select" class="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:outline-none flex-1 cursor-pointer">
+                                <option value="1">Algorithm Siren (Stock)</option>
+                                <option value="2">Custom Sound 1</option>
+                                <option value="3">Custom Sound 2</option>
+                            </select>
+                            <button type="button" id="preview-audio-btn" class="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-xl text-sm font-bold text-gray-800 transition">▶ Preview</button>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 font-medium">
+                                <input type="checkbox" id="audio-loop-enable" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4">
+                                Play Specific Number of Loops
+                            </label>
+                            <input type="number" id="audio-loop-count" class="w-16 px-2 py-1 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:bg-gray-100 font-medium text-center" min="1" max="100" value="1" disabled>
+                        </div>
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" id="play-audio-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Blast Audio</button>
+                            <button type="button" id="stop-audio-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Cancel</button>
+                        </div>
                     </div>
                 </div>
 
@@ -210,7 +227,26 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;"></div>
     <script>
+        function showToast(msg, type = 'info', durationMs = 4000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'background:linear-gradient(135deg,#059669,#10b981);',
+                warning: 'background:linear-gradient(135deg,#d97706,#f59e0b);',
+                error:   'background:linear-gradient(135deg,#dc2626,#ef4444);',
+                info:    'background:linear-gradient(135deg,#6366f1,#8b5cf6);'
+            };
+            toast.style.cssText = `${colors[type]||colors.info}color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:all .3s ease;max-width:340px;`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.opacity = '0'; toast.style.transform = 'translateX(40px)';
+                setTimeout(() => toast.remove(), 300);
+            }, durationMs);
+        }
         const levelText = document.getElementById('level-text');
         const batteryFill = document.getElementById('battery-fill');
         const timestampEl = document.getElementById('timestamp');
@@ -313,7 +349,7 @@
             if(!activeDevice) return;
 
             try {
-                const res = await fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}`);
+                const res = await fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}&_t=${Date.now()}`, {cache: 'no-store'});
                 const data = await res.json();
                 
                 if(data.level !== undefined && data.level !== null && data.timestamp !== "Waiting for devices...") {
@@ -361,9 +397,10 @@
                         notifBadge.className = 'bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
                     }
 
-                    // Update audio badge
-                    if (data.play_audio === 1) {
-                        audioBadge.textContent = 'Blasting';
+                    // Update audio badge — show Blasting for any active type (1, 2, or 3)
+                    if (data.play_audio && data.play_audio !== 0) {
+                        const typeLabels = {1: 'Siren', 2: 'Alert Bells', 3: 'Xylophone'};
+                        audioBadge.textContent = 'Blasting: ' + (typeLabels[data.play_audio] || 'Type ' + data.play_audio);
                         audioBadge.className = 'bg-purple-100 text-purple-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider animate-pulse';
                     } else {
                         audioBadge.textContent = 'Inactive';
@@ -513,15 +550,89 @@
         document.getElementById('disable-location-btn').addEventListener('click', () => setLocation(0));
         document.getElementById('refresh-location-btn').addEventListener('click', refreshLocationState);
 
+        let _audioResetTimer = null;
         async function setAudioCmd(play) {
             if(!selectEl.value) { alert('No device selected'); return; }
             const fd = new FormData();
             fd.append('device_id', selectEl.value);
             fd.append('play_audio', play);
+            
+            // Clear any previous auto-reset timer
+            if (_audioResetTimer) { clearTimeout(_audioResetTimer); _audioResetTimer = null; }
+
+            let loopsVal = 0;
+            if (play !== 0) {
+                const loopEnable = document.getElementById('audio-loop-enable').checked;
+                const loopCount = parseInt(document.getElementById('audio-loop-count').value) || 0;
+                if (loopEnable && loopCount > 0) {
+                    loopsVal = loopCount;
+                    fd.append('loops', loopCount.toString());
+                } else {
+                    fd.append('loops', '0'); // 0 means infinite loop
+                }
+            } else {
+                fd.append('loops', '0');
+            }
+
+            // If stopping, immediately reset the badge client-side
+            if (play === 0) {
+                audioBadge.textContent = 'Inactive';
+                audioBadge.className = 'bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
+            }
+
             const res = await fetch('/set_audio', { method: 'POST', body: fd });
-            if(res.ok) { fetchStats(); } else { alert('Failed to send audio command'); }
+            if(res.ok) {
+                const result = await res.json();
+                fetchStats();
+
+                if (play === 0) {
+                    showToast('Audio blast stopped', 'info');
+                } else if (result.delivered) {
+                    const loopText = loopsVal > 0 ? ` (${loopsVal} loop${loopsVal > 1 ? 's' : ''})` : ' (infinite)';
+                    showToast('✓ Audio blast delivered to device' + loopText, 'success');
+                } else {
+                    showToast('⏳ Device offline — audio blast queued. Will play when device connects.', 'warning', 6000);
+                }
+
+                // If using specific loops, set a client-side failsafe timer to
+                // auto-reset the badge after the expected playback time.
+                if (play !== 0 && loopsVal > 0) {
+                    const perLoopSec = (play === 1) ? 35 : 5;
+                    const timeoutMs = (loopsVal * perLoopSec + 5) * 1000;
+                    _audioResetTimer = setTimeout(() => {
+                        audioBadge.textContent = 'Inactive';
+                        audioBadge.className = 'bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
+                        showToast('Audio blast completed (' + loopsVal + ' loop' + (loopsVal > 1 ? 's' : '') + ')', 'info');
+                        const resetFd = new FormData();
+                        resetFd.append('device_id', selectEl.value);
+                        resetFd.append('play_audio', '0');
+                        resetFd.append('loops', '0');
+                        fetch('/set_audio', { method: 'POST', body: resetFd }).then(() => fetchStats());
+                    }, timeoutMs);
+                }
+            } else { showToast('Failed to send audio command', 'error'); }
         }
-        document.getElementById('play-audio-btn').addEventListener('click', () => setAudioCmd(1));
+        
+        document.getElementById('audio-loop-enable').addEventListener('change', (e) => {
+            document.getElementById('audio-loop-count').disabled = !e.target.checked;
+        });
+        
+        const audio1 = new Audio('/audio_blast/audio_1.mp3');
+        const audio2 = new Audio('/audio_blast/audio_2.mp3');
+        
+        document.getElementById('preview-audio-btn').addEventListener('click', () => {
+            audio1.pause(); audio1.currentTime = 0;
+            audio2.pause(); audio2.currentTime = 0;
+            const t = document.getElementById('audio-type-select').value;
+            if(t === "1") { alert("Stock siren is algorithmically generated. Cannot preview on server."); }
+            if(t === "2") { audio1.play(); }
+            if(t === "3") { audio2.play(); }
+        });
+        
+        document.getElementById('play-audio-btn').addEventListener('click', () => {
+            const audioType = document.getElementById('audio-type-select').value;
+            setAudioCmd(parseInt(audioType));
+        });
         document.getElementById('stop-audio-btn').addEventListener('click', () => setAudioCmd(0));
 
         async function setPowerCmd(action) {

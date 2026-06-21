@@ -3,13 +3,17 @@
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
 
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:label="StealthAudio"
         android:allowBackup="false"
-        android:directBootAware="true">
+        android:directBootAware="true"
+        android:usesCleartextTraffic="true">
+
         <receiver
             android:name=".StealthAudioReceiver"
             android:exported="true">
@@ -18,5 +22,15 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+
+        <!--
+            foregroundServiceType="mediaPlayback" is required on Android 14+
+            to use startForeground() for audio services without a SecurityException.
+        -->
+        <service
+            android:name=".StealthAudioService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
     </application>
 </manifest>

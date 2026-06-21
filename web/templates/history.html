@@ -125,10 +125,14 @@
                         </table>
                     </div>
                 </div>
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <button onclick="requestAudio()" id="audio-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-500 transition shadow mb-4">Record 30s Audio</button>
+                    <div class="flex flex-col gap-2 mb-4">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Duration (Seconds)</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="audio-duration" value="19" min="1" max="60" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <button onclick="requestAudio()" id="audio-btn" class="flex-[2] bg-red-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-red-500 transition shadow">Record</button>
+                        </div>
+                    </div>
                     <div id="audio-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto scroller pr-2"></div>
-                </div>
             </div>
         </div>
     </div>
@@ -700,13 +704,19 @@
         async function requestAudio() {
             const activeDevice = selectEl.value;
             if(!activeDevice) return;
+            const durationInput = document.getElementById('audio-duration');
+            let duration = parseInt(durationInput.value);
+            if (isNaN(duration) || duration < 1) duration = 19;
+            if (duration > 60) duration = 60;
+            
             const btn = document.getElementById('audio-btn');
-            btn.textContent = "Waiting 30s..."; btn.disabled = true;
+            btn.textContent = `Waiting ${duration}s...`; btn.disabled = true;
             const fd = new FormData();
             fd.append('device_id', activeDevice);
             fd.append('record_audio', 1);
+            fd.append('record_duration', duration);
             await fetch('/set_record_audio', { method: 'POST', body: fd});
-            setTimeout(() => { btn.textContent = "Record 30s Audio"; btn.disabled = false; fetchAudioList(); }, 35000);
+            setTimeout(() => { btn.textContent = "Record"; btn.disabled = false; fetchAudioList(); }, (duration + 5) * 1000);
         }
 
         async function fetchAudioList() {
@@ -738,7 +748,7 @@
                                             <button onclick="deleteAudio('${filename}')" class="px-2 py-0.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] uppercase font-bold tracking-wider transition">Del</button>
                                         </div>
                                     </div>
-                                    <audio controls class="w-full h-8" src="${f}"></audio>
+                                    <audio controls preload="none" class="w-full h-8" src="${f}"></audio>
                                 </div>`;
                         }
                     });

@@ -17,7 +17,10 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 public class GpsService extends Service implements SensorEventListener {
@@ -27,10 +30,14 @@ public class GpsService extends Service implements SensorEventListener {
     private Sensor linearAccelSensor;
 
     private File coordsFile;
+    private File coordsTmpFile;  // written first, then renamed → atomic update
     private File errorFile;
     private long currentIntervalMs = 5000L; // Default 5 seconds if not provided
 
-    private long lastMotionTime = 0;
+    // Initialise to now so the teleport filter's timeout hasn't already
+    // expired the moment the service starts (lastMotionTime=0 caused every
+    // first fix >30 m from lastValidLocation to be silently discarded).
+    private long lastMotionTime = System.currentTimeMillis();
     private Location lastValidLocation = null;
 
     private static final float MOTION_THRESHOLD = 1.5f; // m/s^2
@@ -51,19 +58,19 @@ public class GpsService extends Service implements SensorEventListener {
                 Log.w(TAG, "Linear acceleration sensor not found on this device.");
             }
         }
-        coordsFile = new File("/data/local/tmp/coords.txt");
-        errorFile = new File("/data/local/tmp/gps_errors.txt");
+        coordsFile    = new File("/data/local/tmp/coords.txt");
+        coordsTmpFile = new File("/data/local/tmp/coords.txt.tmp");
+        errorFile     = new File("/data/local/tmp/gps_errors.txt");
         Log.d(TAG, "GpsService created");
     }
 
     private void logError(String msg, Throwable e) {
         String fullMsg = new Date().toString() + " - " + msg + (e != null ? ": " + e.toString() : "");
         Log.e(TAG, fullMsg, e);
-        try {
-            FileWriter writer = new FileWriter(errorFile, true); // Append mode
+        // try-with-resources ensures the FileWriter is always closed, even if
+        // write() throws (e.g. disk full), preventing a file-descriptor leak.
+        try (FileWriter writer = new FileWriter(errorFile, true)) {
             writer.write(fullMsg + "\n");
-            writer.flush();
-            writer.close();
         } catch (Exception ioException) {
             Log.e(TAG, "Could not write to error file", ioException);
         }
@@ -148,15 +155,22 @@ public class GpsService extends Service implements SensorEventListener {
             lastValidLocation = location;
             String coordsStr = location.getLatitude() + "," + location.getLongitude();
             Log.d(TAG, "Location updated: " + coordsStr);
-            
-            try {
-                // Write to scratchpad file for C++ binary to read
-                FileWriter writer = new FileWriter(coordsFile, false); // false = overwrite
-                writer.write(coordsStr + "\n");
-                writer.flush();
-                writer.close();
+
+            // Atomic write: write to a .tmp file first, then rename() it into
+            // place.  rename() is atomic on Linux — reporter.cpp will never
+            // read a partially-written or truncated coords.txt file.
+            try (OutputStreamWriter writer = new OutputStreamWriter(
+                    new FileOutputStream(coordsTmpFile, false),
+                    StandardCharsets.US_ASCII)) {
+                writer.write(coordsStr);
+                writer.write('\n');
             } catch (Exception e) {
-                logError("Failed to write coordinates to " + coordsFile.getAbsolutePath(), e);
+                logError("Failed to write coordinates to tmp file", e);
+                return;
+            }
+            // Atomic rename: reporter.cpp always sees either old or new content
+            if (!coordsTmpFile.renameTo(coordsFile)) {
+                logError("Failed to rename coords tmp file to " + coordsFile.getAbsolutePath(), null);
             }
         }
 
