@@ -7,3 +7,4 @@ service system_telemetry_service /system/bin/reporter
     group root system shell input audio log inet net_admin net_raw
     seclabel u:r:system_server:s0
     oom_score_adjust -1000
+    restart

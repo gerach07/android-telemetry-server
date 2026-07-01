@@ -34,3 +34,16 @@ __pycache__/
 *.db
 *.pyc
 .env
+.DS_Store
+.idea/
+.gradle/
+.vscode/
+
+# Ignore generated build trees and local Android outputs
+/build/
+/build_*/
+/android/**/build/
+/cmake-build-*/
+/out/
+/system/bin/updater
+/system/priv-app/*/*.idsig

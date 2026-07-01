@@ -5,171 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anasio | Selfie Verification</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
-        .selfie-card { transition: transform 0.2s, box-shadow 0.2s; }
-        .selfie-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.12); }
         .selfie-img { object-fit: cover; aspect-ratio: 3/4; }
-        .date-pill { transition: all 0.15s; }
+        .selfie-card { transition: transform .18s, border-color .18s; }
+        .selfie-card:hover { transform: translateY(-3px); }
+        .date-pill { transition: all .15s; }
         .date-pill.active { background: #059669; color: white; border-color: #059669; }
-        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+        .spinning { animation: spin .8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal-overlay { background: rgba(0,0,0,0.65); }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-        <nav class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200 gap-4">
-            <div class="flex items-center gap-4">
-                <div class="bg-emerald-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+
+    <!-- Nav -->
+    <nav class="mb-6 flex flex-wrap justify-between items-center bg-white px-5 py-4 rounded-2xl border border-gray-200 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-emerald-50 text-emerald-600 p-2.5 rounded-xl">
+                <i class="ti ti-camera text-xl"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Facial Recognition</p>
+                <h1 class="text-xl font-semibold text-gray-900 leading-tight">Selfie Verification</h1>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+            <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-cpu text-sm"></i> C2</a>
+            <a href="/apps_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-lock text-sm"></i> Apps</a>
+            <a href="/errors_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-alert-circle text-sm"></i> Diag</a>
+            <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-history text-sm"></i> History</a>
+            <div class="w-px h-5 bg-gray-200 mx-1"></div>
+            <select id="device-select" aria-label="Select device" class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer hover:border-emerald-300 transition appearance-none pr-7">
+                <option value="">Awaiting connection…</option>
+            </select>
+            <a href="/logout" class="flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition"><i class="ti ti-logout text-sm"></i> Logout</a>
+        </div>
+    </nav>
+
+    <!-- Remote Capture -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="ti ti-radar"></i> Remote Capture</p>
+                <p class="text-xs text-gray-500">Force an immediate selfie or wait for the next scheduled capture.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="force-selfie-btn" class="flex items-center gap-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50">
+                    <i id="force-icon" class="ti ti-camera text-sm"></i> Force selfie now
+                </button>
+                <button id="skip-today-btn" class="flex items-center gap-2 text-xs font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition disabled:opacity-50">
+                    <i class="ti ti-player-skip-forward text-sm"></i> Skip today
+                </button>
+                <button id="undo-skip-today-btn" class="hidden flex items-center gap-2 text-xs font-medium border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg transition disabled:opacity-50">
+                    <i class="ti ti-arrow-back-up text-sm"></i> Undo skip
+                </button>
+                <button id="refresh-btn" class="flex items-center gap-2 text-xs font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 px-3 py-2 rounded-lg transition">
+                    <i id="refresh-icon" class="ti ti-refresh text-sm"></i>
+                </button>
+            </div>
+        </div>
+        <p id="skip-note" class="text-xs text-gray-400 mt-3">Skip today will mark the current day as skipped for selfie capture.</p>
+    </div>
+
+    <!-- Schedule -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+        <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+            <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="ti ti-calendar-time"></i> Selfie Schedule</p>
+                <p class="text-xs text-gray-500">The server chooses the next forced selfie time. Edit, pause, or enable dev mode.</p>
+            </div>
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Next scheduled run</label>
+                    <div id="next-run-display" class="text-sm font-medium text-gray-700 py-1">Loading…</div>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight text-gray-900">Selfie Verification</h1>
-                    <p class="text-xs text-gray-500 font-medium">Facial capture gallery</p>
+                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1" for="schedule-time-input">Time</label>
+                    <input id="schedule-time-input" type="time" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
                 </div>
-            </div>
-            <div class="flex flex-wrap justify-center items-center gap-4">
-                <a href="/" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition tracking-wide uppercase">← Dashboard</a>
-                <a href="/selfies_view" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition tracking-wide uppercase">📸 Selfies</a>
-                <a href="/apps_view" class="text-xs font-bold text-purple-600 hover:text-purple-800 transition tracking-wide uppercase">App Blocker</a>
-                <a href="/errors_view" class="text-xs font-bold text-red-500 hover:text-red-700 transition tracking-wide uppercase">Diagnostics</a>
-                <a href="/history_view" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition tracking-wide uppercase">Location History</a>
-                <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Target:</label>
-                    <select id="device-select" class="bg-transparent font-semibold text-gray-800 text-sm focus:outline-none cursor-pointer">
-                        <option value="">Awaiting connection...</option>
-                    </select>
-                </div>
-                <a href="/logout" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition">Logout</a>
-            </div>
-        </nav>
-
-        <!-- Force Selfie Controls -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-sm font-bold text-gray-700 uppercase tracking-widest">Remote Capture</h2>
-                    <p class="text-xs text-gray-400 mt-1">Force an immediate selfie capture or wait for the next scheduled one</p>
-                </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <button id="force-selfie-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg uppercase tracking-wide">
-                        📸 Force Selfie Now
-                    </button>
-                    <button id="skip-today-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-xl font-bold text-sm transition border border-yellow-500 uppercase tracking-wide">
-                        ⏭ Skip Today
-                    </button>
-                    <button id="undo-skip-today-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-sm transition border border-blue-500 uppercase tracking-wide hidden">
-                        ↩ Undo Skip
-                    </button>
-                    <button id="refresh-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-bold text-sm transition border border-gray-200">
-                        ↻ Refresh
-                    </button>
-                </div>
-                <p id="skip-note" class="text-xs text-gray-500 mt-2">Skip today will mark the current day as skipped for selfie capture.</p>
+                <button id="save-schedule-btn" class="flex items-center gap-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50">
+                    <i id="save-icon" class="ti ti-device-floppy text-sm"></i> Save schedule
+                </button>
             </div>
         </div>
-
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
-            <div class="flex flex-col sm:flex-row items-start justify-between gap-4">
-                <div>
-                    <h2 class="text-sm font-bold text-gray-700 uppercase tracking-widest">Selfie Schedule</h2>
-                    <p class="text-xs text-gray-400 mt-1">The server chooses the next forced selfie time. Edit it, pause auto-sends, or keep development mode enabled so the device is not contacted.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-gray-500 uppercase">Next scheduled run</label>
-                        <div id="next-run-display" class="text-sm font-semibold text-gray-800">Loading…</div>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-gray-500 uppercase" for="schedule-time-input">Time</label>
-                        <input id="schedule-time-input" type="time" class="w-full rounded-xl border border-gray-200 p-3 text-sm" />
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-gray-500 uppercase">&nbsp;</label>
-                        <button id="save-schedule-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-bold text-sm transition uppercase tracking-wide">Save Schedule</button>
-                    </div>
-                </div>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition">
+                <input id="schedule-enabled-checkbox" type="checkbox" class="h-4 w-4 accent-emerald-600 rounded" />
+                <span class="text-xs font-medium text-gray-700">Schedule enabled</span>
+            </label>
+            <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition">
+                <input id="dev-mode-checkbox" type="checkbox" class="h-4 w-4 accent-yellow-500 rounded" checked />
+                <span class="text-xs font-medium text-gray-700">Dev mode (no device send)</span>
+            </label>
+            <div class="rounded-xl border border-gray-100 px-4 py-3 bg-gray-50">
+                <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Skip status</span>
+                <div id="skip-status-display" class="text-sm font-medium text-gray-700 mt-1">Loading…</div>
             </div>
-                <div class="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer">
-                        <input id="schedule-enabled-checkbox" type="checkbox" class="h-4 w-4 text-emerald-600 border-gray-300 rounded" />
-                        <span class="text-sm font-bold text-gray-700">Schedule enabled</span>
-                    </label>
-                    <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer">
-                        <input id="dev-mode-checkbox" type="checkbox" class="h-4 w-4 text-yellow-500 border-gray-300 rounded" checked />
-                        <span class="text-sm font-bold text-gray-700">Development mode (no device send)</span>
-                    </label>
-                    <div class="rounded-xl border border-gray-200 px-4 py-3 bg-gray-50">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Skip status</span>
-                        <div id="skip-status-display" class="text-sm font-semibold text-gray-800 mt-2">Loading…</div>
-                    </div>
-                    <div class="rounded-xl border border-gray-200 px-4 py-3 bg-gray-50">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Device status</span>
-                        <div id="device-status-display" class="text-sm font-semibold text-gray-800 mt-2">Loading…</div>
-                        <div id="last-seen-display" class="text-xs text-gray-500 mt-1">Waiting for device status...</div>
-                    </div>
+            <div class="rounded-xl border border-gray-100 px-4 py-3 bg-gray-50">
+                <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Device status</span>
+                <div id="device-status-display" class="mt-1">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>Checking
+                    </span>
                 </div>
-                <p id="schedule-note" class="text-xs text-gray-500 mt-4">If development mode is on, scheduled commands will be suppressed.</p>
-            </div>
-
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="rounded-2xl border border-gray-200 p-4 bg-gray-50">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Selfies</p>
-                    <p id="selfie-total-count" class="text-3xl font-black text-gray-900">0</p>
-                </div>
-                <div class="rounded-2xl border border-gray-200 p-4 bg-gray-50">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Next Run In</p>
-                    <p id="selfie-next-countdown" class="text-3xl font-black text-gray-900">--</p>
-                </div>
-                <div class="rounded-2xl border border-gray-200 p-4 bg-gray-50">
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Capture</p>
-                    <p id="selfie-last-capture" class="text-3xl font-black text-gray-900">--</p>
-                </div>
+                <div id="last-seen-display" class="text-[10px] text-gray-400 mt-1">Waiting…</div>
             </div>
         </div>
+        <p id="schedule-note" class="text-xs text-gray-400 mt-3">If development mode is on, scheduled commands will be suppressed.</p>
+    </div>
 
-        <!-- Date Filter -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 mb-6">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Filter by Date:</span>
-                <button class="date-pill active text-xs font-bold px-4 py-2 rounded-full border border-gray-200 cursor-pointer" data-date="">All</button>
-                <div id="date-pills" class="flex gap-2 flex-wrap"></div>
+    <!-- Stats -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1"><i class="ti ti-photos text-xs"></i> Total selfies</p>
+                <p id="selfie-total-count" class="text-2xl font-semibold text-gray-800">0</p>
             </div>
-        </div>
-
-        <!-- Selfie Count -->
-        <div class="mb-4 flex items-center justify-between">
-            <p id="selfie-count" class="text-sm text-gray-500 font-medium"></p>
-        </div>
-
-        <!-- Selfie Grid -->
-        <div id="selfie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <div class="col-span-full text-center py-20 text-gray-400 text-sm">No selfies yet. Use "Force Selfie Now" to capture one.</div>
-        </div>
-
-        <!-- Image Modal -->
-        <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
-            <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
-                <div class="relative">
-                    <img id="modal-img" src="" class="w-full max-h-[70vh] object-contain bg-black" />
-                    <button id="modal-close" class="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition">✕</button>
-                </div>
-                <div class="p-6">
-                    <p class="text-sm text-gray-500"><span class="font-bold text-gray-700">Captured:</span> <span id="modal-time"></span></p>
-                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Battery:</span> <span id="modal-battery"></span>%</p>
-                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Location:</span> <span id="modal-location"></span></p>
-                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Review:</span> <span id="modal-status"></span></p>
-                    <p class="text-sm text-gray-500 mt-1"><span class="font-bold text-gray-700">Reviewed at:</span> <span id="modal-reviewed-at"></span></p>
-                    <div class="mt-4 flex flex-wrap gap-3">
-                        <a id="modal-download" href="" download class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Download</a>
-                        <button id="modal-approve" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Approve</button>
-                        <button id="modal-deny" class="bg-red-50 hover:bg-red-100 text-red-700 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Deny</button>
-                        <button id="modal-delete" class="bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2 rounded-xl font-bold text-xs transition uppercase tracking-wide">Delete</button>
-                    </div>
-                </div>
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1"><i class="ti ti-clock text-xs"></i> Next run in</p>
+                <p id="selfie-next-countdown" class="text-2xl font-semibold text-gray-800">--</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1"><i class="ti ti-camera text-xs"></i> Last capture</p>
+                <p id="selfie-last-capture" class="text-sm font-medium text-gray-700 mt-1">--</p>
             </div>
         </div>
     </div>
+
+    <!-- Date Filter -->
+    <div class="bg-white rounded-2xl border border-gray-200 px-5 py-3 mb-4 flex items-center gap-3 flex-wrap">
+        <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Filter:</span>
+        <button class="date-pill active text-xs font-medium px-3 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-date="">All</button>
+        <div id="date-pills" class="flex gap-2 flex-wrap"></div>
+    </div>
+
+    <!-- Count row -->
+    <div class="mb-3 flex items-center justify-between">
+        <p id="selfie-count" class="text-xs text-gray-500 font-medium"></p>
+    </div>
+
+    <!-- Selfie Grid -->
+    <div id="selfie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div class="col-span-full text-center py-16 text-gray-400 text-sm flex flex-col items-center gap-2">
+            <i class="ti ti-camera-off text-3xl"></i>
+            <p>No selfies yet — use "Force selfie now" to capture one.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal (outside scroll wrapper) -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+    <div class="bg-white rounded-2xl max-w-xl w-full mx-4 overflow-hidden border border-gray-200">
+        <div class="relative">
+            <img id="modal-img" src="" class="w-full max-h-[60vh] object-contain bg-black" alt="Selfie" />
+            <button id="modal-close" aria-label="Close"
+                class="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white w-9 h-9 rounded-full flex items-center justify-center transition">
+                <i class="ti ti-x text-base"></i>
+            </button>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-xs mb-4">
+                <div><span class="text-gray-400">Captured</span><p id="modal-time" class="font-medium text-gray-800 mt-0.5"></p></div>
+                <div><span class="text-gray-400">Battery</span><p id="modal-battery" class="font-medium text-gray-800 mt-0.5"></p></div>
+                <div class="col-span-2 mt-1"><span class="text-gray-400">Location</span><p id="modal-location" class="font-medium text-gray-800 mt-0.5"></p></div>
+                <div><span class="text-gray-400">Review status</span><p id="modal-status" class="font-medium text-gray-800 mt-0.5"></p></div>
+                <div><span class="text-gray-400">Reviewed at</span><p id="modal-reviewed-at" class="font-medium text-gray-800 mt-0.5"></p></div>
+            </div>
+            <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+                <a id="modal-download" href="" download class="flex items-center gap-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"><i class="ti ti-download text-sm"></i> Download</a>
+                <button id="modal-approve" class="flex items-center gap-1.5 text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg transition"><i class="ti ti-check text-sm"></i> Approve</button>
+                <button id="modal-deny" class="flex items-center gap-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-4 py-2 rounded-lg transition"><i class="ti ti-x text-sm"></i> Deny</button>
+                <button id="modal-delete" class="flex items-center gap-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 px-4 py-2 rounded-lg transition ml-auto"><i class="ti ti-trash text-sm"></i> Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 const deviceSelect = document.getElementById('device-select');
@@ -197,18 +209,67 @@ const skipNote = document.getElementById('skip-note');
 const selfieTotalCount = document.getElementById('selfie-total-count');
 const selfieNextCountdown = document.getElementById('selfie-next-countdown');
 const selfieLastCapture = document.getElementById('selfie-last-capture');
-let nextScheduledRunTime = null;
-let currentSelfieId = null;
-let selectedDate = '';
-let skippedToday = false;
 const scheduleTimeInput = document.getElementById('schedule-time-input');
 const scheduleEnabledCheckbox = document.getElementById('schedule-enabled-checkbox');
 const devModeCheckbox = document.getElementById('dev-mode-checkbox');
 const nextRunDisplay = document.getElementById('next-run-display');
 const saveScheduleBtn = document.getElementById('save-schedule-btn');
+const saveIcon = document.getElementById('save-icon');
+const forceIcon = document.getElementById('force-icon');
+const refreshIcon = document.getElementById('refresh-icon');
+
+let nextScheduledRunTime = null;
+let currentSelfieId = null;
+let selectedDate = '';
+let skippedToday = false;
+
+function setDeviceStatus(state, lastSeen) {
+    const map = {
+        online:   `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Online</span>`,
+        offline:  `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-red-100 text-red-600 px-2.5 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Offline</span>`,
+        unknown:  `<span class="inline-flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>Unknown</span>`,
+    };
+    deviceStatusDisplay.innerHTML = map[state] || map.unknown;
+    if (lastSeen) lastSeenDisplay.textContent = `Last update: ${lastSeen}`;
+}
 
 function formatSelfieScheduleDisplay(value) {
     return value ? value.replace(' ', ' @ ') : 'Not scheduled yet';
+}
+
+function formatDuration(ms) {
+    if (!ms || ms <= 0) return 'Due now';
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const h = Math.floor(m / 60);
+    if (h > 0) return `${h}h ${m % 60}m`;
+    if (m > 0) return `${m}m ${s % 60}s`;
+    return `${s}s`;
+}
+
+function updateNextRunCountdown() {
+    if (!nextScheduledRunTime) { selfieNextCountdown.textContent = 'No schedule'; return; }
+    selfieNextCountdown.textContent = formatDuration(nextScheduledRunTime.getTime() - Date.now());
+}
+
+function updateScheduleNote() {
+    const note = document.getElementById('schedule-note');
+    if (devModeCheckbox.checked) {
+        note.textContent = 'Dev mode is ON: scheduled selfie commands will not be sent to the device.';
+    } else if (!scheduleEnabledCheckbox.checked) {
+        note.textContent = 'Schedule is disabled. Manual capture still works.';
+    } else {
+        note.textContent = 'Dev mode is OFF: scheduled captures will be sent to the device at the chosen time.';
+    }
+}
+
+function statusBadge(status) {
+    const map = {
+        approved: 'bg-emerald-100 text-emerald-700',
+        denied:   'bg-red-100 text-red-700',
+    };
+    const cls = map[status] || 'bg-yellow-100 text-yellow-700';
+    return `<span class="inline-block text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded ${cls}">${status || 'pending'}</span>`;
 }
 
 async function loadSelfieSchedule() {
@@ -225,65 +286,31 @@ async function loadSelfieSchedule() {
         scheduleEnabledCheckbox.checked = data.enabled === 1 || data.enabled === true;
         devModeCheckbox.checked = data.dev_mode === 1 || data.dev_mode === true;
         updateScheduleNote();
-    } catch (e) {
-        console.error('Failed to load selfie schedule:', e);
-    }
-}
-
-function updateScheduleNote() {
-    if (devModeCheckbox.checked) {
-        document.getElementById('schedule-note').textContent = 'Dev mode is ON: scheduled selfie commands will not be sent to the device.';
-    } else if (!scheduleEnabledCheckbox.checked) {
-        document.getElementById('schedule-note').textContent = 'Schedule is disabled. Manual capture still works.';
-    } else {
-        document.getElementById('schedule-note').textContent = 'Dev mode is OFF: scheduled captures will be sent to the device at the chosen time.';
-    }
-}
-
-function formatDuration(ms) {
-    if (!ms || ms <= 0) return 'Due now';
-    const seconds = Math.floor(ms / 1000);
-    const mins = Math.floor(seconds / 60);
-    const hrs = Math.floor(mins / 60);
-    if (hrs > 0) return `${hrs}h ${mins % 60}m`;
-    if (mins > 0) return `${mins}m ${seconds % 60}s`;
-    return `${seconds}s`;
-}
-
-function updateNextRunCountdown() {
-    if (!nextScheduledRunTime) {
-        selfieNextCountdown.textContent = 'No schedule';
-        return;
-    }
-    const diff = nextScheduledRunTime.getTime() - Date.now();
-    selfieNextCountdown.textContent = formatDuration(diff);
+    } catch (e) { console.error(e); }
 }
 
 saveScheduleBtn.addEventListener('click', async () => {
     const deviceId = deviceSelect.value;
     if (!deviceId) return alert('No device selected');
-    const scheduledTime = scheduleTimeInput.value || '10:30';
+    saveScheduleBtn.disabled = true;
+    saveIcon.className = 'ti ti-loader-2 text-sm spinning';
     const form = new FormData();
     form.append('device_id', deviceId);
-    form.append('scheduled_time', scheduledTime);
+    form.append('scheduled_time', scheduleTimeInput.value || '10:30');
     form.append('enabled', scheduleEnabledCheckbox.checked ? '1' : '0');
     form.append('dev_mode', devModeCheckbox.checked ? '1' : '0');
-
-    const btn = saveScheduleBtn;
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
     try {
         const resp = await fetch('/set_selfie_schedule', { method: 'POST', body: form });
-        if (resp.ok) {
-            await loadSelfieSchedule();
-        }
-    } catch (e) {
-        console.error('Failed to save schedule:', e);
-    } finally {
-        btn.textContent = 'Save Schedule';
-        btn.disabled = false;
+        if (resp.ok) await loadSelfieSchedule();
+    } catch (e) { console.error(e); }
+    finally {
+        saveScheduleBtn.disabled = false;
+        saveIcon.className = 'ti ti-device-floppy text-sm';
     }
 });
+
+devModeCheckbox.addEventListener('change', updateScheduleNote);
+scheduleEnabledCheckbox.addEventListener('change', updateScheduleNote);
 
 async function loadDevices() {
     try {
@@ -293,25 +320,17 @@ async function loadDevices() {
         const selected = deviceSelect.value;
         deviceSelect.innerHTML = '';
         const devices = data.devices || [];
-        if (devices.length === 0) {
-            deviceSelect.innerHTML = '<option value="">No devices</option>';
-            return;
-        }
+        if (!devices.length) { deviceSelect.innerHTML = '<option value="">No devices</option>'; return; }
         devices.forEach(d => {
             const opt = document.createElement('option');
-            opt.value = d;
-            opt.textContent = d;
-            deviceSelect.appendChild(opt);
+            opt.value = d; opt.textContent = d; deviceSelect.appendChild(opt);
         });
         deviceSelect.value = devices.includes(selected) ? selected : devices[0];
-        loadDates();
-        loadSelfies();
+        loadDates(); loadSelfies();
         await loadSelfieSchedule();
         await checkSkipStatus();
         await loadDeviceStatus();
-    } catch (e) {
-        console.error('Failed to load devices:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 async function checkSkipStatus() {
@@ -325,20 +344,18 @@ async function checkSkipStatus() {
         if (skippedToday) {
             skipNote.textContent = `Selfie capture is skipped for today (${data.date}).`;
             skipStatusDisplay.textContent = 'Skipped today';
-            skipTodayBtn.textContent = '✔ Skipped';
+            skipTodayBtn.innerHTML = '<i class="ti ti-check text-sm"></i> Skipped';
             skipTodayBtn.disabled = true;
             undoSkipTodayBtn.classList.remove('hidden');
         } else {
             skipNote.textContent = 'Skip today will mark the current day as skipped for selfie capture.';
             skipStatusDisplay.textContent = 'Not skipped';
-            skipTodayBtn.textContent = '⏭ Skip Today';
+            skipTodayBtn.innerHTML = '<i class="ti ti-player-skip-forward text-sm"></i> Skip today';
             skipTodayBtn.disabled = false;
             undoSkipTodayBtn.classList.add('hidden');
         }
         updateScheduleNote();
-    } catch (e) {
-        console.error('Failed to check skip status:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 async function loadDeviceStatus() {
@@ -346,22 +363,10 @@ async function loadDeviceStatus() {
     if (!deviceId) return;
     try {
         const resp = await fetch(`/stats?device_id=${encodeURIComponent(deviceId)}`);
-        if (!resp.ok) return;
+        if (!resp.ok) throw new Error();
         const data = await resp.json();
-        if (data.is_online) {
-            deviceStatusDisplay.textContent = 'Online';
-            deviceStatusDisplay.className = 'text-sm font-semibold text-emerald-700 mt-2';
-        } else {
-            deviceStatusDisplay.textContent = 'Offline';
-            deviceStatusDisplay.className = 'text-sm font-semibold text-red-600 mt-2';
-        }
-        lastSeenDisplay.textContent = `Last update: ${data.timestamp || 'unknown'}`;
-    } catch (e) {
-        console.error('Failed to load device status:', e);
-        deviceStatusDisplay.textContent = 'Unavailable';
-        deviceStatusDisplay.className = 'text-sm font-semibold text-gray-700 mt-2';
-        lastSeenDisplay.textContent = 'Could not fetch device status.';
-    }
+        setDeviceStatus(data.is_online ? 'online' : 'offline', data.timestamp);
+    } catch (e) { setDeviceStatus('unknown'); }
 }
 
 async function loadDates() {
@@ -373,7 +378,7 @@ async function loadDates() {
         datePills.innerHTML = '';
         (data.dates || []).forEach(d => {
             const btn = document.createElement('button');
-            btn.className = 'date-pill text-xs font-bold px-4 py-2 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-100';
+            btn.className = 'date-pill text-xs font-medium px-3 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-100 transition';
             btn.dataset.date = d.date;
             btn.textContent = `${d.date} (${d.count})`;
             btn.addEventListener('click', () => {
@@ -399,37 +404,39 @@ async function loadSelfies() {
         selfieTotalCount.textContent = selfies.length;
         selfieLastCapture.textContent = selfies.length ? selfies[0].timestamp : 'None';
         selfieCount.textContent = `${selfies.length} selfie${selfies.length !== 1 ? 's' : ''} captured`;
-        if (selfies.length === 0) {
-            selfieGrid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400 text-sm">No selfies found for this filter.</div>';
+        if (!selfies.length) {
+            selfieGrid.innerHTML = `<div class="col-span-full text-center py-16 text-gray-400 text-sm flex flex-col items-center gap-2"><i class="ti ti-photo-off text-3xl"></i><p>No selfies found for this filter.</p></div>`;
             return;
         }
         selfieGrid.innerHTML = '';
         selfies.forEach(s => {
             const card = document.createElement('div');
-            card.className = 'selfie-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 cursor-pointer';
+            card.className = 'selfie-card bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-gray-300 cursor-pointer';
+            const statusCls = s.review_status === 'approved' ? 'text-emerald-700' : s.review_status === 'denied' ? 'text-red-700' : 'text-yellow-700';
             card.innerHTML = `
-                <img src="${s.url}" class="selfie-img w-full rounded-t-2xl" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23eee%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No image</text></svg>'"/>
-                <div class="p-3">
-                    <p class="text-xs font-bold text-gray-700 truncate">${s.timestamp}</p>
-                    <p class="text-[10px] text-gray-400 mt-1">🔋 ${s.battery}% · 📍 ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</p>
-                    <p class="text-[10px] font-semibold mt-2 ${s.review_status === 'approved' ? 'text-emerald-700' : s.review_status === 'denied' ? 'text-red-700' : 'text-yellow-700'}">Status: ${s.review_status || 'pending'}</p>
-                </div>
-            `;
+                <img src="${s.url}" class="selfie-img w-full" loading="lazy"
+                    onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 133%22><rect fill=%22%23f3f4f6%22 width=%22100%22 height=%22133%22/><text x=%2250%22 y=%2272%22 text-anchor=%22middle%22 fill=%22%23d1d5db%22 font-size=%2211%22>No image</text></svg>'" />
+                <div class="p-2.5">
+                    <p class="text-xs font-medium text-gray-700 truncate">${s.timestamp}</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5 flex items-center gap-2">
+                        <span><i class="ti ti-battery-2"></i> ${s.battery}%</span>
+                        <span><i class="ti ti-map-pin"></i> ${Number(s.lat).toFixed(3)}, ${Number(s.lon).toFixed(3)}</span>
+                    </p>
+                    <p class="text-[10px] font-semibold mt-1.5 ${statusCls}">${s.review_status || 'pending'}</p>
+                </div>`;
             card.addEventListener('click', () => openModal(s));
             selfieGrid.appendChild(card);
         });
-    } catch (e) {
-        console.error('Failed to load selfies:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 function openModal(s) {
     currentSelfieId = s.id;
     modalImg.src = s.url;
     modalTime.textContent = s.timestamp;
-    modalBattery.textContent = s.battery;
-    modalLocation.textContent = `${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}`;
-    modalStatus.textContent = s.review_status || 'pending';
+    modalBattery.textContent = `${s.battery}%`;
+    modalLocation.textContent = `${Number(s.lat).toFixed(6)}, ${Number(s.lon).toFixed(6)}`;
+    modalStatus.innerHTML = statusBadge(s.review_status);
     modalReviewedAt.textContent = s.reviewed_at || 'Not reviewed yet';
     modalDownload.href = s.url;
     modal.classList.remove('hidden');
@@ -443,7 +450,7 @@ function closeModal() {
 }
 
 modalClose.addEventListener('click', closeModal);
-modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
 async function reviewSelfie(action) {
     if (!currentSelfieId) return;
@@ -453,48 +460,37 @@ async function reviewSelfie(action) {
     const resp = await fetch('/review_selfie', { method: 'POST', body: form });
     if (resp.ok) {
         const data = await resp.json();
-        modalStatus.textContent = data.review_status;
+        modalStatus.innerHTML = statusBadge(data.review_status);
         modalReviewedAt.textContent = data.reviewed_at;
         loadSelfies();
     }
 }
 
-modalApprove.addEventListener('click', async () => {
-    if (!currentSelfieId) return;
-    await reviewSelfie('approve');
-});
-
+modalApprove.addEventListener('click', () => reviewSelfie('approve'));
 modalDeny.addEventListener('click', async () => {
     if (!currentSelfieId) return;
     if (!confirm('Deny this selfie?')) return;
     await reviewSelfie('deny');
 });
-
 modalDelete.addEventListener('click', async () => {
     if (!currentSelfieId) return;
     if (!confirm('Delete this selfie permanently?')) return;
     const form = new FormData();
     form.append('selfie_id', currentSelfieId);
     await fetch('/delete_selfie', { method: 'POST', body: form });
-    closeModal();
-    loadSelfies();
-    loadDates();
+    closeModal(); loadSelfies(); loadDates();
 });
 
 document.getElementById('force-selfie-btn').addEventListener('click', async () => {
     const deviceId = deviceSelect.value;
     if (!deviceId) return alert('No device selected');
     const btn = document.getElementById('force-selfie-btn');
-    btn.textContent = '⏳ Sending...';
     btn.disabled = true;
+    forceIcon.className = 'ti ti-loader-2 text-sm spinning';
     const form = new FormData();
     form.append('device_id', deviceId);
     await fetch('/force_selfie', { method: 'POST', body: form });
-    setTimeout(() => {
-        btn.textContent = '📸 Force Selfie Now';
-        btn.disabled = false;
-    }, 2000);
-    // Auto-refresh after a few seconds to pick up the new selfie
+    setTimeout(() => { btn.disabled = false; forceIcon.className = 'ti ti-camera text-sm'; }, 2000);
     setTimeout(() => { loadSelfies(); loadDates(); checkSkipStatus(); }, 8000);
     setTimeout(() => { loadSelfies(); loadDates(); checkSkipStatus(); }, 15000);
 });
@@ -503,23 +499,20 @@ document.getElementById('skip-today-btn').addEventListener('click', async () => 
     const deviceId = deviceSelect.value;
     if (!deviceId) return alert('No device selected');
     if (!confirm('Skip selfie capture for today?')) return;
-    const btn = document.getElementById('skip-today-btn');
-    btn.textContent = '⏳ Skipping...';
-    btn.disabled = true;
-
+    skipTodayBtn.disabled = true;
+    skipTodayBtn.innerHTML = '<i class="ti ti-loader-2 text-sm spinning"></i> Skipping…';
     const form = new FormData();
     form.append('device_id', deviceId);
     const resp = await fetch('/skip_selfie_today', { method: 'POST', body: form });
     if (resp.ok) {
         skippedToday = true;
         skipNote.textContent = 'Today is skipped for selfie capture. You can still force a selfie manually.';
-        btn.textContent = '✔ Skipped';
         await loadSelfieSchedule();
         await checkSkipStatus();
     } else {
         skipNote.textContent = 'Failed to skip today. Try again.';
-        btn.textContent = '⏭ Skip Today';
-        btn.disabled = false;
+        skipTodayBtn.innerHTML = '<i class="ti ti-player-skip-forward text-sm"></i> Skip today';
+        skipTodayBtn.disabled = false;
     }
 });
 
@@ -527,11 +520,8 @@ document.getElementById('undo-skip-today-btn').addEventListener('click', async (
     const deviceId = deviceSelect.value;
     if (!deviceId) return alert('No device selected');
     if (!confirm('Undo today skip? The scheduled selfie will run again if still due.')) return;
-
-    const btn = document.getElementById('undo-skip-today-btn');
-    btn.textContent = '⏳ Undoing...';
-    btn.disabled = true;
-
+    undoSkipTodayBtn.disabled = true;
+    undoSkipTodayBtn.innerHTML = '<i class="ti ti-loader-2 text-sm spinning"></i> Undoing…';
     const form = new FormData();
     form.append('device_id', deviceId);
     const resp = await fetch('/unskip_selfie_today', { method: 'POST', body: form });
@@ -542,16 +532,14 @@ document.getElementById('undo-skip-today-btn').addEventListener('click', async (
     } else {
         skipNote.textContent = 'Failed to undo skip. Try again.';
     }
-    btn.textContent = '↩ Undo Skip';
-    btn.disabled = false;
+    undoSkipTodayBtn.disabled = false;
+    undoSkipTodayBtn.innerHTML = '<i class="ti ti-arrow-back-up text-sm"></i> Undo skip';
 });
 
 document.getElementById('refresh-btn').addEventListener('click', () => {
-    loadSelfies();
-    loadDates();
-    loadSelfieSchedule();
-    checkSkipStatus();
-    loadDeviceStatus();
+    refreshIcon.className = 'ti ti-refresh text-sm spinning';
+    Promise.all([loadSelfies(), loadDates(), loadSelfieSchedule(), checkSkipStatus(), loadDeviceStatus()])
+        .finally(() => { refreshIcon.className = 'ti ti-refresh text-sm'; });
 });
 
 document.querySelector('.date-pill[data-date=""]').addEventListener('click', () => {
@@ -565,15 +553,19 @@ deviceSelect.addEventListener('change', async () => {
     selectedDate = '';
     document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
     document.querySelector('.date-pill[data-date=""]').classList.add('active');
-    loadDates();
-    loadSelfies();
+    loadDates(); loadSelfies();
     await checkSkipStatus();
     await loadSelfieSchedule();
     await loadDeviceStatus();
 });
 
 loadDevices();
-setInterval(() => { if (document.visibilityState === 'visible') { loadSelfies(); checkSkipStatus(); loadSelfieSchedule(); updateNextRunCountdown(); } }, 30000);
+setInterval(updateNextRunCountdown, 10000);
+setInterval(() => {
+    if (document.visibilityState === 'visible') {
+        loadSelfies(); checkSkipStatus(); loadSelfieSchedule(); updateNextRunCountdown();
+    }
+}, 30000);
 </script>
 </body>
 </html>

