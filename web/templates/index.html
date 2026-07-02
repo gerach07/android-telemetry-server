@@ -618,6 +618,9 @@ async function fetchStats() {
         if (data.notif_state === 1) {
             notifBadge.textContent = 'Active';
             notifBadge.className = 'text-[10px] font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider';
+        } else if (data.notif_state === 2) {
+            notifBadge.textContent = 'Queued';
+            notifBadge.className = 'text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-wider';
         } else {
             notifBadge.textContent = 'Inactive';
             notifBadge.className = 'text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider';

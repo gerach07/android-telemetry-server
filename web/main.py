@@ -844,8 +844,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                             db.commit()
                             await sse.broadcast("mic_record_done", {"device_id": ev_dev})
                         elif ev == "alert_shown":
+                            _c.execute("UPDATE devices SET notif_state=1 WHERE device_id=?", (ev_dev,))
+                            db.commit()
                             await sse.broadcast("alert_shown", {"device_id": ev_dev})
                         elif ev == "alert_dismissed":
+                            _c.execute("UPDATE devices SET notif_state=0 WHERE device_id=?", (ev_dev,))
+                            db.commit()
                             await sse.broadcast("alert_dismissed", {"device_id": ev_dev})
                         print(f"[ipc] {ev_dev} → {ev}", flush=True)
                     continue
@@ -1941,11 +1945,14 @@ async def set_notification(
     request: Request = Depends(verify_session),
     db: sqlite3.Connection = Depends(get_db),
 ):
-    db.cursor().execute("UPDATE devices SET notif_state=?, notif_text=? WHERE device_id=?", (state, text, device_id))
-    db.commit()
     delivered = False
     if device_id in ws_manager.active_connections:
         delivered = await ws_manager.send_task(device_id, {"task": "system_alert", "state": state, "text": text})
+
+    # If state is 1 (on) but not delivered, it's queued (state = 2). If state is 0 (off), just turn it off (0).
+    final_state = 2 if (state == 1 and not delivered) else state
+    db.cursor().execute("UPDATE devices SET notif_state=?, notif_text=? WHERE device_id=?", (final_state, text, device_id))
+    db.commit()
 
     if not delivered:
         print(f"[alert] Device {device_id} offline; alert command queued in DB", flush=True)
