@@ -1,0 +1,62 @@
+========================================================================
+HOW TO SWITCH BETWEEN LOCAL USB SERVER AND PUBLIC CLOUDFLARE SERVER
+========================================================================
+
+The Android telemetry `reporter` binary decides which server to connect to 
+by checking for the existence of a configuration file on the device:
+File: `/data/local/tmp/c2_url.txt`
+
+If this file EXISTS: It connects to the URL written inside it.
+If this file is MISSING: It defaults to the public Cloudflare tunnel.
+
+
+---------------------------------------------------------
+SCENARIO A: SWITCHING TO LOCAL USB SERVER (DEVELOPMENT)
+---------------------------------------------------------
+If you are developing locally on your PC and want the phone to connect directly 
+to your Python `main.py` server via the USB cable:
+
+1. Forward the network port over the USB cable:
+   adb reverse tcp:8000 tcp:8000
+
+2. Write the local websocket URL into the configuration file on the phone:
+   adb shell "echo 'ws://127.0.0.1:8000/ws' > /data/local/tmp/c2_url.txt"
+
+3. Kill the currently running reporter process to force it to restart and read the new URL:
+   adb shell "killall -9 reporter"
+
+
+---------------------------------------------------------
+SCENARIO B: SWITCHING BACK TO PUBLIC CLOUDFLARE SERVER
+---------------------------------------------------------
+If you want to disconnect the phone from USB and let it report to your public 
+Cloudflare dashboard (production mode):
+
+1. Remove the custom URL configuration file from the phone:
+   adb shell "rm /data/local/tmp/c2_url.txt"
+
+2. Kill the currently running reporter process to force it to restart and fall back to the default URL:
+   adb shell "killall -9 reporter"
+
+3. (Optional) Clear the USB port forwarding:
+   adb reverse --remove tcp:8000
+
+
+---------------------------------------------------------
+HOW TO RESTART EVERYTHING FROM SCRATCH
+---------------------------------------------------------
+If the system ever gets stuck or you just want a clean slate:
+
+1. Kill the Android backend services:
+   adb shell "killall -9 reporter"
+   adb shell "am force-stop com.stealthgps"
+   adb shell "am force-stop com.stealthaudio"
+
+2. Stop your Python server (Ctrl+C in terminal).
+
+3. Delete the database to clear all history and devices:
+   rm web/telemetry.db
+
+4. Start the Python server again:
+   cd web
+   ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000

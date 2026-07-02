@@ -1,0 +1,62 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.stealthmonitor"
+    android:sharedUserId="android.uid.system">
+
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
+
+    <!-- Required to receive the boot broadcast -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Required for UsageStatsManager queries (granted via Settings > Special app access) -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+
+    <!-- Required on API 28+ to start a foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Required on API 34+ for foreground services of type specialUse -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application
+        android:label="System Monitor"
+        android:allowBackup="false"
+        android:directBootAware="false">
+
+        <!--
+            BootReceiver listens only for ACTION_BOOT_COMPLETED (after first user unlock).
+            ACTION_LOCKED_BOOT_COMPLETED is intentionally omitted — CE storage is
+            unavailable before unlock, so starting the service at that point would
+            cause silent I/O failures.
+        -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+            foregroundServiceType="specialUse" is mandatory on API 34+ when no other
+            type (dataSync, location, mediaPlayback, etc.) accurately describes the
+            service. Without it, startForeground() throws an exception on API 34+.
+        -->
+        <service
+            android:name=".ScreenTimeService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+
+        <activity
+            android:name=".MonitorActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>

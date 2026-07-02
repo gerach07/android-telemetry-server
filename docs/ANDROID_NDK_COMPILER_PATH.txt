@@ -1,0 +1,19 @@
+Android NDK compiler location for this system:
+
+NDK root:
+/home/adrians/Android/Sdk/ndk/27.0.12077973
+
+Android host toolchain directory:
+/home/adrians/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin
+
+Example Android C++ compiler for aarch64 (API 34):
+/home/adrians/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++
+
+Example syntax-check command:
+cd /home/adrians/Downloads/CloverProject-v3.7-duchamp-UNOFFICIAL-20260309-1854
+/home/adrians/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++ -std=c++17 -I. -fsyntax-only C++/reporter.cpp
+
+If you need the 32-bit ARM compiler instead, use:
+/home/adrians/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang++
+
+If you need a different API level, replace the numeric suffix with the target API version.

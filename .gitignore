@@ -1,49 +1,36 @@
-*
-!/.gitignore
-!/reporter.cpp
-!/reporter.rc
-!/start_commands.txt
-!/android/
-!/android/**
-!/web/
-!/web/main.py
-!/web/full_simulator.py
-!/web/requirements.txt
-!/web/start_commands.txt
-!/web/templates/
-!/web/templates/**
-!/web/static/
-!/web/static/**
-!/README.md
-!/web/**
-!/system/
-!/system/**
+# Project-generated artifacts and local development files
 
-# Ignore generated web/ artifacts and environment files
-/web/venv/
-/web/__pycache__/
-/web/*.db
-/web/*.db-shm
-/web/*.db-wal
-/web/*.log
-/web/nohup.out
-
-# Ignore common generated files in the repository root
+# Python / virtual environments
+.venv/
 venv/
+web/venv/
 __pycache__/
-*.db
 *.pyc
+
+# Python app runtime data
+*.db
+*.db-shm
+*.db-wal
+*.log
+web/nohup.out
+
+# Local environment files
 .env
 .DS_Store
+
+# IDE / editor folders
 .idea/
 .gradle/
 .vscode/
 
-# Ignore generated build trees and local Android outputs
+# Build output directories
 /build/
 /build_*/
-/android/**/build/
+/build_cpp/
 /cmake-build-*/
 /out/
+/android/**/build/
+
+# Android packaging outputs
 /system/bin/updater
 /system/priv-app/*/*.idsig

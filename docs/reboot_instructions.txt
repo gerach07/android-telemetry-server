@@ -1,0 +1,36 @@
+# How to Connect the Telemetry Implant After a Reboot
+
+Because your Command & Control (C2) server is currently running locally on your computer (and the implant is configured to look for `ws://127.0.0.1:8000/ws`), the phone needs a tunnel to reach your computer's local port. 
+
+When the phone reboots, that ADB tunnel is destroyed.
+
+You have two options to fix this:
+
+## OPTION A: USB Tethering / ADB Tunnel (Current Setup)
+If you want to keep using the USB cable and `127.0.0.1`:
+Every time you reboot the phone, you MUST run this command once on your computer while the phone is plugged in:
+
+```bash
+adb reverse tcp:8000 tcp:8000
+```
+This tells the phone: "Forward any request you make to 127.0.0.1:8000 straight through the USB cable to the computer's 8000 port."
+Once you run that, the WebSocket will instantly connect.
+
+
+## OPTION B: Fully Wireless (No ADB Required)
+If you want the phone to connect completely wirelessly (so you don't even need a USB cable after a reboot), you need to tell the implant to use your computer's actual Wi-Fi/LAN IP address instead of `127.0.0.1`.
+
+1. Find your computer's local IP address (e.g., 192.168.1.55) by running `ip a` or `ifconfig` in your terminal.
+2. Tell the implant to use this new IP address by updating the `c2_url.txt` file on the phone:
+
+```bash
+adb shell "echo 'ws://192.168.1.55:8000/ws' > /data/local/tmp/c2_url.txt"
+```
+*(Make sure to replace `192.168.1.55` with your actual PC IP address).*
+
+3. Make sure your Python C2 server is bound to all interfaces so the phone can reach it over the network:
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+With Option B, the implant will automatically connect to your computer as long as both devices are on the same Wi-Fi network, without ever needing an ADB tunnel or USB cable again!

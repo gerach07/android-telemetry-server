@@ -1,0 +1,12 @@
+To launch the Android C2 implant simulator from this project:
+
+1. Change to the web folder:
+   cd /home/adrians/Downloads/CloverProject-v3.7-duchamp-UNOFFICIAL-20260309-1854/web
+
+2. Run the simulator with the virtual environment Python:
+   ./venv/bin/python full_simulator.py
+
+If you want to start it without interactive prompts, run it in the background like this:
+   nohup ./venv/bin/python full_simulator.py </dev/null > simulator.out 2>&1 &
+
+The simulator connects to the local C2 server at ws://127.0.0.1:8000/ws by default.
