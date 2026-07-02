@@ -435,12 +435,16 @@ function connectSSE() {
         const d = JSON.parse(e.data);
         if (d.device_id !== selectEl.value) return;
         showToast('Alert is now visible on device screen', 'warning', 4000);
+        notifBadge.textContent = 'Active';
+        notifBadge.className = 'text-[10px] font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider';
     });
 
     _sseSource.addEventListener('alert_dismissed', e => {
         const d = JSON.parse(e.data);
         if (d.device_id !== selectEl.value) return;
         showToast('Alert dismissed / cleared on device', 'info', 3000);
+        notifBadge.textContent = 'Inactive';
+        notifBadge.className = 'text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider';
     });
 
     _sseSource.addEventListener('shell_output', e => {
