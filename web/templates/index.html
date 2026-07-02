@@ -469,8 +469,8 @@ function connectSSE() {
     _sseSource.addEventListener('command_queued', e => {
         const d = JSON.parse(e.data);
         if (d.device_id !== selectEl.value) return;
-        if (d.task === 'audio_blast')
-            showToast('Device offline — command queued, will execute on reconnect', 'warning', 5000);
+        if (d.task === 'audio_blast' && d.play !== 0)
+            showToast('Device offline — audio queued, will execute on reconnect', 'warning', 5000);
     });
 
     _sseSource.onerror = () => console.warn('[SSE] connection error — browser will auto-reconnect');
