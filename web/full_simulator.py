@@ -67,7 +67,8 @@ screen_time_minutes  = 0
 ping_interval        = 5
 audio_playing        = False   # True while an audio-blast is "playing" on device
 audio_loops_left     = 0
-audio_stop_event     = asyncio.Event()  # set this to cancel an in-progress blast
+# audio_stop_event is created fresh per-blast inside simulate_audio_blast()
+_audio_stop_event: asyncio.Event | None = None
 
 last_hour_reported       = None
 last_sent_installed_apps = None
@@ -224,27 +225,29 @@ async def notify_audio_done() -> None:
 
 async def simulate_audio_blast(play_type: int, loops: int) -> None:
     """
-    Simulate audio playback: notify server it started, wait a proportional
-    duration (3 s per loop, max 30 s), then notify server it finished.
+    Simulate audio playback: notify server it started, wait for stop command or
+    timeout, then notify server it finished.
     """
-    global audio_playing, audio_loops_left
+    global audio_playing, audio_loops_left, _audio_stop_event
     audio_playing    = True
     audio_loops_left = loops
-    loop_count = loops if loops > 0 else 99999  # 0 = infinite — don't auto-stop
-    wait_s     = 3 * loop_count if loops > 0 else 3600  # infinite = wait up to 1 hour
+    wait_s           = 3 * loops if loops > 0 else 3600  # infinite = 1 hour cap
 
-    safe_print(f"    [🔊] AUDIO BLAST PLAYING: type={play_type} loops={'infinite' if loops == 0 else loops}")
+    # Create a fresh Event bound to the *current* running event loop
+    _audio_stop_event = asyncio.Event()
+
+    safe_print(f"    [\U0001f50a] AUDIO BLAST PLAYING: type={play_type} loops={'infinite' if loops == 0 else loops}")
     await notify_audio_started(play_type)
 
-    audio_stop_event.clear()
     try:
-        await asyncio.wait_for(audio_stop_event.wait(), timeout=wait_s)
-        safe_print(f"    [🔇] AUDIO BLAST STOPPED by server command")
+        await asyncio.wait_for(_audio_stop_event.wait(), timeout=wait_s)
+        safe_print("    [\U0001f507] AUDIO BLAST STOPPED by server command")
     except asyncio.TimeoutError:
-        safe_print(f"    [🔊] AUDIO BLAST FINISHED after ~{wait_s}s")
+        safe_print(f"    [\U0001f50a] AUDIO BLAST FINISHED after ~{wait_s}s")
 
     audio_playing    = False
     audio_loops_left = 0
+    _audio_stop_event = None
     await notify_audio_done()
 
 
@@ -594,9 +597,11 @@ async def receiver(ws) -> None:
                 loops     = 0
             type_names = {0: "stop", 1: "Siren", 2: "Alert Bells", 3: "Xylophone"}
             if play_type == 0:
-                audio_stop_event.set()  # cancels any in-progress blast coroutine
+                # Signal the blast coroutine to stop immediately
+                if _audio_stop_event is not None:
+                    _audio_stop_event.set()
                 audio_playing = False
-                safe_print("    [🔇] AUDIO BLAST STOPPED by server command")
+                safe_print("    [\U0001f507] AUDIO BLAST STOPPED by server command")
                 await notify_audio_done()
             else:
                 safe_print(f"    [🔊] AUDIO BLAST: {type_names.get(play_type, f'type {play_type}')} × {'∞' if loops == 0 else loops} loops")
@@ -776,7 +781,7 @@ async def sender_loop(ws) -> None:
                 f"  Audio: {'🔊 PLAYING' if audio_playing else 'idle'}"
             )
 
-        await asyncio.sleep(ping_interval)
+        await asyncio.sleep(max(1, ping_interval))  # never spin faster than 1s
 
 
 # ══════════════════════════════════════════════════════════════════════════════
