@@ -760,7 +760,6 @@ async function setAudioCmd(play) {
         fetchStats();
         if (play === 0) showToast('Audio blast stopped', 'info');
         else if (result.delivered) showToast('Command sent — waiting for device to start playback' + (loopsVal > 0 ? ` (${loopsVal} loop${loopsVal > 1 ? 's' : ''})` : ' (infinite)'), 'info');
-        else showToast('Device offline — audio queued. Will play when device connects.', 'warning', 6000);
     } else { showToast('Failed to send audio command', 'error'); }
 }
 
