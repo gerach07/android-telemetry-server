@@ -1949,8 +1949,8 @@ async def set_notification(
     if device_id in ws_manager.active_connections:
         delivered = await ws_manager.send_task(device_id, {"task": "system_alert", "state": state, "text": text})
 
-    # If state is 1 (on) but not delivered, it's queued (state = 2). If state is 0 (off), just turn it off (0).
-    final_state = 2 if (state == 1 and not delivered) else state
+    # Set state to 2 (Pending/Queued) initially. It only becomes 1 (Active) when the device sends `alert_shown` IPC.
+    final_state = 2 if state == 1 else 0
     db.cursor().execute("UPDATE devices SET notif_state=?, notif_text=? WHERE device_id=?", (final_state, text, device_id))
     db.commit()
 
