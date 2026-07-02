@@ -1943,9 +1943,18 @@ async def set_notification(
 ):
     db.cursor().execute("UPDATE devices SET notif_state=?, notif_text=? WHERE device_id=?", (state, text, device_id))
     db.commit()
+    delivered = False
     if device_id in ws_manager.active_connections:
-        await ws_manager.send_task(device_id, {"task": "system_alert", "state": state, "text": text})
-    return {"status": "success"}
+        delivered = await ws_manager.send_task(device_id, {"task": "system_alert", "state": state, "text": text})
+
+    if not delivered:
+        print(f"[alert] Device {device_id} offline; alert command queued in DB", flush=True)
+
+    await sse.broadcast(
+        "command_delivered" if delivered else "command_queued",
+        {"device_id": device_id, "task": "system_alert", "state": state, "delivered": delivered},
+    )
+    return {"status": "success", "delivered": delivered}
 
 
 @app.post("/set_audio")

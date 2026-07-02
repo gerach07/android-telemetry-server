@@ -471,6 +471,10 @@ function connectSSE() {
         if (d.device_id !== selectEl.value) return;
         if (d.task === 'audio_blast' && d.play !== 0)
             showToast('Device offline — audio queued, will execute on reconnect', 'warning', 5000);
+        else if (d.task === 'system_alert')
+            { /* Handled directly by setNotificationCmd fetch promise */ }
+        else
+            showToast('Device offline — command queued, will execute on reconnect', 'warning', 5000);
     });
 
     _sseSource.onerror = () => console.warn('[SSE] connection error — browser will auto-reconnect');
@@ -679,7 +683,13 @@ async function setNotificationCmd(state, text) {
     fd.append('text', text);
     const res = await fetch('/set_notification', { method: 'POST', body: fd });
     if (res.ok) {
-        showToast(state ? 'Notification sent to device' : 'Notification cleared', 'success');
+        const result = await res.json();
+        if (state) {
+            if (result.delivered) showToast('Notification sent to device', 'success');
+            else showToast('Device offline — alert queued. Will display when device connects.', 'warning', 6000);
+        } else {
+            showToast('Notification cleared', 'success');
+        }
         fetchStats();
     } else showToast('Failed to send notification command', 'error');
 }
