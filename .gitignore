@@ -34,3 +34,10 @@ web/nohup.out
 # Android packaging outputs
 /system/bin/updater
 /system/priv-app/*/*.idsig
+
+# Heavy external tools and binaries
+/android-image-kitchen/
+/payload-dumper-go
+/ixwebsocket/
+/libs/
+/extracted_images/
