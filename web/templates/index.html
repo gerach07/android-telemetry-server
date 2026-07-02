@@ -692,10 +692,19 @@ async function setNotificationCmd(state, text) {
     if (res.ok) {
         const result = await res.json();
         if (state) {
-            if (result.delivered) showToast('Notification sent to device', 'success');
-            else showToast('Device offline — alert queued. Will display when device connects.', 'warning', 6000);
+            if (result.delivered) {
+                showToast('Notification sent to device', 'success');
+                notifBadge.textContent = 'Sent...';
+                notifBadge.className = 'text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-wider';
+            } else {
+                showToast('Device offline — alert queued. Will display when device connects.', 'warning', 6000);
+                notifBadge.textContent = 'Queued';
+                notifBadge.className = 'text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-wider';
+            }
         } else {
             showToast('Notification cleared', 'success');
+            notifBadge.textContent = 'Inactive';
+            notifBadge.className = 'text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider';
         }
         fetchStats();
     } else showToast('Failed to send notification command', 'error');
