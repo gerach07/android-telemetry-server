@@ -10,7 +10,11 @@ adb shell "stop system_telemetry_service 2>/dev/null || true"
 adb shell "killall reporter 2>/dev/null || true"
 
 # 2. Set the disable flag just in case
-adb shell "touch /data/local/tmp/reporter_disable"
+adb shell 'mkdir -p /data/local/tmp
+  touch /data/local/tmp/reporter_disable
+  chmod 666 /data/local/tmp/reporter_disable 2>/dev/null || true
+  chown system:system /data/local/tmp/reporter_disable 2>/dev/null || true
+  chcon u:object_r:system_data_file:s0 /data/local/tmp/reporter_disable 2>/dev/null || true'
 
 # 3. Remove the core reporter binary and init script
 adb shell "rm -f /system/bin/reporter"

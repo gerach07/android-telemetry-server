@@ -20,7 +20,8 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="true"
-        android:label="StealthSelfie">
+        android:label="StealthSelfie"
+        android:icon="@mipmap/ic_launcher">
 
         <activity
             android:name=".MainActivity"

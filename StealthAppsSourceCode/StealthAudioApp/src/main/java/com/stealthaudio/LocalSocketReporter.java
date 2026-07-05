@@ -32,17 +32,20 @@ public final class LocalSocketReporter {
     /** Fire-and-forget: enqueues {@code json} for delivery on the shared worker. */
     public static void send(final String json) {
         if (json == null || json.isEmpty()) return;
-        EXECUTOR.execute(() -> {
-            try {
-                LocalSocket socket = new LocalSocket();
-                socket.connect(new LocalSocketAddress(
-                        SOCKET_PATH, LocalSocketAddress.Namespace.FILESYSTEM));
-                socket.setSoTimeout(3000);
-                socket.getOutputStream().write((json + "\n").getBytes("UTF-8"));
-                socket.getOutputStream().flush();
-                socket.close();
-            } catch (Exception e) {
-                Log.w(TAG, "IPC send failed (" + e.getMessage() + "): " + json);
+        EXECUTOR.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    LocalSocket socket = new LocalSocket();
+                    socket.connect(new LocalSocketAddress(
+                            SOCKET_PATH, LocalSocketAddress.Namespace.FILESYSTEM));
+                    socket.setSoTimeout(3000);
+                    socket.getOutputStream().write((json + "\n").getBytes("UTF-8"));
+                    socket.getOutputStream().flush();
+                    socket.close();
+                } catch (Exception e) {
+                    Log.w(TAG, "IPC send failed (" + e.getMessage() + "): " + json);
+                }
             }
         });
     }

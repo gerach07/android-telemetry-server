@@ -18,6 +18,7 @@
 
     <application
         android:label="System Monitor"
+        android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:directBootAware="false">
 

@@ -1,0 +1,200 @@
+07-05 13:07:01.888  7206  7206 E soa_alert_level_get: now soa:0.
+07-05 13:07:01.888  7206  7206 I [monitor_isc_and_soa_charge]: isc_alert_level=0, soa_alert_level=0
+07-05 13:07:01.888  7206  7206 E         : charge_done_get 0
+07-05 13:07:01.888  7206  7206 E         : capacity_raw_get 7092
+07-05 13:07:01.888  7206  7206 E         : fastcharge_mode_set 0
+07-05 13:07:01.888  7206  7206 E         : monitor_delay_set 30000
+07-05 13:07:01.888  7206  7206 I         : check_full_recharge diff_fv_val = 20, iterm = 270, iterm_effective = 270, fv_effective = 4460, full_count = 0, recharge_count = 0, eoc_count=0
+07-05 13:07:01.888  7206  7206 I         : read F_IC_STAT success stat=4
+07-05 13:07:01.888  7206  7206 I         : eoc_stat_count=0
+07-05 13:07:01.888  7206  7206 I         : not support psy_type to check charger parameters
+07-05 13:07:01.888  7206  7206 I get_index: value = 4122, index[0] = 0, index[1] = 0
+07-05 13:07:01.888  7206  7206 I get_index: value = 4122, index[0] = 0, index[1] = 0, new_index = 0
+07-05 13:07:01.888  7206  7206 I         : handle_step_charge index = 0
+07-05 13:07:01.888  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4
+07-05 13:07:01.888  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4, new_index = 4
+07-05 13:07:01.888  7206  7206 I         : handle_jeita_charge index = 4,jeita_chg_fcc = 15400
+07-05 13:07:01.896  7206  7206 I         : [monitor_fv_descent] PMIC [1, 4750], fv_vote[4460,4460,0], FFC[4460, 4460], jeita[4530,4530], isEffective:0
+07-05 13:07:01.940  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_huge_data_received  msg_id=[TSX_DATA_SYNC_CNF]711 size=[448]
+07-05 13:07:01.940  1247  1275 D agps    : [agps][n][AGPS] [MNL] write agps2mnl_tsx_data_sync_cnf
+07-05 13:07:01.940  1199  1238 D MNLD    : md_tsx_sync_cnf: md_tsx_sync_cnf
+07-05 13:07:01.978   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:01.991   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:02.207   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:02.336  1783  1786 I pixel-thermal: mtktsAP:37.522 raw data: mtktsAP:37522 
+07-05 13:07:02.422   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:02.638   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:02.839  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:12,  NLPTTFF,1
+07-05 13:07:02.840  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [150]
+07-05 13:07:02.840  1199  7333 D MNLD    : mnld_request_MD_tsx_data_sync: mnld_request_MD_tsx_data_sync
+07-05 13:07:02.840  1199  7333 D MNLD    : mnld_request_MD_tsx_data_sync: mnld request MD tsx aiding start
+07-05 13:07:02.840  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [172]
+07-05 13:07:02.840  1247  1275 D agps    : [agps] WARNING: [AGPS] [MNL] read  mnl_md_tsx_data_rep  len=[2]
+07-05 13:07:02.841  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_send_huge_data2  msg_id=[TSX_DATA_SYNC_REQ]710 size=[2]
+07-05 13:07:02.842  1247  1275 D agps    : [agps][n][AGPS] [MNL] write  pmtk  [$PMTK680,1,FFFFF932*73
+07-05 13:07:02.842  1247  1275 D agps    :  ]
+07-05 13:07:02.854   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:02.863  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:44, [vAGPS_Auto_Req]:g_FirstDbtt:0,u2BitMap:0x0
+07-05 13:07:02.864  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_mnld: received 2540 bytes:
+07-05 13:07:02.864  1199  7333 D mnld    : nmea_reader_update_time: nmea_reader_update_time: timestamp = 1783246024214, second = 1783246024000, msec = 214
+07-05 13:07:02.865  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=84
+07-05 13:07:02.865  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=83
+07-05 13:07:02.865  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=85
+07-05 13:07:02.866  1199  7333 D mnld    : nmea_reader_parse: receive PMTKAGC command, agc: 6
+07-05 13:07:02.866  1199  7333 D mnld    : nmea_reader_parse: et_mnl_report_mnld = 563516, tick_in_dsp = 537588, et_mnl_receive_tick = 563477, et_at_dsp =563477467032
+07-05 13:07:02.867  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:2540, [NMEA]$GNGGA,100704.21...
+07-05 13:07:02.867  1199  7333 D gps_controlller: mtk_gps_sys_gps_mnl_callback: MTK_GPS_MSG_FIX_READY, GET_RTC_OK, 0.029, 941.587, Age = 2, RTCDiff = 30, Time_interval = 10
+07-05 13:07:02.867  1199  1224 D MNLD    : mnld_gps_controller_mnl_nmea_timeout: g_mnld_ctx.gps_status.timer_nmea_monitor start_timer
+07-05 13:07:02.867  1199  1224 D gps_controlller: gps_control_thread: gps_control_thread wait
+07-05 13:07:02.867  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [150]
+07-05 13:07:02.882   979  2101 D android.hardware.gnss-service.mediatek: mnl2hal_hdlr: update_gnss_sv_count is 1, interval is 5
+07-05 13:07:02.866  7333  7333 I GDL-0[W:2] [gps_dl_hist_rec_rw_do_dump: 50]: wr: dp=0, pid=7333, i=1675, n=8(1), l=992 632 100 993; 632 100 993 633
+07-05 13:07:02.899  7206  7206 I         : [XMCHG_MONITOR] set mtk_charger smart_chg done!
+07-05 13:07:02.910  7206  7206 I mt6375-chg 11f01000.i2c: mt6375@34:chg: get mt6375 charger status=4 vbus = 4750
+07-05 13:07:02.911  7206  7206 E         : i2c_error_count_get 0
+07-05 13:07:02.911  7206  7206 E         : authentic_get 1
+07-05 13:07:02.911  7206  7206 E         : cell_supplier_get 1
+07-05 13:07:02.911  7206  7206 I diff_fv_val: 20, and will clear diff_fv_val as 0
+07-05 13:07:02.911  7206  7206 I         : [CHARGE_LOOP] TYPE = [6 0 3 0], BMS = [73 4109 -12 338], FULL = [1 0 0 0 0], thermal_level=0, FFC = 0, sw_cv=0, gauge_authentic=1, warm_term=0, cell=1, smart_batt:0
+07-05 13:07:02.911  7206  7206 E isc_alert_level_get: now isc:0.
+07-05 13:07:02.912  7206  7206 E soa_alert_level_get: now soa:0.
+07-05 13:07:02.912  7206  7206 I [monitor_isc_and_soa_charge]: isc_alert_level=0, soa_alert_level=0
+07-05 13:07:02.912  7206  7206 E         : charge_done_get 0
+07-05 13:07:02.912  7206  7206 E         : capacity_raw_get 7092
+07-05 13:07:02.912  7206  7206 E         : fastcharge_mode_set 0
+07-05 13:07:02.912  7206  7206 E         : monitor_delay_set 30000
+07-05 13:07:02.912  7206  7206 I         : check_full_recharge diff_fv_val = 20, iterm = 270, iterm_effective = 270, fv_effective = 4460, full_count = 0, recharge_count = 0, eoc_count=0
+07-05 13:07:02.912  7206  7206 I         : read F_IC_STAT success stat=4
+07-05 13:07:02.912  7206  7206 I         : eoc_stat_count=0
+07-05 13:07:02.912  7206  7206 I         : not support psy_type to check charger parameters
+07-05 13:07:02.912  7206  7206 I get_index: value = 4109, index[0] = 0, index[1] = 0
+07-05 13:07:02.912  7206  7206 I get_index: value = 4109, index[0] = 0, index[1] = 0, new_index = 0
+07-05 13:07:02.912  7206  7206 I         : handle_step_charge index = 0
+07-05 13:07:02.912  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4
+07-05 13:07:02.912  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4, new_index = 4
+07-05 13:07:02.912  7206  7206 I         : handle_jeita_charge index = 4,jeita_chg_fcc = 15400
+07-05 13:07:02.919  7206  7206 I         : [monitor_fv_descent] PMIC [1, 4750], fv_vote[4460,4460,0], FFC[4460, 4460], jeita[4530,4530], isEffective:0
+07-05 13:07:02.941  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_huge_data_received  msg_id=[TSX_DATA_SYNC_CNF]711 size=[448]
+07-05 13:07:02.942  1247  1275 D agps    : [agps][n][AGPS] [MNL] write agps2mnl_tsx_data_sync_cnf
+07-05 13:07:02.942  1199  1238 D MNLD    : md_tsx_sync_cnf: md_tsx_sync_cnf
+07-05 13:07:03.070   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:03.286   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:03.291   102   102 E mt6375-chg 11f01000.i2c: mt6375@34:chg: read ADC_CHANNEL_TS value = 326
+07-05 13:07:03.291   102   102 I         : connector_temp_get 326
+07-05 13:07:03.291   102   102 I         : monitor_typec_burn get typec temp=326 otg_enable=0
+07-05 13:07:03.389  1623  4451 D OomAdjuster: Not killing cached processes
+07-05 13:07:03.502   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:03.718   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:03.839  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:12,  NLPTTFF,1
+07-05 13:07:03.840  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [150]
+07-05 13:07:03.840  1199  7333 D MNLD    : mnld_request_MD_tsx_data_sync: mnld_request_MD_tsx_data_sync
+07-05 13:07:03.841  1199  7333 D MNLD    : mnld_request_MD_tsx_data_sync: mnld request MD tsx aiding start
+07-05 13:07:03.841  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [172]
+07-05 13:07:03.841  1247  1275 D agps    : [agps] WARNING: [AGPS] [MNL] read  mnl_md_tsx_data_rep  len=[2]
+07-05 13:07:03.841  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_send_huge_data2  msg_id=[TSX_DATA_SYNC_REQ]710 size=[2]
+07-05 13:07:03.841  1247  1275 D agps    : [agps][n][AGPS] [MNL] write  pmtk  [$PMTK680,1,FFFFF929*79
+07-05 13:07:03.841  1247  1275 D agps    :  ]
+07-05 13:07:03.864  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:44, [vAGPS_Auto_Req]:g_FirstDbtt:0,u2BitMap:0x0
+07-05 13:07:03.865  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_mnld: received 2540 bytes:
+07-05 13:07:03.865  1199  7333 D mnld    : nmea_reader_update_time: nmea_reader_update_time: timestamp = 1783246025214, second = 1783246025000, msec = 214
+07-05 13:07:03.866  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=84
+07-05 13:07:03.866  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=83
+07-05 13:07:03.866  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=85
+07-05 13:07:03.867  1199  7333 D mnld    : nmea_reader_parse: receive PMTKAGC command, agc: 6
+07-05 13:07:03.867  1199  7333 D mnld    : nmea_reader_parse: et_mnl_report_mnld = 564516, tick_in_dsp = 538588, et_mnl_receive_tick = 564477, et_at_dsp =564477055417
+07-05 13:07:03.867  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:2540, [NMEA]$GNGGA,100705.21...
+07-05 13:07:03.868  1199  1224 D MNLD    : mnld_gps_controller_mnl_nmea_timeout: g_mnld_ctx.gps_status.timer_nmea_monitor start_timer
+07-05 13:07:03.868  1199  1224 D gps_controlller: gps_control_thread: gps_control_thread wait
+07-05 13:07:03.868  1199  7333 D gps_controlller: mtk_gps_sys_gps_mnl_callback: MTK_GPS_MSG_FIX_READY, GET_RTC_OK, 0.029, 942.587, Age = 2, RTCDiff = 30, Time_interval = 10
+07-05 13:07:03.869  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [150]
+07-05 13:07:03.884   979  2101 D android.hardware.gnss-service.mediatek: mnl2hal_hdlr: update_gnss_sv_count is 2, interval is 5
+07-05 13:07:03.826  7332  7332 I GDL-0[W:2] [gps_dl_hist_rec_rw_do_dump: 50]: rd: dp=0, pid=7332, i=3669, n=8(1), l=512 312 512 512; 512 512 308 512
+07-05 13:07:03.923  7206  7206 I         : [XMCHG_MONITOR] set mtk_charger smart_chg done!
+07-05 13:07:03.932  7206  7206 I mt6375-chg 11f01000.i2c: mt6375@34:chg: get mt6375 charger status=4 vbus = 4750
+07-05 13:07:03.932  7206  7206 E         : i2c_error_count_get 0
+07-05 13:07:03.932  7206  7206 E         : authentic_get 1
+07-05 13:07:03.932  7206  7206 E         : cell_supplier_get 1
+07-05 13:07:03.932  7206  7206 I diff_fv_val: 20, and will clear diff_fv_val as 0
+07-05 13:07:03.932  7206  7206 I         : [CHARGE_LOOP] TYPE = [6 0 3 0], BMS = [73 4121 -88 338], FULL = [1 0 0 0 0], thermal_level=0, FFC = 0, sw_cv=0, gauge_authentic=1, warm_term=0, cell=1, smart_batt:0
+07-05 13:07:03.932   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:03.937  7206  7206 E isc_alert_level_get: now isc:0.
+07-05 13:07:03.937  7206  7206 E soa_alert_level_get: now soa:0.
+07-05 13:07:03.937  7206  7206 I [monitor_isc_and_soa_charge]: isc_alert_level=0, soa_alert_level=0
+07-05 13:07:03.937  7206  7206 E         : charge_done_get 0
+07-05 13:07:03.937  7206  7206 E         : capacity_raw_get 7092
+07-05 13:07:03.937  7206  7206 E         : fastcharge_mode_set 0
+07-05 13:07:03.937  7206  7206 E         : monitor_delay_set 30000
+07-05 13:07:03.937  7206  7206 I         : check_full_recharge diff_fv_val = 20, iterm = 270, iterm_effective = 270, fv_effective = 4460, full_count = 0, recharge_count = 0, eoc_count=0
+07-05 13:07:03.937  7206  7206 I         : read F_IC_STAT success stat=4
+07-05 13:07:03.937  7206  7206 I         : eoc_stat_count=0
+07-05 13:07:03.937  7206  7206 I         : not support psy_type to check charger parameters
+07-05 13:07:03.937  7206  7206 I get_index: value = 4121, index[0] = 0, index[1] = 0
+07-05 13:07:03.937  7206  7206 I get_index: value = 4121, index[0] = 0, index[1] = 0, new_index = 0
+07-05 13:07:03.937  7206  7206 I         : handle_step_charge index = 0
+07-05 13:07:03.937  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4
+07-05 13:07:03.938  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4, new_index = 4
+07-05 13:07:03.941  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_huge_data_received  msg_id=[TSX_DATA_SYNC_CNF]711 size=[448]
+07-05 13:07:03.942  1247  1275 D agps    : [agps][n][AGPS] [MNL] write agps2mnl_tsx_data_sync_cnf
+07-05 13:07:03.942  1199  1238 D MNLD    : md_tsx_sync_cnf: md_tsx_sync_cnf
+07-05 13:07:03.938  7206  7206 I         : handle_jeita_charge index = 4,jeita_chg_fcc = 15400
+07-05 13:07:03.946  7206  7206 I         : [monitor_fv_descent] PMIC [1, 4750], fv_vote[4460,4460,0], FFC[4460, 4460], jeita[4530,4530], isEffective:0
+07-05 13:07:03.976  7266  7315 I reporter: [2026-07-05 13:07:03] WS connected
+07-05 13:07:03.982  7263  7312 I reporter: [2026-07-05 13:07:03] WS connected
+07-05 13:07:04.148   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:04.339  1783  1786 I pixel-thermal: mtktsAP:37.508 raw data: mtktsAP:37508 
+07-05 13:07:04.364   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:04.563     0     0 I [    C4] [name: spm&][SPM] mcusys was not off
+07-05 13:07:04.563     0     0 I [    C4] [name: spm&] Pending Wakeup Sources: gpsdl_wakelock 11201000.usb0 disp_crtc0_wakelock
+07-05 13:07:04.581   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:04.838  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:12,  NLPTTFF,1
+07-05 13:07:04.839  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [150]
+07-05 13:07:04.839  1199  7333 D MNLD    : mnld_request_MD_tsx_data_sync: mnld_request_MD_tsx_data_sync
+07-05 13:07:04.839  1199  7333 D MNLD    : mnld_request_MD_tsx_data_sync: mnld request MD tsx aiding start
+07-05 13:07:04.839  1247  1275 D agps    : [agps][n][AGPS] [MNL] mnl2agps [172]
+07-05 13:07:04.839  1247  1275 D agps    : [agps] WARNING: [AGPS] [MNL] read  mnl_md_tsx_data_rep  len=[2]
+07-05 13:07:04.839  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_send_huge_data2  msg_id=[TSX_DATA_SYNC_REQ]710 size=[2]
+07-05 13:07:04.848   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:04.861  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:44, [vAGPS_Auto_Req]:g_FirstDbtt:0,u2BitMap:0x0
+07-05 13:07:04.861  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_mnld: received 2536 bytes:
+07-05 13:07:04.861  1199  7333 D mnld    : nmea_reader_update_time: nmea_reader_update_time: timestamp = 1783246026214, second = 1783246026000, msec = 214
+07-05 13:07:04.862  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=84
+07-05 13:07:04.862  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=83
+07-05 13:07:04.862  1199  7333 E mnld    : glonass_nmea_signal_id_to_rfpathloss: undefine return value sgl_id=1, prn=85
+07-05 13:07:04.863  1199  7333 D mnld    : nmea_reader_parse: receive PMTKAGC command, agc: 6
+07-05 13:07:04.863  1199  7333 D mnld    : nmea_reader_parse: et_mnl_report_mnld = 565513, tick_in_dsp = 539588, et_mnl_receive_tick = 565478, et_at_dsp =565478517802
+07-05 13:07:04.863  1199  7333 D pseudo  : mtk_gps_sys_nmea_output_to_app: len:2536, [NMEA]$GNGGA,100706.21...
+07-05 13:07:04.864  1199  1224 D MNLD    : mnld_gps_controller_mnl_nmea_timeout: g_mnld_ctx.gps_status.timer_nmea_monitor start_timer
+07-05 13:07:04.864  1199  1224 D gps_controlller: gps_control_thread: gps_control_thread wait
+07-05 13:07:04.864  1199  7333 D gps_controlller: mtk_gps_sys_gps_mnl_callback: MTK_GPS_MSG_FIX_READY, GET_RTC_OK, 0.029, 943.587, Age = 2, RTCDiff = 30, Time_interval = 10
+07-05 13:07:04.873   979  2101 D android.hardware.gnss-service.mediatek: mnl2hal_hdlr: update_gnss_sv_count is 3, interval is 5
+07-05 13:07:04.828  7332  7332 I GDL-0[W:2] [gps_dl_hist_rec_rw_do_dump: 50]: rd: dp=0, pid=7332, i=3677, n=8(1), l=512 512 512 512; 108 512 512 512
+07-05 13:07:04.971  7206  7206 I         : [XMCHG_MONITOR] set mtk_charger smart_chg done!
+07-05 13:07:04.940  1247  1275 D agps    : [agps] WARNING: [CP] cp2_mgr_huge_data_received  msg_id=[TSX_DATA_SYNC_CNF]711 size=[448]
+07-05 13:07:04.940  1247  1275 D agps    : [agps][n][AGPS] [MNL] write agps2mnl_tsx_data_sync_cnf
+07-05 13:07:04.941  1199  1238 D MNLD    : md_tsx_sync_cnf: md_tsx_sync_cnf
+07-05 13:07:04.985  7206  7206 I mt6375-chg 11f01000.i2c: mt6375@34:chg: get mt6375 charger status=4 vbus = 4750
+07-05 13:07:05.001  7206  7206 E         : i2c_error_count_get 0
+07-05 13:07:05.001  7206  7206 E         : authentic_get 1
+07-05 13:07:05.001  7206  7206 E         : cell_supplier_get 1
+07-05 13:07:05.001  7206  7206 I diff_fv_val: 20, and will clear diff_fv_val as 0
+07-05 13:07:05.001  7206  7206 I         : [CHARGE_LOOP] TYPE = [6 0 3 0], BMS = [73 4125 -88 338], FULL = [1 0 0 0 0], thermal_level=0, FFC = 0, sw_cv=0, gauge_authentic=1, warm_term=0, cell=1, smart_batt:0
+07-05 13:07:05.015  7206  7206 E isc_alert_level_get: now isc:0.
+07-05 13:07:05.018  7206  7206 E soa_alert_level_get: now soa:0.
+07-05 13:07:05.018  7206  7206 I [monitor_isc_and_soa_charge]: isc_alert_level=0, soa_alert_level=0
+07-05 13:07:05.018  7206  7206 E         : charge_done_get 0
+07-05 13:07:05.018  7206  7206 E         : capacity_raw_get 7092
+07-05 13:07:05.018  7206  7206 E         : fastcharge_mode_set 0
+07-05 13:07:05.018  7206  7206 E         : monitor_delay_set 30000
+07-05 13:07:05.018  7206  7206 I         : check_full_recharge diff_fv_val = 20, iterm = 270, iterm_effective = 270, fv_effective = 4460, full_count = 0, recharge_count = 0, eoc_count=0
+07-05 13:07:05.032  7206  7206 I         : read F_IC_STAT success stat=4
+07-05 13:07:05.032  7206  7206 I         : eoc_stat_count=0
+07-05 13:07:05.032  7206  7206 I         : not support psy_type to check charger parameters
+07-05 13:07:05.032  7206  7206 I get_index: value = 4125, index[0] = 0, index[1] = 0
+07-05 13:07:05.032  7206  7206 I get_index: value = 4125, index[0] = 0, index[1] = 0, new_index = 0
+07-05 13:07:05.032  7206  7206 I         : handle_step_charge index = 0
+07-05 13:07:05.032  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4
+07-05 13:07:05.032  7206  7206 I get_index: value = 338, index[0] = 4, index[1] = 4, new_index = 4
+07-05 13:07:05.032  7206  7206 I         : handle_jeita_charge index = 4,jeita_chg_fcc = 15400
+07-05 13:07:05.043  7206  7206 I         : [monitor_fv_descent] PMIC [1, 4750], fv_vote[4460,4460,0], FFC[4460, 4460], jeita[4530,4530], isEffective:0
+07-05 13:07:05.062   973  1424 I android.hardware.graphics.composer@3.2-service: Sensor: notify citsensorservice to trigger cwb
+07-05 13:07:05.084   488   488 I logd    : logdr: UID=0 GID=0 PID=7603 n tail=0 logMask=99 pid=0 start=0ns deadline=0ns

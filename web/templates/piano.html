@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anasio | Live Piano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.10.7/dist/soundfont-player.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+
+        body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+
+        /* ── Piano cabinet ─────────────────────────────────────────────── */
+        .piano-cabinet {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border-radius: 20px;
+            padding: 28px 32px 32px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.5),
+                0 40px 80px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle sheen across the top of the cabinet */
+        .piano-cabinet::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 120px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%);
+            pointer-events: none;
+            border-radius: 20px 20px 0 0;
+        }
+
+        /* ── Key bed ────────────────────────────────────────────────────── */
+        .key-bed {
+            background: #080a10;
+            border-radius: 12px;
+            padding: 32px 18px 0;
+            border: 1px solid rgba(0,0,0,0.8);
+            box-shadow:
+                inset 0 4px 20px rgba(0,0,0,0.8),
+                inset 0 1px 0 rgba(255,255,255,0.03);
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
+        .key-bed::-webkit-scrollbar { height: 5px; }
+        .key-bed::-webkit-scrollbar-track { background: transparent; }
+        .key-bed::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        /* ── Keys wrapper ───────────────────────────────────────────────── */
+        .keys-wrapper {
+            display: flex;
+            position: relative;
+            align-items: flex-start;
+            flex-shrink: 0;
+            padding-bottom: 18px;
+        }
+
+        /* ── White keys ─────────────────────────────────────────────────── */
+        .key-white {
+            position: relative;
+            width: 46px;
+            height: 210px;
+            flex-shrink: 0;
+            border-radius: 0 0 8px 8px;
+            cursor: pointer;
+            user-select: none;
+            z-index: 1;
+            /* Ivory look */
+            background: linear-gradient(180deg,
+                #f0ede8 0%,
+                #faf8f5 15%,
+                #fdfcfb 60%,
+                #f5f2ed 100%
+            );
+            border-left: 0.5px solid #c8c0b4;
+            border-right: 0.5px solid #c8c0b4;
+            border-bottom: 1px solid #a89e90;
+            box-shadow:
+                2px 0 4px rgba(0,0,0,0.3),
+                -1px 0 3px rgba(0,0,0,0.15),
+                inset 0 -4px 8px rgba(0,0,0,0.08),
+                inset 0 2px 0 rgba(255,255,255,0.9);
+            transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+        }
+        .key-white:hover {
+            background: linear-gradient(180deg,
+                #e8e4f0 0%,
+                #f0ecff 15%,
+                #f8f6ff 60%,
+                #ede8f8 100%
+            );
+        }
+        .key-white.active {
+            background: linear-gradient(180deg,
+                #c7d2fe 0%,
+                #dde4ff 20%,
+                #e0e7ff 60%,
+                #c7d2fe 100%
+            );
+            box-shadow:
+                2px 0 4px rgba(0,0,0,0.3),
+                inset 0 4px 10px rgba(79,70,229,0.25),
+                inset 0 -2px 4px rgba(0,0,0,0.05);
+            transform: scaleY(0.993);
+            transform-origin: top;
+        }
+
+        /* Key label — note name at bottom */
+        .key-white .note-label {
+            position: absolute;
+            bottom: 10px;
+            left: 0; right: 0;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: #9ca3af;
+            pointer-events: none;
+            letter-spacing: .03em;
+            opacity: 0.7;
+        }
+        .key-white.active .note-label { color: #6366f1; opacity: 1; }
+
+        /* C note marker */
+        .key-white.is-c {
+            border-left: 2px solid #4f46e5;
+            position: relative;
+        }
+        .key-white.is-c::after {
+            content: attr(data-octave);
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 700;
+            color: #4f46e5;
+            background: rgba(79,70,229,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .key-white.is-c .note-label { color: #6b7280; opacity: 1; }
+        .key-white.is-c.active .note-label { color: #4338ca; }
+
+        /* Keyboard shortcut hint */
+        .key-white .kb-hint {
+            position: absolute;
+            bottom: 28px;
+            left: 0; right: 0;
+            text-align: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #4f46e5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .15s;
+            background: rgba(238,242,255,0.7);
+            margin: 0 6px;
+            border-radius: 3px;
+            padding: 1px 0;
+        }
+        body.show-hints .key-white .kb-hint { opacity: 1; }
+
+        /* ── Black keys ─────────────────────────────────────────────────── */
+        .key-black {
+            position: relative;
+            width: 30px;
+            height: 132px;
+            flex-shrink: 0;
+            border-radius: 0 0 5px 5px;
+            cursor: pointer;
+            user-select: none;
+            z-index: 2;
+            margin-left: -15px;
+            margin-right: -15px;
+            background: linear-gradient(180deg,
+                #2a2a2a 0%,
+                #1a1a1a 40%,
+                #111 70%,
+                #0a0a0a 100%
+            );
+            border-left: 1px solid #444;
+            border-right: 1px solid #444;
+            border-bottom: 2px solid #000;
+            box-shadow:
+                3px 5px 10px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.12),
+                inset 1px 0 0 rgba(255,255,255,0.05),
+                inset -1px 0 0 rgba(255,255,255,0.05);
+            transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+        }
+        .key-black:hover {
+            background: linear-gradient(180deg,
+                #3a3a4a 0%,
+                #2a2a3a 40%,
+                #1a1a28 70%,
+                #0f0f1a 100%
+            );
+        }
+        .key-black.active {
+            background: linear-gradient(180deg,
+                #4338ca 0%,
+                #3730a3 40%,
+                #2d2895 70%,
+                #1e1a6e 100%
+            );
+            box-shadow:
+                2px 3px 8px rgba(0,0,0,0.7),
+                inset 0 3px 8px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+            transform: scaleY(0.97);
+            transform-origin: top;
+        }
+
+        /* ── Spinning icon ─────────────────────────────────────────────── */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinning { animation: spin .7s linear infinite; display: inline-block; }
+
+        /* ── Toast ─────────────────────────────────────────────────────── */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast { animation: slideIn 0.25s ease-out; }
+
+        /* ── Nav ───────────────────────────────────────────────────────── */
+        .nav-link {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: 500;
+            color: #94a3b8;
+            padding: 5px 10px; border-radius: 8px;
+            text-decoration: none;
+            transition: background .15s, color .15s;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+        .nav-link.active { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+
+        /* ── Control buttons ───────────────────────────────────────────── */
+        .ctrl-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px;
+            background: rgba(255,255,255,0.06);
+            border: 0.5px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            color: #94a3b8; font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: background .15s, color .15s;
+        }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+        select.ui-select {
+            background: rgba(255,255,255,0.06);
+            border: 0.5px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 13px; font-weight: 500;
+            padding: 6px 10px;
+            cursor: pointer;
+            outline: none;
+        }
+        select.ui-select:hover { border-color: rgba(99,102,241,0.5); }
+        select.ui-select:focus { border-color: #6366f1; }
+        select.ui-select option { background: #1e293b; }
+
+        /* ── Audio overlay ─────────────────────────────────────────────── */
+        #audio-overlay { backdrop-filter: blur(6px); }
+
+        /* ── Glow indicator for active note count ──────────────────────── */
+        .note-indicator {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #374151;
+            transition: background .1s, box-shadow .1s;
+        }
+        .note-indicator.lit {
+            background: #6366f1;
+            box-shadow: 0 0 8px #6366f1, 0 0 16px rgba(99,102,241,0.4);
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+<!-- Audio unlock overlay -->
+<div id="audio-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70">
+    <div style="background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:40px 36px; text-align:center; max-width:380px; width:90%;">
+        <div style="width:64px;height:64px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+            <i class="ti ti-music" style="font-size:28px;color:#818cf8;"></i>
+        </div>
+        <h2 style="font-size:20px;font-weight:600;color:#f1f5f9;margin:0 0 8px;">Enable web audio</h2>
+        <p style="font-size:13px;color:#64748b;margin:0 0 28px;line-height:1.6;">Click below to start the audio engine and join the live MIDI room. Notes you play are broadcast to all connected C2 tabs.</p>
+        <button id="btn-start" style="width:100%;background:#4f46e5;color:#fff;font-size:14px;font-weight:600;border:none;border-radius:12px;padding:13px;cursor:pointer;transition:background .15s;letter-spacing:.02em;">
+            Join piano room
+        </button>
+    </div>
+</div>
+
+<div style="min-height:100vh;padding:24px;">
+
+    <!-- Nav -->
+    <nav style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:12px 20px;margin-bottom:20px;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:38px;height:38px;background:rgba(99,102,241,0.15);border:0.5px solid rgba(99,102,241,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-music" style="font-size:18px;color:#818cf8;" aria-hidden="true"></i>
+            </div>
+            <div>
+                <p style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin:0;">Live room</p>
+                <h1 style="font-size:18px;font-weight:600;color:#f1f5f9;margin:0;line-height:1.2;">Global Piano</h1>
+            </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+            <a href="/" class="nav-link"><i class="ti ti-cpu" style="font-size:13px;" aria-hidden="true"></i> C2</a>
+            <a href="/selfies_view" class="nav-link"><i class="ti ti-camera" style="font-size:13px;" aria-hidden="true"></i> Selfies</a>
+            <a href="/errors_view" class="nav-link"><i class="ti ti-alert-circle" style="font-size:13px;" aria-hidden="true"></i> Diag</a>
+            <a href="/history_view" class="nav-link"><i class="ti ti-history" style="font-size:13px;" aria-hidden="true"></i> History</a>
+            <a href="/piano_view" class="nav-link active"><i class="ti ti-music" style="font-size:13px;" aria-hidden="true"></i> Piano</a>
+            <div style="width:1px;height:20px;background:rgba(255,255,255,0.1);margin:0 4px;"></div>
+            <!-- MIDI indicator -->
+            <div id="midi-status" style="display:flex;align-items:center;gap:7px;padding:0 8px;">
+                <span style="position:relative;width:8px;height:8px;display:inline-flex;">
+                    <span style="position:absolute;inset:0;border-radius:50%;background:#ef4444;opacity:0.6;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></span>
+                    <span style="position:relative;width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                </span>
+                <span style="font-size:12px;font-weight:500;color:#64748b;">No MIDI</span>
+            </div>
+            <div style="width:1px;height:20px;background:rgba(255,255,255,0.1);margin:0 4px;"></div>
+            <a href="/logout" class="nav-link" style="background:rgba(239,68,68,0.1);color:#f87171;border:0.5px solid rgba(239,68,68,0.2);">
+                <i class="ti ti-logout" style="font-size:13px;" aria-hidden="true"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <!-- Controls bar -->
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;">
+        <!-- Left: octave + hints -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:6px 12px;">
+                <button id="btn-oct-down" class="ctrl-btn" title="Shift octave down">−</button>
+                <span style="font-size:12px;color:#94a3b8;min-width:60px;text-align:center;" id="oct-label">Octave 4</span>
+                <button id="btn-oct-up" class="ctrl-btn" title="Shift octave up">+</button>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;cursor:pointer;user-select:none;">
+                <input type="checkbox" id="show-hints-cb" style="accent-color:#6366f1;width:14px;height:14px;">
+                Key hints
+            </label>
+            <div style="display:flex;align-items:center;gap:4px;" id="note-dots">
+                <!-- filled by JS to show active polyphony -->
+            </div>
+        </div>
+        <!-- Right: instrument + loading -->
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span id="loading-spinner" style="display:none;align-items:center;gap:6px;font-size:12px;color:#818cf8;">
+                <i class="ti ti-loader spinning" style="font-size:14px;"></i> Loading…
+            </span>
+            <select id="instrument-select" class="ui-select">
+                <option value="acoustic_grand_piano">Acoustic Grand Piano</option>
+                <option value="electric_piano_1">Electric Piano</option>
+                <option value="church_organ">Church Organ</option>
+                <option value="acoustic_guitar_steel">Acoustic Guitar</option>
+                <option value="electric_guitar_jazz">Jazz Guitar</option>
+                <option value="violin">Violin</option>
+                <option value="cello">Cello</option>
+                <option value="flute">Flute</option>
+                <option value="alto_sax">Alto Sax</option>
+                <option value="synth_brass_1">Synth Brass</option>
+                <option value="lead_1_square">Square Lead</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Piano cabinet -->
+    <div class="piano-cabinet">
+        <!-- Brand plate -->
+        <div style="display:flex;align-items:center;justify-content:center;margin-bottom:20px;gap:10px;">
+            <div style="height:1px;flex:1;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08));"></div>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.25em;color:rgba(255,255,255,0.2);text-transform:uppercase;">Anasio</span>
+            <div style="height:1px;flex:1;background:linear-gradient(90deg,rgba(255,255,255,0.08),transparent);"></div>
+        </div>
+
+        <!-- Key bed -->
+        <div class="key-bed">
+            <div class="keys-wrapper" id="keys-wrapper"></div>
+        </div>
+
+        <!-- Pedal area -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:20px;">
+            <div style="width:32px;height:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:5px;"></div>
+            <div style="width:40px;height:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:5px;"></div>
+            <div style="width:32px;height:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:5px;"></div>
+        </div>
+    </div>
+
+    <!-- Info bar -->
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;padding:0 4px;">
+        <p style="font-size:11px;color:#334155;margin:0;">
+            <kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">A</kbd>–<kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">K</kbd> white keys &nbsp;·&nbsp;
+            <kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">W</kbd><kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">E</kbd><kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">T</kbd><kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">Y</kbd><kbd style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:10px;">U</kbd> black keys
+        </p>
+        <p style="font-size:11px;color:#334155;margin:0;" id="range-label">97 keys · C0–C8</p>
+    </div>
+</div>
+
+<style>
+@keyframes ping { 75%, 100% { transform: scale(1.8); opacity: 0; } }
+</style>
+
+<script>
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const START_NOTE = 12;  // C0
+const END_NOTE   = 108; // C8 — 7 full octaves
+
+function isBlack(n)    { return [1,3,6,8,10].includes(n % 12); }
+function midiLabel(n)  { return `${NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 1}`; }
+function midiFreq(n)   { return 440 * Math.pow(2, (n - 69) / 12); }
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'info', ms = 3500) {
+    const c = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    const colors = { error:'#7f1d1d:#fca5a5', success:'#052e16:#86efac', warning:'#451a03:#fcd34d', info:'#1e293b:#94a3b8' };
+    const [bg, text] = (colors[type] || colors.info).split(':');
+    const icons = { error:'alert-circle', success:'check', warning:'alert-triangle', info:'info-circle' };
+    el.className = 'toast';
+    el.style.cssText = `display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:500;color:${text};background:${bg};border:0.5px solid rgba(255,255,255,0.1);pointer-events:auto;min-width:260px;`;
+    el.innerHTML = `<i class="ti ti-${icons[type]}" style="font-size:16px;"></i><span>${msg}</span>`;
+    c.appendChild(el);
+    setTimeout(() => { el.style.cssText += 'opacity:0;transition:opacity .3s;'; setTimeout(() => el.remove(), 300); }, ms);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let audioCtx = null, currentInstrument = null;
+const activeNotes = {};
+let isLocalPlaying = false, keyboardOctave = 4;
+
+// ── Build 88-key keyboard ─────────────────────────────────────────────────────
+const wrapper = document.getElementById('keys-wrapper');
+
+// Polyphony dots
+const dotsEl = document.getElementById('note-dots');
+const MAX_DOTS = 10;
+const dots = [];
+for (let i = 0; i < MAX_DOTS; i++) {
+    const d = document.createElement('div');
+    d.className = 'note-indicator';
+    dotsEl.appendChild(d);
+    dots.push(d);
+}
+function updateDots() {
+    const n = Object.keys(activeNotes).length;
+    dots.forEach((d, i) => d.classList.toggle('lit', i < n));
+}
+
+for (let i = START_NOTE; i <= END_NOTE; i++) {
+    const black = isBlack(i);
+    const key = document.createElement('div');
+    key.className = `key-${black ? 'black' : 'white'}${!black && i % 12 === 0 ? ' is-c' : ''}`;
+    key.id = `key-${i}`;
+    key.dataset.note = i;
+    
+    if (!black && i % 12 === 0) {
+        const octave = Math.floor(i / 12) - 1;
+        key.dataset.octave = `Oct ${octave}`;
+    }
+
+    if (!black) {
+        const label = document.createElement('span');
+        label.className = 'note-label';
+        label.textContent = midiLabel(i);
+        key.appendChild(label);
+
+        const hint = document.createElement('span');
+        hint.className = 'kb-hint';
+        hint.id = `hint-${i}`;
+        key.appendChild(hint);
+    }
+
+    key.addEventListener('mousedown', e => { e.preventDefault(); triggerNoteOn(i, 100, false); sendNote(i, 100, 1); });
+    key.addEventListener('mouseup',   () => { triggerNoteOff(i); sendNote(i, 0, 0); });
+    key.addEventListener('mouseleave',() => { if (activeNotes[i]?.local) { triggerNoteOff(i); sendNote(i, 0, 0); } });
+    key.addEventListener('touchstart',e => { e.preventDefault(); triggerNoteOn(i, 100, false); sendNote(i, 100, 1); }, { passive:false });
+    key.addEventListener('touchend',  e => { e.preventDefault(); triggerNoteOff(i); sendNote(i, 0, 0); }, { passive:false });
+
+    wrapper.appendChild(key);
+}
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+function triggerNoteOn(note, velocity = 100, remote = false) {
+    if (!audioCtx || activeNotes[note]) return;
+    let node = null;
+    // Only use soundfont for notes C1 and above (MIDI note 24+)
+    if (currentInstrument && note >= 24) {
+        try { node = currentInstrument.play(note, audioCtx.currentTime, { gain: (velocity / 127) * 1.3 }); } catch(e) { node = null; }
+    }
+    if (!node) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(midiFreq(note), audioCtx.currentTime);
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime((velocity / 127) * 0.35, audioCtx.currentTime + 0.01);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime);
+        node = { stop(t) { gain.gain.setValueAtTime(gain.gain.value, t); gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4); osc.stop(t + 0.4); } };
+    }
+    activeNotes[note] = { node, local: !remote };
+    const el = document.getElementById(`key-${note}`);
+    if (el) el.classList.add('active');
+    updateDots();
+}
+
+function triggerNoteOff(note) {
+    if (!audioCtx) return;
+    const info = activeNotes[note];
+    if (!info) return;
+    if (info.node?.stop) info.node.stop(audioCtx.currentTime);
+    delete activeNotes[note];
+    const el = document.getElementById(`key-${note}`);
+    if (el) el.classList.remove('active');
+    updateDots();
+}
+
+// ── Instrument loading ────────────────────────────────────────────────────────
+async function loadInstrument(name) {
+    if (!audioCtx) return;
+    const spinner = document.getElementById('loading-spinner');
+    const select  = document.getElementById('instrument-select');
+    spinner.style.display = 'inline-flex';
+    select.disabled = true;
+    Object.keys(activeNotes).forEach(n => triggerNoteOff(parseInt(n)));
+
+    const SF = window.Soundfont || window.soundfont;
+    if (!SF || typeof SF.instrument !== 'function') {
+        currentInstrument = null;
+        showToast('Soundfont unavailable — using built-in synth', 'warning');
+        spinner.style.display = 'none'; select.disabled = false; return;
+    }
+    try {
+        currentInstrument = await SF.instrument(audioCtx, name, { soundfont: 'MusyngKite' });
+        showToast(`${select.options[select.selectedIndex].text} loaded`, 'success', 2000);
+    } catch(e) {
+        currentInstrument = null;
+        showToast('Failed to load soundfont — using built-in synth', 'warning');
+    } finally {
+        spinner.style.display = 'none'; select.disabled = false;
+    }
+}
+
+// ── Server ─────────────────────────────────────────────────────────────────────
+function sendNote(note, velocity, state) {
+    isLocalPlaying = true;
+    const fd = new FormData();
+    fd.append('note', note); fd.append('velocity', velocity); fd.append('state', state);
+    fetch('/play_note', { method:'POST', body:fd }).catch(() => {});
+    setTimeout(() => { isLocalPlaying = false; }, 150);
+}
+
+function connectSSE() {
+    const sse = new EventSource('/events');
+    sse.addEventListener('piano_note', e => {
+        if (isLocalPlaying) return;
+        try { const d = JSON.parse(e.data); const n = parseInt(d.note);
+              if (d.state === 1) triggerNoteOn(n, parseInt(d.velocity) || 100, true);
+              else triggerNoteOff(n); } catch(_) {}
+    });
+}
+
+// ── MIDI ──────────────────────────────────────────────────────────────────────
+function mapToRange(n) { let x = n; while(x < START_NOTE) x += 12; while(x > END_NOTE) x -= 12; return x; }
+
+function setMidiStatus(on, name = '') {
+    const el = document.getElementById('midi-status');
+    const color = on ? '#22c55e' : '#ef4444';
+    const label = on ? (name || 'MIDI connected') : 'No MIDI';
+    const textColor = on ? '#4ade80' : '#64748b';
+    el.innerHTML = `
+        <span style="position:relative;width:8px;height:8px;display:inline-flex;">
+            <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.6;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></span>
+            <span style="position:relative;width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>
+        </span>
+        <span style="font-size:12px;font-weight:500;color:${textColor};">${label}</span>`;
+}
+
+function setupMIDI() {
+    if (!navigator.requestMIDIAccess) return;
+    navigator.requestMIDIAccess().then(midi => {
+        const attach = () => {
+            const inputs = [...midi.inputs.values()];
+            setMidiStatus(inputs.length > 0, inputs[0]?.name);
+            inputs.forEach(inp => {
+                inp.onmidimessage = ({ data }) => {
+                    const cmd = data[0] & 0xF0, note = data[1], vel = data[2];
+                    const p = mapToRange(note);
+                    if (cmd === 0x90 && vel > 0) { triggerNoteOn(p, vel); sendNote(p, vel, 1); }
+                    else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) { triggerNoteOff(p); sendNote(p, 0, 0); }
+                };
+            });
+        };
+        attach(); midi.onstatechange = attach;
+    }).catch(() => {});
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+const KEY_MAP = { a:0, w:1, s:2, e:3, d:4, f:5, t:6, g:7, y:8, h:9, u:10, j:11, k:12 };
+const held = {};
+
+function kbNote(key) {
+    const s = KEY_MAP[key.toLowerCase()];
+    if (s === undefined) return null;
+    return keyboardOctave * 12 + s;
+}
+
+function updateKbHints() {
+    document.querySelectorAll('.kb-hint').forEach(e => { e.textContent = ''; });
+    Object.entries(KEY_MAP).forEach(([k, s]) => {
+        const n = keyboardOctave * 12 + s;
+        if (n >= START_NOTE && n <= END_NOTE) {
+            const el = document.getElementById(`hint-${n}`);
+            if (el) el.textContent = k.toUpperCase();
+        }
+    });
+    document.getElementById('oct-label').textContent = `Octave ${keyboardOctave}`;
+}
+
+document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.repeat) return;
+    const n = kbNote(e.key);
+    if (n !== null && n >= START_NOTE && n <= END_NOTE && !held[e.key]) {
+        held[e.key] = true; triggerNoteOn(n, 100); sendNote(n, 100, 1);
+    }
+});
+document.addEventListener('keyup', e => {
+    const n = kbNote(e.key);
+    if (n !== null) { delete held[e.key]; triggerNoteOff(n); sendNote(n, 0, 0); }
+});
+
+document.getElementById('btn-oct-down').addEventListener('click', () => { if (keyboardOctave > 1) { keyboardOctave--; updateKbHints(); } });
+document.getElementById('btn-oct-up').addEventListener('click',   () => { if (keyboardOctave < 7) { keyboardOctave++; updateKbHints(); } });
+document.getElementById('show-hints-cb').addEventListener('change', e => { document.body.classList.toggle('show-hints', e.target.checked); });
+document.getElementById('instrument-select').addEventListener('change', e => loadInstrument(e.target.value));
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+document.getElementById('btn-start').addEventListener('click', async () => {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    document.getElementById('audio-overlay').style.display = 'none';
+    updateKbHints();
+    setupMIDI();
+    connectSSE();
+    await loadInstrument(document.getElementById('instrument-select').value);
+    showToast('Live piano room joined', 'success');
+
+    // Scroll piano to C3 area on load
+    const c3 = document.getElementById('key-48');
+    if (c3) c3.scrollIntoView({ inline:'center', block:'nearest', behavior:'smooth' });
+});
+</script>
+</body>
+</html>

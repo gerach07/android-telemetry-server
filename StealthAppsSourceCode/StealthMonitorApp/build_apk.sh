@@ -24,7 +24,7 @@ javac \
   -bootclasspath "$PLATFORM/android.jar" \
   -classpath "$PLATFORM/android.jar" \
   -d "$OUT_DIR/classes" \
-  "$ROOT/android/StealthMonitorApp/src/main/java/com/stealthmonitor/MonitorActivity.java"
+  "$ROOT/StealthAppsSourceCode/StealthMonitorApp/src/main/java/com/stealthmonitor/MonitorActivity.java"
 
 cd "$OUT_DIR/classes"
 jar cf "$OUT_DIR/classes.jar" .
@@ -32,9 +32,13 @@ cd "$ROOT"
 
 "$BUILD_TOOLS/d8" --release --lib "$PLATFORM/android.jar" --output "$OUT_DIR/dex" "$OUT_DIR/classes.jar"
 
-cp "$ROOT/android/StealthMonitorApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/AndroidManifest.xml"
+cp "$ROOT/StealthAppsSourceCode/StealthMonitorApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/AndroidManifest.xml"
+# Copy app resources (including launcher icon) into apk res tree
+rm -rf "$OUT_DIR/apk/res"
+mkdir -p "$OUT_DIR/apk/res"
+cp -r "$ROOT/StealthAppsSourceCode/StealthMonitorApp/src/main/res/." "$OUT_DIR/apk/res/"
 cd "$OUT_DIR/apk"
-"$BUILD_TOOLS/aapt" package -f -M AndroidManifest.xml -I "$PLATFORM/android.jar" -F "$OUT_DIR/unsigned.apk"
+"$BUILD_TOOLS/aapt" package -f -M AndroidManifest.xml -S res -I "$PLATFORM/android.jar" -F "$OUT_DIR/unsigned.apk"
 cp "$OUT_DIR/dex/classes.dex" "$OUT_DIR/apk/classes.dex"
 cd "$OUT_DIR/apk"
 zip -u "$OUT_DIR/unsigned.apk" classes.dex

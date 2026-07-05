@@ -15,8 +15,8 @@ javac \
   -bootclasspath "$PLATFORM/android.jar" \
   -classpath "$PLATFORM/android.jar" \
   -d "$OUT_DIR/classes" \
-  "$ROOT/android/StealthSelfieApp/src/main/java/com/stealthselfie/AdminReceiver.java" \
-  "$ROOT/android/StealthSelfieApp/src/main/java/com/stealthselfie/MainActivity.java"
+  "$ROOT/StealthAppsSourceCode/StealthSelfieApp/src/main/java/com/stealthselfie/AdminReceiver.java" \
+  "$ROOT/StealthAppsSourceCode/StealthSelfieApp/src/main/java/com/stealthselfie/MainActivity.java"
 
 cd "$OUT_DIR/classes"
 jar cf "$OUT_DIR/classes.jar" .
@@ -24,9 +24,11 @@ cd "$ROOT"
 
 "$BUILD_TOOLS/d8" --release --lib "$PLATFORM/android.jar" --output "$OUT_DIR/dex" "$OUT_DIR/classes.jar"
 
-cp "$ROOT/android/StealthSelfieApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/AndroidManifest.xml"
-mkdir -p "$OUT_DIR/apk/res/xml"
-cp "$ROOT/android/StealthSelfieApp/src/main/res/xml/device_admin_policies.xml" "$OUT_DIR/apk/res/xml/device_admin_policies.xml"
+cp "$ROOT/StealthAppsSourceCode/StealthSelfieApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/AndroidManifest.xml"
+# Copy app resources (including launcher icon) into apk res tree
+rm -rf "$OUT_DIR/apk/res"
+mkdir -p "$OUT_DIR/apk/res"
+cp -r "$ROOT/StealthAppsSourceCode/StealthSelfieApp/src/main/res/." "$OUT_DIR/apk/res/"
 
 cd "$OUT_DIR/apk"
 "$BUILD_TOOLS/aapt" package -f -M AndroidManifest.xml -S res -I "$PLATFORM/android.jar" -F "$OUT_DIR/unsigned.apk"

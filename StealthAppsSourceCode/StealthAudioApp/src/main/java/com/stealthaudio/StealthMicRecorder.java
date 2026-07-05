@@ -180,4 +180,14 @@ public final class StealthMicRecorder {
             }
         } catch (Exception ignored) {}
     }
+
+    private static void writeDone(String content) {
+        try {
+            File f = new File("/data/local/tmp/mic_record.done");
+            try (FileWriter w = new FileWriter(f, false)) {
+                w.write(content + "\n");
+            }
+            if (f.exists()) f.setReadable(true, false);
+        } catch (Exception ignored) {}
+    }
 }

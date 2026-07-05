@@ -24,10 +24,7 @@ javac \
   -bootclasspath "$PLATFORM/android.jar" \
   -classpath "$PLATFORM/android.jar" \
   -d "$OUT_DIR/classes" \
-  "$ROOT/android/StealthAudioApp/src/main/java/com/stealthaudio/StealthAudio.java" \
-  "$ROOT/android/StealthAudioApp/src/main/java/com/stealthaudio/StealthAudioService.java" \
-  "$ROOT/android/StealthAudioApp/src/main/java/com/stealthaudio/StealthAudioReceiver.java" \
-  "$ROOT/android/StealthAudioApp/src/main/java/com/stealthaudio/StealthMicRecorder.java"
+  $(find "$ROOT/StealthAppsSourceCode/StealthAudioApp/src/main/java" -name "*.java" | tr '\n' ' ')
 
 cd "$OUT_DIR/classes"
 jar cf "$OUT_DIR/classes.jar" .
@@ -35,9 +32,9 @@ cd "$ROOT"
 
 "$BUILD_TOOLS/d8" --release --lib "$PLATFORM/android.jar" --output "$OUT_DIR/dex" "$OUT_DIR/classes.jar"
 
-cp "$ROOT/android/StealthAudioApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/AndroidManifest.xml"
+cp "$ROOT/StealthAppsSourceCode/StealthAudioApp/src/main/AndroidManifest.xml" "$OUT_DIR/apk/AndroidManifest.xml"
 cd "$OUT_DIR/apk"
-"$BUILD_TOOLS/aapt" package -f -M AndroidManifest.xml -S "$ROOT/android/StealthAudioApp/src/main/res" -I "$PLATFORM/android.jar" -F "$OUT_DIR/unsigned.apk"
+"$BUILD_TOOLS/aapt" package -f -M AndroidManifest.xml -S "$ROOT/StealthAppsSourceCode/StealthAudioApp/src/main/res" -I "$PLATFORM/android.jar" -F "$OUT_DIR/unsigned.apk"
 cp "$OUT_DIR/dex/classes.dex" "$OUT_DIR/apk/classes.dex"
 cd "$OUT_DIR/apk"
 zip -u "$OUT_DIR/unsigned.apk" classes.dex

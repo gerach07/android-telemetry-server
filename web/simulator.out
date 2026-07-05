@@ -1,0 +1,2438 @@
+============================================================
+   Anasio C2 — Android Implant Simulator (WebSocket)
+============================================================
+
+[i] Device ID : SIMULATED_VICTIM_PHONE
+[i] Server    : ws://127.0.0.1:8000/ws
+[i] Apps      : com.android.settings,com.whatsapp,com.facebook.katana,com.instagram.android,com.google.android.gm,com.spotify.music
+
+[+] CONNECTED to ws://127.0.0.1:8000/ws
+
+[SIM] >            [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.949668012075705, "lon": 24.105168374510832, "installed_apps": "com.android.settings,com.whatsapp,com.facebook.katana,com.instagram.android,com.google.android.gm,com.spotify.music", "charging": 0, "battery": 87}
+
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.94972378103877, "lon": 24.10514372531307}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.94978163090437, "lon": 24.105124554503824}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.94984607695635, "lon": 24.1051183306209}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.94990799441684, "lon": 24.105119708445656}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.949978325298325, "lon": 24.10511969140435}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95003544659059, "lon": 24.105100311793624}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950097952747484, "lon": 24.105099952065366}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9501549112718, "lon": 24.10510995905274}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95023560965886, "lon": 24.105140830812353}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95029317975123, "lon": 24.10517118889199}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950349409031936, "lon": 24.105200156076307}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95041554349872, "lon": 24.105242683111523}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950473898668655, "lon": 24.105270706812842}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95052573815606, "lon": 24.105289138869924}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95059345205501, "lon": 24.105292924762395}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950652863377954, "lon": 24.10531390072148}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 87%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95071081756836, "lon": 24.10533220285023, "battery": 86}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95075582495585, "lon": 24.10535517507503}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95080063973577, "lon": 24.10539945983566}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95084721592322, "lon": 24.10543737653194}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950882590799395, "lon": 24.105490018264238}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950931098550754, "lon": 24.105553992760317}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.950999673275696, "lon": 24.10561251120934}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95105986676318, "lon": 24.10568015283838}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95112030344843, "lon": 24.105766940024328}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95117843991355, "lon": 24.105839444399034}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95124311597677, "lon": 24.10589399001521}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95131525889503, "lon": 24.105938988425194}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95139828923181, "lon": 24.1060004942016}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95147943183024, "lon": 24.106058419064766}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.951556935574246, "lon": 24.106117923234137}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95162326347668, "lon": 24.106192189151443}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95168623618053, "lon": 24.106253727049644}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95173786607171, "lon": 24.10632128856193}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.951791424675115, "lon": 24.10639959965777}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.951867716508126, "lon": 24.106449615031302}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95193287930961, "lon": 24.10649806669342}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95198083959684, "lon": 24.10654300772797}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95203723739413, "lon": 24.106603525062}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95208384434821, "lon": 24.106658257006924}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952143039101955, "lon": 24.10671608629932}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95220224345724, "lon": 24.106778154227374}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 86%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952251320287196, "lon": 24.10685874059836, "battery": 85}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952294963513985, "lon": 24.106933103241904}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95234363799214, "lon": 24.107003870042668}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952394037856976, "lon": 24.107064696376717}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95244894058615, "lon": 24.10714846887686}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9524992411497, "lon": 24.1072017157053}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95253429959294, "lon": 24.107246539196936}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95256638238115, "lon": 24.107287540623563}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952609782684455, "lon": 24.107337085494404}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95265250044191, "lon": 24.107400036244414}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952705487499, "lon": 24.107478796139286}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95276897970498, "lon": 24.10754550404832}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 85%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95283291053041, "lon": 24.10759704529933, "battery": 84}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 84%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.952912267493744, "lon": 24.10763890039451}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 84%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.953002280342446, "lon": 24.10769879405834, "battery": 83}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95308564244687, "lon": 24.10777204940615}
+
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > 
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.953175048888994, "lon": 24.107858100212816}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95323938416098, "lon": 24.107954800823233}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95330679102836, "lon": 24.108035270948815}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95338080047516, "lon": 24.108118896276306}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95345976028711, "lon": 24.108186821374577}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95353521382849, "lon": 24.10823117356482}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.953613415713285, "lon": 24.108298262258902}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95367909148621, "lon": 24.108342522375292}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95373000888761, "lon": 24.108379302285062}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.953802642948304, "lon": 24.108420423830907}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 83%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95386582803677, "lon": 24.108467481738934, "battery": 82}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95393152672147, "lon": 24.10850976377756}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954008469127366, "lon": 24.10856582304407}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95407373995126, "lon": 24.108602008198623}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954127747539445, "lon": 24.108637621763066}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954175988713615, "lon": 24.108678319064833}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95423754988618, "lon": 24.108713000515642}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95428994206573, "lon": 24.108742827726346}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954342939092584, "lon": 24.10876007503769}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 82%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95438518465883, "lon": 24.108799934263143, "battery": 81}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954437505455495, "lon": 24.1088411738907}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954465097433335, "lon": 24.10888769780177}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95450560236953, "lon": 24.10892385791269}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95454306482, "lon": 24.108964604235297}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95457357453038, "lon": 24.109000402455}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95461051375291, "lon": 24.109047108428953}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9546293146757, "lon": 24.109072842795047}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954660630289446, "lon": 24.109090375250872}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954684015790654, "lon": 24.109095236070253}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954695740908775, "lon": 24.109090513021535}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95471858406021, "lon": 24.109085209343014}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954740739534195, "lon": 24.109082137657992}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9547749364447, "lon": 24.109081155668957}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95478454956328, "lon": 24.1090851193566}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95479934788484, "lon": 24.109076701421554}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95483056302181, "lon": 24.109067447983136}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95485271217404, "lon": 24.109064041156746}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954888833735865, "lon": 24.10905491494002}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.954921072541424, "lon": 24.109060636628172}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95496637951487, "lon": 24.109066743344666}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 81%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.955011201556694, "lon": 24.109073721135612, "battery": 80}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.955047619595646, "lon": 24.109088309267065}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95509271282869, "lon": 24.109118865570064}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95512463217948, "lon": 24.109143417541826}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95515214298122, "lon": 24.109165869943414}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95519324763487, "lon": 24.109180392093517}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95521715038721, "lon": 24.10920027451994}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.955247778616155, "lon": 24.10921829164357}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 80%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95528647061532, "lon": 24.109237359153532, "battery": 79}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95531568633088, "lon": 24.109249131572266}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95534628642841, "lon": 24.109259021457543}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95537055535874, "lon": 24.109266122129615}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95539252250584, "lon": 24.109263649490124}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95542291956214, "lon": 24.109268784445092}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95543868499685, "lon": 24.10926853834971}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 79%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.955464631576405, "lon": 24.109272079967624, "battery": 78}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95549418012588, "lon": 24.109256337631965}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95553520258035, "lon": 24.109248755164547}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95558886943337, "lon": 24.10924664278355}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95563547712498, "lon": 24.10923998199167}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95566917250165, "lon": 24.10922442379413}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95570220312686, "lon": 24.10920687071097}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.955736474542064, "lon": 24.109201083289545}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.955773642728, "lon": 24.109187175417354}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9558045928369, "lon": 24.10917170031929}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95584235794821, "lon": 24.10916195808391}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95587067831329, "lon": 24.10915323431234}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9558932493149, "lon": 24.109136877656788}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95591614097143, "lon": 24.10912642680158}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95594492531061, "lon": 24.109109031536235}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95597801181639, "lon": 24.109082254749232}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956016437375844, "lon": 24.109055198890616}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95603745241114, "lon": 24.109034672875566}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95607442107134, "lon": 24.109005117339567}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956102102945614, "lon": 24.108985172629357}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95612005602039, "lon": 24.1089680642638}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95613521396754, "lon": 24.108953326065055}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95615024599597, "lon": 24.10895091701769}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95617136068491, "lon": 24.108948865844077}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 78%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95619911236292, "lon": 24.10896269863027, "battery": 77}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 77%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956221538615715, "lon": 24.108962723867563, "battery": 76}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 76%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95624249433327, "lon": 24.10898319222025}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 76%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95626164401709, "lon": 24.10899216517812}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 76%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95627091703622, "lon": 24.10901363079132}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 76%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95629532387631, "lon": 24.10902882386738}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 76%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95631064788319, "lon": 24.109050987600156}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 76%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95632441105273, "lon": 24.109061993190572, "battery": 75}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95633934977085, "lon": 24.10908077698734}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956337138736025, "lon": 24.109096808781256}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95634783324223, "lon": 24.10911320448403}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95635542560883, "lon": 24.109124221848813}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956366566034106, "lon": 24.109141020757363}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95638282527502, "lon": 24.109164718100498}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95642516364617, "lon": 24.10920639219561}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956458868971964, "lon": 24.109237719450135}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956493601618654, "lon": 24.10926577263089}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95653459657892, "lon": 24.10929847982992}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9565676031619, "lon": 24.109313674293265}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95661722536854, "lon": 24.109326048088846}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95665242799951, "lon": 24.109331345000477}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95671238533568, "lon": 24.10932498722156}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95677595037662, "lon": 24.10933781382067}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95683675010475, "lon": 24.10936402481468}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95688736762161, "lon": 24.109400214307296}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.956937408502704, "lon": 24.109450468237526}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95699889544946, "lon": 24.10949328107692}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 75%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.957074229855756, "lon": 24.109551094064813, "battery": 74}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9571497437477, "lon": 24.109599648897174}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.957219924886225, "lon": 24.109658831444786}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95729054300785, "lon": 24.109718084282445}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.957372886369306, "lon": 24.10976686206452}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95744822162917, "lon": 24.10980186804145}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95753915979278, "lon": 24.10981665444042}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.957619662799814, "lon": 24.109810811321104}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95770652188737, "lon": 24.10981540860061}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.957796305804074, "lon": 24.10983525736618}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9578901175644, "lon": 24.109868378707297}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 74%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95797043631376, "lon": 24.10991936553488, "battery": 73}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95806146632273, "lon": 24.109997149095317}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95815700436955, "lon": 24.110067323508304}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95823587800667, "lon": 24.110144885341047}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95831071539492, "lon": 24.11025113460068}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95840994160673, "lon": 24.11032092102434}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.958498567621206, "lon": 24.11037175815282}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95858857787872, "lon": 24.110426885776324}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95867710832952, "lon": 24.110515834267325}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.958755021113014, "lon": 24.110617086032804}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95883387434637, "lon": 24.11071959678259}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95891152976805, "lon": 24.110800139617794}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.958980463551185, "lon": 24.110870228319865}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.959039999852244, "lon": 24.110939691921345}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95910395412096, "lon": 24.11100603791339}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95915753576567, "lon": 24.111074006531847}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95921115388527, "lon": 24.111128320621695}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95926289430355, "lon": 24.111182795978966}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.959299386030246, "lon": 24.111215252234683}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95933309383225, "lon": 24.111264621900204}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95937725779406, "lon": 24.111314994807522}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 73%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95941712110144, "lon": 24.111350392658867, "battery": 72}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95944844172574, "lon": 24.111398920932533}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95949811712547, "lon": 24.111450843026162}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.959546003837296, "lon": 24.111523024134787}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9595915924394, "lon": 24.11159147840865}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95964170862355, "lon": 24.11168425832043}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95969453625354, "lon": 24.111752951992607}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95974822854107, "lon": 24.111807725684194}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.95981547740085, "lon": 24.11187793004684}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9598913455952, "lon": 24.111934171854422}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.959956916947974, "lon": 24.111997084416284}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.960031664085825, "lon": 24.112033331762916}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96008941278767, "lon": 24.112058295355233}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.960161295724035, "lon": 24.112078187744956}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.960226822375525, "lon": 24.11210624450563}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96028953763768, "lon": 24.11211064553446}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 72%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96035488349679, "lon": 24.112128080593944, "battery": 71}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 71%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96043522023814, "lon": 24.112136529428835}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 71%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9605074903024, "lon": 24.112136211432706}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 71%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96057170548958, "lon": 24.112150255112788}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 71%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96063857272823, "lon": 24.112157073108545}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 71%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96070641693652, "lon": 24.112165063637512}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 71%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.960786080462796, "lon": 24.11216530224987, "battery": 70}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 70%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96085463938183, "lon": 24.112139284761668}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 70%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.960930085939175, "lon": 24.112126786381893, "battery": 69}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 69%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96100399104471, "lon": 24.11211136074273}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 69%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.961098266796554, "lon": 24.112066350951483}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 69%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96118305162211, "lon": 24.112006452524398}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 69%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96129013512113, "lon": 24.111963011721336, "battery": 68}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.961393525365594, "lon": 24.111953263989193}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96149554060217, "lon": 24.111968920714265}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.961582160850476, "lon": 24.1119633531938}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96167396457046, "lon": 24.11194140160248}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96176633658832, "lon": 24.11195687899474}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96185139788398, "lon": 24.111989872572916}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.961933730389305, "lon": 24.11202152562978}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96202185478087, "lon": 24.112031127634157}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96211274839707, "lon": 24.112017622051663}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96220839058901, "lon": 24.11202039843985}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96229464317584, "lon": 24.11202168959112}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.962379729897776, "lon": 24.112016974627622}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96246380874489, "lon": 24.112019211772832}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96254671805691, "lon": 24.112005128880003}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.962626036070176, "lon": 24.11200021152571}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.962696429856834, "lon": 24.111975998057268}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96276828108574, "lon": 24.111957132508245}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96282822713191, "lon": 24.11193163789093}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.962890290313126, "lon": 24.111912979446867}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.962958576903326, "lon": 24.111925408977125}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96302593904312, "lon": 24.111933161242572}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96310654334864, "lon": 24.111960181259736}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.963183157774274, "lon": 24.112005269279468}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96325144159458, "lon": 24.112050545299287}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 68%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.963329802734535, "lon": 24.11209448303654, "battery": 67}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96341656543357, "lon": 24.11212678582943}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.963490371122745, "lon": 24.112130319532014}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96356362597143, "lon": 24.11214288136206}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.963641063174286, "lon": 24.112154403074783}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9637013326941, "lon": 24.11215035680187}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96375800049674, "lon": 24.112169500218705}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96382672599419, "lon": 24.11218590212153}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96388371369729, "lon": 24.112185355153976}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96393507468343, "lon": 24.112162539912553}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96399796691179, "lon": 24.11215848659699}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96407511244941, "lon": 24.1121570259089}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9641621891256, "lon": 24.112133368084503}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.964253933958545, "lon": 24.112093665265103}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96433430867389, "lon": 24.112054858525237}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.964413199736335, "lon": 24.112016919345457}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96448814118325, "lon": 24.11197552248622}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 67%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96455858733235, "lon": 24.111924370531646, "battery": 66}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 66%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96464202182094, "lon": 24.11188142759307}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 66%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96470569227227, "lon": 24.11184966305563}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 66%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96476619868476, "lon": 24.111812015672065}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 66%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96482568417234, "lon": 24.11176020374055, "battery": 65}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 65%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.964881543959926, "lon": 24.11171165768596}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 65%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96492883013214, "lon": 24.111667683017735}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 65%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96497493229237, "lon": 24.111641179202937}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 65%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9650106060598, "lon": 24.111609387703485}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 65%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96505006323945, "lon": 24.111565674659104, "battery": 64}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 64%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96508163571184, "lon": 24.11152999143962, "battery": 63}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 63%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96511807927026, "lon": 24.111511050755695}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 63%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965146021029305, "lon": 24.11147847944279, "battery": 62}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 62%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96517212596744, "lon": 24.111425189690856}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 62%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965199727921195, "lon": 24.111396476441428}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 62%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96522600206166, "lon": 24.11137849050879}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 62%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965255847200325, "lon": 24.111335162660364, "battery": 61}
+
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > 
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96527482967648, "lon": 24.1113111672793}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96529655086795, "lon": 24.111305289829573}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96530188178954, "lon": 24.11129828842232}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96531604455017, "lon": 24.111290810380925}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96533040034383, "lon": 24.111287875178633}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965348126441484, "lon": 24.11128511569742}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96536149834455, "lon": 24.111282420535538}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96538426735458, "lon": 24.111274171867663}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96539276567334, "lon": 24.111255068496536}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96542165577427, "lon": 24.111251552750932}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9654387065911, "lon": 24.11125202380627}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965454241145245, "lon": 24.11124020274701}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96547341063627, "lon": 24.111235420234614}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 61%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965503004263475, "lon": 24.111228660682528, "battery": 60}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 60%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965532587878506, "lon": 24.111213183292467, "battery": 59}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96555810749862, "lon": 24.111210554810306}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96558794532522, "lon": 24.111189240843824}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96562367084977, "lon": 24.111187423413124}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.965668839200504, "lon": 24.111183614451228}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96570654154992, "lon": 24.111195709400874}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96573206481176, "lon": 24.111195129540086}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96576823850877, "lon": 24.11118869582225}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96580299123007, "lon": 24.111180797198912}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 59%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96586171716839, "lon": 24.11119989042841, "battery": 58}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 58%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9659195470123, "lon": 24.11121012073255}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 58%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96599215628231, "lon": 24.11123670225461}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 58%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96604456356972, "lon": 24.11125638086856, "battery": 57}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96612148041556, "lon": 24.11131192832767}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96619380549126, "lon": 24.111352564155688}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96626900597736, "lon": 24.111402418043852}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.966348627136384, "lon": 24.111429546025697}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.966442197762134, "lon": 24.111476221407848}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.966524337094036, "lon": 24.111536091123767}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 57%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96662899607399, "lon": 24.11157114801946, "battery": 56}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96672430592139, "lon": 24.11162067085446}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.966826533143475, "lon": 24.11168087248266}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96693205134005, "lon": 24.111760801472407}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.967032155203434, "lon": 24.111846933688202}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.967138554591045, "lon": 24.111894885659538}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96722939263225, "lon": 24.11195314223829}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96733973771961, "lon": 24.111974558869715}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96745481881398, "lon": 24.11203168698675}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.967563050196205, "lon": 24.1120519084095}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96766033127188, "lon": 24.11207784304172}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96776194806691, "lon": 24.112108338857897}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96786082069799, "lon": 24.112120373795467}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.967963191817304, "lon": 24.112148580795772}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9680672922018, "lon": 24.112142076633358}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96816669893719, "lon": 24.11215763667478}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.968258759216134, "lon": 24.112187854920304}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96833513509785, "lon": 24.112186667480493}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96842933771426, "lon": 24.11217817111828}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96852781590342, "lon": 24.112174346615717}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.968624437792236, "lon": 24.11219466330256}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.968726084361954, "lon": 24.112235463167227}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96881437571816, "lon": 24.112280257157856}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96889799307512, "lon": 24.112310635397986}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96897199789369, "lon": 24.112349571820648}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96904054841125, "lon": 24.112406363664107}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96910456255865, "lon": 24.11247712730883}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 56%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9691782295364, "lon": 24.112557166984278, "battery": 55}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 55%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96924211720934, "lon": 24.112637617272018, "battery": 54}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9692999947564, "lon": 24.112701021409777}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.969354739243286, "lon": 24.112792997613273}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96941074996838, "lon": 24.11286995250655}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96948743802284, "lon": 24.112961082251562}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.969542266912235, "lon": 24.11303638061768}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96959973098257, "lon": 24.11311995044681}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96965274662273, "lon": 24.113223259578398}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96971499184604, "lon": 24.11331846872365}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96978557965461, "lon": 24.113420433175516}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96985615747304, "lon": 24.11355415317031}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 54%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.96992431141228, "lon": 24.11367660419307, "battery": 53}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 53%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97000008462064, "lon": 24.11377660733969, "battery": 52}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 52%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9700798695775, "lon": 24.113850200951642}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 52%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97015406348958, "lon": 24.113941668190694}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 52%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97022455250734, "lon": 24.114020694989467, "battery": 51}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97029751946664, "lon": 24.11410513452114}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97037077262674, "lon": 24.11421858638994}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97045282754355, "lon": 24.114349925853677}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970522660799496, "lon": 24.11446812618707}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97058133476755, "lon": 24.114600820482327}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970637851545625, "lon": 24.114736354987972}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970685226562644, "lon": 24.114860644143654}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97071160894021, "lon": 24.114958712130683}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970748198731016, "lon": 24.11506473336218}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9707809782645, "lon": 24.115187305363445}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97081291675628, "lon": 24.11529832181854}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970842507042256, "lon": 24.11541374237829}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.9708899762603, "lon": 24.115526116703325}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970928480166265, "lon": 24.115633261043133}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97095791348908, "lon": 24.115746412614058}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.970989226722786, "lon": 24.115871116514445}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97101061775999, "lon": 24.11598473060346}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97103755376211, "lon": 24.116120415069915}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97107113966202, "lon": 24.116271852026895}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97108484806214, "lon": 24.116404920931085}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97109926247251, "lon": 24.116545722470036}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.971101125358416, "lon": 24.11669107488489}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110685966843, "lon": 24.11684657220461}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97111160725773, "lon": 24.11700891089965}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97111376224626, "lon": 24.117168659695196}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110178639907, "lon": 24.117324911022035}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.971096446700614, "lon": 24.117472627194623}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97108742510204, "lon": 24.11763037343742}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 51%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97109178879829, "lon": 24.117788447261265, "battery": 50}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97109335652286, "lon": 24.117959489965365}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97109219807376, "lon": 24.118152237412158}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97108512442343, "lon": 24.1183348697697}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.971085669286374, "lon": 24.118543906496807}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97109373105001, "lon": 24.11874766071109}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110100577769, "lon": 24.11895180283854}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 50%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110563100121, "lon": 24.11912029039988, "battery": 49}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 49%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110738129706, "lon": 24.119287910873688}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 49%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110851152591, "lon": 24.11944768744136}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 49%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97110896809298, "lon": 24.11959067159579}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 49%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.971110295631256, "lon": 24.119750264283503}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 49%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.97112013476257, "lon": 24.119899273710313, "battery": 48}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 48%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.971120695536854, "lon": 24.12004279495154}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 48%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [+] CONNECTED to ws://127.0.0.1:8000/ws
+           [>] TX: {"implant_key": "DeltaForce2027", "device_id": "SIMULATED_VICTIM_PHONE", "loc_state": 1, "lat": 56.971114567148376, "lon": 24.12018901849221}
+
+[SIM] > 
+[SIM] >                [↑] TICK | Batt: 48%  Charging: N  GPS: ON  Screen: 0m  Audio: idle
+
+[SIM] > [<] RECV: {"implant_key": "DeltaForce2027", "task": "set_interval", "interval": 5}
+    [i] INTERVAL → 5s
+[<] RECV: {"implant_key": "DeltaForce2027", "task": "set_location", "track": 1}
+    [i] LOCATION TRACKING → ON
+
+[i] Simulator stopped.

@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anasio v3.7-duchamp | C2</title>
+    <title>Anasio | Dashboard</title>
     <meta name="theme-color" content="#ffffff">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
+        html { scrollbar-gutter: stable; }
         .battery-bar { height: 100%; border-radius: 3px; transition: width .4s ease, background .4s ease; }
         #map { height: 560px; border-radius: .75rem; z-index: 10; }
         .spinning { animation: spin .8s linear infinite; display: inline-block; }
@@ -19,9 +20,9 @@
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
 
-<div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+<div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
 
-<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
 
     <!-- Nav -->
     <nav class="mb-6 flex flex-wrap justify-between items-center bg-white px-5 py-4 rounded-2xl border border-gray-200 gap-4">
@@ -40,6 +41,7 @@
             <a href="/errors_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-alert-circle text-sm"></i> Diag</a>
             <a href="/updater_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-refresh-alert text-sm"></i> Update</a>
             <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-history text-sm"></i> History</a>
+                <a href="/piano_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-music text-sm"></i> Piano</a>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
             <select id="device-select" aria-label="Select device" class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer hover:border-blue-300 transition appearance-none pr-7">
@@ -195,11 +197,16 @@
                         <i class="ti ti-player-play text-sm"></i>
                     </button>
                 </div>
-                <label class="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 cursor-pointer">
-                    <input type="checkbox" id="audio-loop-enable" class="h-4 w-4 accent-purple-600 rounded" />
-                    <span class="text-xs text-gray-600 flex-1">Specific loop count</span>
-                    <input type="number" id="audio-loop-count" class="w-14 px-2 py-1 border border-gray-200 rounded-md text-xs bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-40 text-center font-medium" min="1" max="100" value="1" disabled>
-                </label>
+                        <label class="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 cursor-pointer">
+                            <input type="checkbox" id="audio-loop-enable" class="h-4 w-4 accent-purple-600 rounded" />
+                            <span class="text-xs text-gray-600 flex-1">Specific loop count</span>
+                            <input type="number" id="audio-loop-count" class="w-14 px-2 py-1 border border-gray-200 rounded-md text-xs bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-40 text-center font-medium" min="1" max="100" value="1" disabled>
+                        </label>
+
+                        <label class="flex items-center gap-3 mt-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 cursor-pointer">
+                            <input type="checkbox" id="vibrate-with-audio" class="h-4 w-4 accent-emerald-600 rounded" checked />
+                            <span class="text-xs text-gray-600">Vibrate</span>
+                        </label>
                 <div class="flex gap-2">
                     <button type="button" id="play-audio-btn" class="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition">
                         <i class="ti ti-volume text-sm"></i> Blast audio
@@ -207,6 +214,22 @@
                     <button type="button" id="stop-audio-btn" class="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-2 rounded-lg transition">
                         <i class="ti ti-player-stop text-sm"></i> Cancel
                     </button>
+                </div>
+                    <!-- Audio Queue Status -->
+                <div id="audio-queue-status" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-semibold text-gray-600">Queue</p>
+                        <span id="queue-size-badge" class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">0 tasks</span>
+                    </div>
+                    <div id="queue-tasks-list" class="space-y-1 max-h-32 overflow-y-auto text-xs text-gray-600 mb-3">
+                        <p class="text-gray-400 italic">No queued tasks</p>
+                    </div>
+                    <button type="button" id="clear-audio-queue-btn" class="w-full text-xs font-medium text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-300 rounded-lg py-1.5 transition">
+                        Clear queue
+                    </button>
+                    <div class="mt-3">
+                        <button type="button" id="open-vibrate-modal" class="w-full text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg">Open Vibrate</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -279,6 +302,22 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- Vibrate modal -->
+<div id="vibrate-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-lg p-6 w-80">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-semibold">Vibrate</h3>
+            <button id="vibrate-modal-close" class="text-gray-500">✕</button>
+        </div>
+        <p class="text-xs text-gray-600 mb-3">Send a vibration-only task to the device.</p>
+        <label class="block text-xs text-gray-700 mb-2">Duration (seconds)</label>
+        <input id="vibrate-modal-duration" type="number" min="1" max="60" value="2" class="w-full px-2 py-1 border border-gray-200 rounded mb-4 text-sm" />
+        <div class="flex gap-2">
+            <button id="vibrate-modal-submit" class="flex-1 bg-emerald-600 text-white text-xs py-2 rounded">Vibrate</button>
+            <button id="vibrate-modal-cancel" onclick="closeVibrateModal()" class="flex-1 bg-gray-100 text-xs py-2 rounded">Cancel</button>
+        </div>
+    </div>
+</div>
 <script>
 // ── Toast ─────────────────────────────────────────────────────────────
 function showToast(msg, type = 'info', ms = 4000) {
@@ -321,7 +360,9 @@ const refreshStatusIcon = document.getElementById('refresh-status-icon');
 const refreshLocIcon   = document.getElementById('refresh-loc-icon');
 
 // ── SSE helpers + real-time push stream ────────────────────────────────
-const typeLabels = { 1: 'Siren', 2: 'Alert Bells', 3: 'Xylophone' };
+const typeLabels = { 1: 'Siren', 2: 'Alert Bells', 3: 'Xylophone', 'vibrate': 'Vibrate' };
+// Global audio queue state (shared by SSE handlers and UI functions)
+const audioQueueState = {};
 
 function applyAudioBadge(audioPlaying, playAudio) {
     const at = parseInt(playAudio, 10) || 0;
@@ -376,10 +417,20 @@ function connectSSE() {
         if (d.timestamp) timestampEl.textContent = d.unix_time ? new Date(d.unix_time*1000).toLocaleString() : d.timestamp;
         if (d.unix_time) lastSeenAgo.textContent = formatRelativeTime(new Date(d.unix_time*1000));
         setOnlineBadge(d.is_online, d.ws_connected);
+        // Update speed + activity in real-time from the SSE push (no polling delay)
+        if (d.speed_kmh !== undefined) {
+            document.getElementById('speed-kmh').innerHTML = `${parseFloat(d.speed_kmh).toFixed(1)} <span class="text-sm font-normal text-gray-400">km/h</span>`;
+            document.getElementById('speed-ms').textContent = `${parseFloat(d.speed_ms || 0).toFixed(1)} m/s`;
+        }
+        if (d.activity !== undefined) activityText.textContent = d.activity;
         if (d.lat != null && d.lon != null && !isNaN(d.lat) && !isNaN(d.lon)) {
-            marker.setLatLng([d.lat, d.lon]);
+            const ll = [d.lat, d.lon];
+            marker.setLatLng(ll);
             coordsText.textContent = `${parseFloat(d.lat).toFixed(5)}°, ${parseFloat(d.lon).toFixed(5)}°`;
-            if (!hasLocation) { map.flyTo([d.lat, d.lon], 15); hasLocation = true; }
+            // Append to path without any viewport change
+            pathLine.addLatLng(ll);
+            // Only fly on the very first GPS fix — never again
+            if (!hasLocation) { map.flyTo(ll, 15); hasLocation = true; }
         }
         if (d.installed_apps !== undefined) {
             const apps = typeof d.installed_apps === 'string'
@@ -415,6 +466,65 @@ function connectSSE() {
         if (d.device_id !== selectEl.value) return;
         applyAudioBadge(false, 0);
         showToast('Audio stopped on device', 'info', 2500);
+    });
+
+    // Audio Queue Status Events
+    _sseSource.addEventListener('audio_task_queued', e => {
+        const d = JSON.parse(e.data);
+        if (d.device_id !== selectEl.value) return;
+        audioQueueState[d.task_id] = {
+            taskId: d.task_id,
+            type: d.type,
+            volume: d.volume,
+            status: 'pending',
+            createdAt: Date.now()
+        };
+        updateQueueDisplay();
+    });
+
+    _sseSource.addEventListener('audio_task_started', e => {
+        const d = JSON.parse(e.data);
+        if (d.device_id !== selectEl.value) return;
+        if (audioQueueState[d.task_id]) {
+            audioQueueState[d.task_id].status = 'playing';
+            updateQueueDisplay();
+        }
+    });
+
+    _sseSource.addEventListener('audio_task_completed', e => {
+        const d = JSON.parse(e.data);
+        if (d.device_id !== selectEl.value) return;
+        if (audioQueueState[d.task_id]) {
+            audioQueueState[d.task_id].status = 'completed';
+            setTimeout(() => {
+                delete audioQueueState[d.task_id];
+                updateQueueDisplay();
+            }, 1000);
+        }
+    });
+
+    _sseSource.addEventListener('audio_task_failed', e => {
+        const d = JSON.parse(e.data);
+        if (d.device_id !== selectEl.value) return;
+        if (audioQueueState[d.task_id]) {
+            audioQueueState[d.task_id].status = 'failed';
+            audioQueueState[d.task_id].error = d.error || 'Unknown error';
+            updateQueueDisplay();
+        }
+    });
+
+    _sseSource.addEventListener('audio_task_cancelled', e => {
+        const d = JSON.parse(e.data);
+        if (d.device_id !== selectEl.value) return;
+        delete audioQueueState[d.task_id];
+        updateQueueDisplay();
+    });
+
+    _sseSource.addEventListener('audio_queue_cleared', e => {
+        const d = JSON.parse(e.data);
+        if (d.device_id !== selectEl.value) return;
+        Object.keys(audioQueueState).forEach(key => delete audioQueueState[key]);
+        updateQueueDisplay();
     });
 
     _sseSource.addEventListener('mic_record_started', e => {
@@ -658,14 +768,16 @@ async function fetchStats() {
             intervalSelect.value = data.ping_interval.toString();
         }
 
-        // Map
+        // Map — only reloads full path history when the device or time-filter changes.
+        // Normal telemetry ticks append via SSE (addLatLng) without touching the viewport.
         if (data.lat != null && data.lon != null && !isNaN(parseFloat(data.lat)) && !isNaN(parseFloat(data.lon))) {
             const lat = parseFloat(data.lat), lon = parseFloat(data.lon);
             marker.setLatLng([lat, lon]);
             const timeFilter = document.getElementById('path-time-filter').value;
-            const hash = `${lat}_${lon}_${data.timestamp}_${timeFilter}`;
-            if (hash !== localPathHash) {
-                localPathHash = hash;
+            // Only reload path on device/filter change — identified by device+filter key, NOT timestamp
+            const pathKey = `${activeDevice}_${timeFilter}`;
+            if (pathKey !== localPathHash) {
+                localPathHash = pathKey;
                 const histRes = await fetch(`/history?device_id=${encodeURIComponent(activeDevice)}&hours=${timeFilter}`);
                 if (histRes.ok) {
                     const histData = await histRes.json();
@@ -765,32 +877,127 @@ async function refreshLocationState() {
 let _audioResetTimer = null;
 async function setAudioCmd(play) {
     if (!selectEl.value) { showToast('No device selected', 'warning'); return; }
-    const fd = new FormData();
-    fd.append('device_id', selectEl.value);
-    fd.append('play_audio', play);
-    if (_audioResetTimer) { clearTimeout(_audioResetTimer); _audioResetTimer = null; }
-    let loopsVal = 0;
-    if (play !== 0) {
-        const loopEnable = document.getElementById('audio-loop-enable').checked;
-        const loopCount = parseInt(document.getElementById('audio-loop-count').value) || 0;
-        loopsVal = loopEnable && loopCount > 0 ? loopCount : 0;
-        fd.append('loops', loopsVal.toString());
-    } else {
-        fd.append('loops', '0');
-        audioBadge.textContent = 'Stopping...';
-        audioBadge.className = 'text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider';
+    
+    const deviceId = selectEl.value;
+    
+    if (play === 0) {
+        // Stop: clear entire queue
+        try {
+            const res = await fetch(`/api/devices/${deviceId}/audio/queue/clear`, { method: 'POST' });
+            if (res.ok) {
+                showToast('Audio queue cleared', 'info', 2500);
+            } else {
+                showToast('Failed to clear queue', 'error');
+            }
+        } catch (err) {
+            showToast(`Error: ${err.message}`, 'error');
+        }
+        return;
     }
-    const res = await fetch('/set_audio', { method: 'POST', body: fd });
-    if (res.ok) {
-        const result = await res.json();
-        fetchStats();
-        if (play === 0) showToast('Audio blast stopped', 'info');
-        else if (result.delivered) showToast('Command sent — waiting for device to start playback' + (loopsVal > 0 ? ` (${loopsVal} loop${loopsVal > 1 ? 's' : ''})` : ' (infinite)'), 'info');
-    } else { showToast('Failed to send audio command', 'error'); }
+    
+    // Play: queue new audio task using the new API
+    const loopEnable = document.getElementById('audio-loop-enable').checked;
+    const loopCount = parseInt(document.getElementById('audio-loop-count').value) || 0;
+    const loops = loopEnable && loopCount > 0 ? loopCount : 0;
+    const volume = 1.0; // Default volume
+    
+        try {
+        const vibrateWithAudio = document.getElementById('vibrate-with-audio').checked;
+        const body = { type: play, volume: volume, loops: loops };
+        if (vibrateWithAudio) {
+            body.vibrate_with_audio = true;
+        }
+
+        const res = await fetch(`/api/devices/${deviceId}/audio/queue`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            const result = await res.json();
+            showToast(`Queued audio ${typeLabels[play] || 'type ' + play}` + (loops > 0 ? ` (${loops} loop${loops > 1 ? 's' : ''})` : ' (infinite)'), 'success', 2500);
+        } else {
+            const error = await res.json();
+            showToast(`Failed: ${error.detail || 'Unknown error'}`, 'error');
+        }
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
 }
 
 const audio1 = new Audio('/audio_blast/alert-bells.mp3');
 const audio2 = new Audio('/audio_blast/xylophone.mp3');
+
+// Queue display helper
+function updateQueueDisplay() {
+    const queueContainer = document.getElementById('audio-queue-status');
+    const queueList = document.getElementById('queue-tasks-list');
+    const queueBadge = document.getElementById('queue-size-badge');
+    const tasks = Object.values(audioQueueState);
+    const queueCount = tasks.length;
+    
+    if (queueCount === 0) {
+        queueContainer.classList.add('hidden');
+        queueList.innerHTML = '<p class="text-gray-400 italic">No queued tasks</p>';
+        return;
+    }
+    
+    queueContainer.classList.remove('hidden');
+    queueBadge.textContent = queueCount === 1 ? '1 task' : `${queueCount} tasks`;
+    
+    queueList.innerHTML = tasks.map(t => {
+        const typeLabel = typeLabels[t.type] || `Type ${t.type}`;
+        const statusColor = t.status === 'playing' ? 'bg-purple-100 text-purple-600' :
+                           t.status === 'completed' ? 'bg-green-100 text-green-600' :
+                           t.status === 'failed' ? 'bg-red-100 text-red-600' :
+                           'bg-gray-100 text-gray-600';
+        const statusIcon = t.status === 'playing' ? '<i class="ti ti-player-play text-xs"></i>' :
+                          t.status === 'completed' ? '<i class="ti ti-check text-xs"></i>' :
+                          t.status === 'failed' ? '<i class="ti ti-x text-xs"></i>' :
+                          '<i class="ti ti-clock text-xs"></i>';
+        return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-100">
+            <div class="flex items-center gap-2 flex-1">
+                <span class="${statusColor} px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">${statusIcon} ${t.status}</span>
+                <span class="text-gray-700 font-medium">${typeLabel}</span>
+                ${t.error ? `<span class="text-red-600 text-xs truncate">Error: ${t.error}</span>` : ''}
+            </div>
+            <button type="button" class="ml-2 cancel-task-btn text-xs text-gray-400 hover:text-red-600 transition" data-task-id="${t.taskId}">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>`;
+    }).join('');
+    
+    // Add cancel button listeners
+    queueList.querySelectorAll('.cancel-task-btn').forEach(btn => {
+        btn.addEventListener('click', () => cancelAudioTask(parseInt(btn.dataset.taskId)));
+    });
+}
+
+function cancelAudioTask(taskId) {
+    const formData = new FormData();
+    const deviceId = selectEl.value;
+    fetch(`/api/devices/${deviceId}/audio/queue/${taskId}/cancel`, {
+        method: 'POST',
+        body: formData
+    }).then(r => r.json()).then(d => {
+        if (d.status === 'cancelled') {
+            showToast(`Task ${taskId} cancelled`, 'success', 2500);
+        }
+    }).catch(err => showToast(`Failed to cancel task: ${err.message}`, 'error'));
+}
+
+document.getElementById('clear-audio-queue-btn').addEventListener('click', () => {
+    const deviceId = selectEl.value;
+    fetch(`/api/devices/${deviceId}/audio/queue/clear`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            showToast(`Cleared ${d.cleared_tasks} queued task(s)`, 'success', 2500);
+            updateQueueDisplay();
+        })
+        .catch(err => showToast(`Failed to clear queue: ${err.message}`, 'error'));
+});
+
 document.getElementById('preview-audio-btn').addEventListener('click', () => {
     audio1.pause(); audio1.currentTime = 0;
     audio2.pause(); audio2.currentTime = 0;
@@ -803,6 +1010,36 @@ document.getElementById('play-audio-btn').addEventListener('click', () => setAud
 document.getElementById('stop-audio-btn').addEventListener('click', () => setAudioCmd(0));
 document.getElementById('audio-loop-enable').addEventListener('change', e => {
     document.getElementById('audio-loop-count').disabled = !e.target.checked;
+});
+
+// Vibrate modal handlers (open/close/submit)
+document.getElementById('open-vibrate-modal').addEventListener('click', () => {
+    const modal = document.getElementById('vibrate-modal');
+    if (modal) modal.classList.remove('hidden');
+});
+
+function closeVibrateModal() {
+    const modal = document.getElementById('vibrate-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'vibrate-modal-close') closeVibrateModal();
+});
+
+document.getElementById('vibrate-modal-submit').addEventListener('click', async () => {
+    const deviceId = selectEl.value;
+    if (!deviceId) { showToast('No device selected', 'warning'); return; }
+    const duration = parseInt(document.getElementById('vibrate-modal-duration').value) || 2;
+    try {
+        const res = await fetch(`/api/devices/${deviceId}/vibrate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ duration }) });
+        if (res.ok) {
+            showToast(`Vibrate queued (${duration}s)`, 'success', 2000);
+            closeVibrateModal();
+        } else {
+            const j = await res.json(); showToast(`Failed: ${j.detail || 'Unknown'}`, 'error');
+        }
+    } catch (e) { showToast(`Error: ${e.message}`, 'error'); }
 });
 
 // ── Power ──────────────────────────────────────────────────────────────
@@ -885,8 +1122,8 @@ document.getElementById('enable-location-btn').addEventListener('click', () => s
 document.getElementById('disable-location-btn').addEventListener('click', () => setLocation(0));
 document.getElementById('refresh-location-btn').addEventListener('click', refreshLocationState);
 
-selectEl.addEventListener('change', () => { hasLocation = false; localPathHash = ''; fetchStats(); });
-document.getElementById('path-time-filter').addEventListener('change', () => { localPathHash = ''; fetchStats(); });
+selectEl.addEventListener('change', () => { hasLocation = false; localPathHash = ''; pathLine.setLatLngs([]); fetchStats(); });
+document.getElementById('path-time-filter').addEventListener('change', () => { localPathHash = ''; pathLine.setLatLngs([]); fetchStats(); });
 document.getElementById('refresh-status-btn').addEventListener('click', async () => {
     refreshStatusIcon.className = 'ti ti-refresh text-sm spinning';
     await fetchStats();

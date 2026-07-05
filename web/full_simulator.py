@@ -70,6 +70,11 @@ audio_loops_left     = 0
 # audio_stop_event is created fresh per-blast inside simulate_audio_blast()
 _audio_stop_event: asyncio.Event | None = None
 
+# Queue-based audio simulation (mirrors server-side queued tasks)
+audio_task_queue: list[dict] = []  # list of {task_id, type, volume, loops}
+current_audio_task: dict | None = None
+_queue_processor_task: asyncio.Task | None = None
+
 last_hour_reported       = None
 last_sent_installed_apps = None
 last_sent_battery        = None
@@ -183,6 +188,97 @@ async def upload_audio_sim(duration_s: int = 5) -> None:
         safe_print(f"    [✘] AUDIO UPLOAD FAILED: {e}")
 
 
+async def _notify_ipc(event: str, extra: dict | None = None) -> None:
+    """Helper to POST an IPC-style event to the server (/ipc)
+    (used to emulate companion app reporting via reporter IPC)."""
+    try:
+        fields = {"device_id": DEVICE_ID, "implant_key": IMPLANT_KEY, "event": event}
+        if extra:
+            for k, v in extra.items():
+                fields[k] = str(v)
+        await asyncio.to_thread(_http_post, IPC_URL, fields)
+        safe_print(f"    [✔] IPC: {event} posted")
+    except Exception as e:
+        safe_print(f"    [✘] IPC {event} failed: {e}")
+
+
+async def _process_audio_queue() -> None:
+    """Continuously process queued audio tasks sequentially."""
+    global current_audio_task, audio_task_queue, _audio_stop_event
+    safe_print("    [i] Audio queue processor started")
+    while True:
+        if current_audio_task is not None:
+            # Wait briefly and loop
+            await asyncio.sleep(0.2)
+            continue
+        if not audio_task_queue:
+            # nothing to do; sleep and check again
+            await asyncio.sleep(0.5)
+            continue
+        task = audio_task_queue.pop(0)
+        current_audio_task = task
+        task_id = task.get('task_id')
+        t_type = task.get('type')
+
+        # Vibrate task handling
+        if t_type == 'vibrate' or task.get('duration') is not None:
+            duration = int(task.get('duration', 1))
+            safe_print(f"    [Q] Starting vibrate task {task_id} duration={duration}s")
+            await _notify_ipc('audio_task_started', { 'task_id': task_id })
+            _audio_stop_event = asyncio.Event()
+            try:
+                try:
+                    await asyncio.wait_for(_audio_stop_event.wait(), timeout=duration)
+                    safe_print(f"    [Q] Vibrate task {task_id} stopped early")
+                    await _notify_ipc('audio_task_completed', {'task_id': task_id})
+                except asyncio.TimeoutError:
+                    safe_print(f"    [Q] Vibrate task {task_id} completed after {duration}s")
+                    await _notify_ipc('audio_task_completed', {'task_id': task_id})
+            finally:
+                _audio_stop_event = None
+                current_audio_task = None
+            continue
+
+        # Audio playback task (legacy numeric types)
+        try:
+            play_type = int(task.get('type', 0))
+        except Exception:
+            play_type = 0
+        try:
+            loops = int(task.get('loops', 0))
+        except Exception:
+            loops = 0
+
+                vibrate_flag = bool(task.get('vibrate_with_audio', False))
+                if vibrate_flag:
+                    safe_print(f"    [Q] Task {task_id} requests vibration for full audio duration")
+                safe_print(f"    [Q] Task {task_id} requests vibration for full audio duration")
+            else:
+                safe_print(f"    [Q] Task {task_id} requests vibration for {vibrate_duration}s (may be clipped to audio duration)")
+        await _notify_ipc('audio_task_started', { 'task_id': task_id, 'play_audio': play_type })
+
+        # Simulate playback using the same mechanism as simulate_audio_blast
+        _audio_stop_event = asyncio.Event()
+        try:
+            wait_s = 3 * loops if loops > 0 else 3600
+            try:
+                await asyncio.wait_for(_audio_stop_event.wait(), timeout=wait_s)
+                safe_print(f"    [Q] Task {task_id} stopped by cancel/clear")
+                await _notify_ipc('audio_task_completed', {'task_id': task_id})
+            except asyncio.TimeoutError:
+                safe_print(f"    [Q] Task {task_id} completed after ~{wait_s}s")
+                await _notify_ipc('audio_task_completed', {'task_id': task_id})
+        finally:
+            _audio_stop_event = None
+            current_audio_task = None
+
+
+def _ensure_queue_processor(loop: asyncio.AbstractEventLoop) -> None:
+    global _queue_processor_task
+    if _queue_processor_task is None or _queue_processor_task.done():
+        _queue_processor_task = loop.create_task(_process_audio_queue())
+
+
 async def upload_selfie_sim() -> None:
     """Upload a dummy JPEG selfie via multipart POST to /api/upload-selfie."""
     safe_print(f"    [⬆] UPLOADING SELFIE → {UPLOAD_SELFIE}")
@@ -277,6 +373,7 @@ async def manual_command_sender(ws) -> None:
     """Reads interactive commands from stdin and sends appropriate WS payloads."""
     global screen_time_minutes, charging, battery, location_tracking
     global installed_apps, ping_interval, typing, current_prompt, audio_playing
+    global last_sent_battery, last_sent_charging, last_sent_installed_apps
 
     def _base_payload() -> dict:
         return {
@@ -303,6 +400,9 @@ async def manual_command_sender(ws) -> None:
         except (EOFError, KeyboardInterrupt):
             typing         = False
             current_prompt = ""
+            # If stdin is closed (e.g. running via nohup), hang the task instead of returning
+            # Returning causes FIRST_COMPLETED to trigger, instantly dropping the WS connection!
+            await asyncio.Future()  
             return
         finally:
             typing         = False
@@ -348,6 +448,7 @@ async def manual_command_sender(ws) -> None:
             except ValueError:
                 safe_print("    [!] Invalid number")
                 continue
+            last_sent_battery = None
             try:
                 p = _base_payload()
                 await _send(p)
@@ -368,6 +469,7 @@ async def manual_command_sender(ws) -> None:
             else:
                 safe_print("    [!] Usage: charge on|off")
                 continue
+            last_sent_charging = None
             try:
                 await _send(_base_payload())
                 safe_print(f"    [>] CHARGING: {'ON' if charging else 'OFF'}")
@@ -377,6 +479,7 @@ async def manual_command_sender(ws) -> None:
 
         if cmd == "toggle":
             charging = 0 if charging else 1
+            last_sent_charging = None
             try:
                 await _send(_base_payload())
                 safe_print(f"    [>] CHARGING TOGGLED: {'ON' if charging else 'OFF'}")
@@ -439,6 +542,7 @@ async def manual_command_sender(ws) -> None:
                     safe_print(f"    [+] Added: {pkg}")
                 else:
                     safe_print(f"    [i] Already present: {pkg}")
+                last_sent_installed_apps = None
                 try:
                     await _send(_base_payload())
                 except Exception as e:
@@ -449,6 +553,7 @@ async def manual_command_sender(ws) -> None:
                 apps_list = [a for a in installed_apps.split(",") if a.strip() and a.strip() != pkg]
                 installed_apps = ",".join(apps_list)
                 safe_print(f"    [-] Removed: {pkg}")
+                last_sent_installed_apps = None
                 try:
                     await _send(_base_payload())
                 except Exception as e:
@@ -558,6 +663,15 @@ async def receiver(ws) -> None:
         elif task == "update_blocked_apps":
             blocked = cmd.get("apps", "")
             safe_print(f"    [i] BLOCKED APPS UPDATED: {blocked or '(none)'}")
+            
+        elif task == "piano_note":
+            note = cmd.get("note")
+            velocity = cmd.get("velocity", 0)
+            state = cmd.get("state", 0)
+            if state == 1:
+                safe_print(f"    [🎹] PIANO NOTE ON : {note} (vel: {velocity})")
+            else:
+                safe_print(f"    [🎹] PIANO NOTE OFF: {note}")
 
         elif task == "system_alert":
             state = cmd.get("state")
@@ -586,6 +700,81 @@ async def receiver(ws) -> None:
                     safe_print(f"    [✘] IPC alert_dismissed failed: {e}")
 
         # ── Audio blast ───────────────────────────────────────────────────────
+        elif task == "audio_play":
+            # New queued audio play command from server (includes task_id)
+            task_id = cmd.get('task_id')
+            try:
+                play_type = int(cmd.get('type', cmd.get('play', 0)))
+            except (TypeError, ValueError):
+                play_type = 0
+            try:
+                loops = int(cmd.get('loops', 0))
+            except (TypeError, ValueError):
+                loops = 0
+            volume = float(cmd.get('volume', 1.0) or 1.0)
+            if not task_id:
+                # fallback to legacy behavior
+                safe_print("    [!] audio_play missing task_id — treating as audio_blast")
+            else:
+                audio_task_queue.append({ 'task_id': task_id, 'type': play_type, 'volume': volume, 'loops': loops, 'vibrate_with_audio': bool(cmd.get('vibrate_with_audio', False)) })
+                safe_print(f"    [Q] Enqueued audio task {task_id} type={play_type} loops={loops}")
+                # ensure the queue processor is running
+                try:
+                    loop = asyncio.get_running_loop()
+                    _ensure_queue_processor(loop)
+                except Exception:
+                    pass
+
+        elif task == "vibrate":
+            # Enqueue a vibrate-only task
+            task_id = cmd.get('task_id')
+            try:
+                duration = int(cmd.get('duration', 1))
+            except (TypeError, ValueError):
+                duration = 1
+            if not task_id:
+                safe_print("    [!] vibrate missing task_id — ignoring")
+            else:
+                audio_task_queue.append({ 'task_id': task_id, 'type': 'vibrate', 'duration': duration })
+                safe_print(f"    [Q] Enqueued vibrate task {task_id} duration={duration}s")
+                try:
+                    loop = asyncio.get_running_loop()
+                    _ensure_queue_processor(loop)
+                except Exception:
+                    pass
+
+        elif task == "audio_cancel":
+            # Cancel a specific queued or currently playing task
+            task_id = cmd.get('task_id')
+            safe_print(f"    [Q] Received cancel for task {task_id}")
+            # Remove from pending queue
+            removed = False
+            for i, t in enumerate(list(audio_task_queue)):
+                if str(t.get('task_id')) == str(task_id):
+                    del audio_task_queue[i]
+                    removed = True
+                    break
+            # If currently playing, stop it
+            if current_audio_task and str(current_audio_task.get('task_id')) == str(task_id):
+                if _audio_stop_event is not None:
+                    _audio_stop_event.set()
+                    removed = True
+            if removed:
+                await _notify_ipc('audio_task_cancelled', {'task_id': task_id})
+
+        elif task == "audio_clear_queue":
+            # Clear all pending tasks and stop current
+            safe_print("    [Q] Clearing audio queue on device")
+            # notify cancellation for pending tasks
+            pending_ids = [t.get('task_id') for t in audio_task_queue]
+            audio_task_queue.clear()
+            for tid in pending_ids:
+                await _notify_ipc('audio_task_cancelled', {'task_id': tid})
+            # stop current
+            if _audio_stop_event is not None:
+                _audio_stop_event.set()
+            continue
+
         elif task == "audio_blast":
             play_val  = cmd.get("play", "0")
             loops_val = cmd.get("loops", "0")
@@ -597,12 +786,17 @@ async def receiver(ws) -> None:
                 loops     = 0
             type_names = {0: "stop", 1: "Siren", 2: "Alert Bells", 3: "Xylophone"}
             if play_type == 0:
-                # Signal the blast coroutine to stop immediately
+                # Signal the blast coroutine to stop immediately.
+                # Do NOT call notify_audio_done() here — simulate_audio_blast()
+                # will call it itself once it unblocks from the stop event,
+                # preventing a double-fire and a duplicate "audio stopped" toast.
                 if _audio_stop_event is not None:
                     _audio_stop_event.set()
-                audio_playing = False
+                else:
+                    # No blast running; just notify directly so server resets state.
+                    audio_playing = False
+                    await notify_audio_done()
                 safe_print("    [\U0001f507] AUDIO BLAST STOPPED by server command")
-                await notify_audio_done()
             else:
                 safe_print(f"    [🔊] AUDIO BLAST: {type_names.get(play_type, f'type {play_type}')} × {'∞' if loops == 0 else loops} loops")
                 asyncio.create_task(simulate_audio_blast(play_type, loops))
@@ -756,20 +950,21 @@ async def sender_loop(ws) -> None:
             payload["battery"]           = battery
             last_sent_battery            = battery
 
+        local_event_type = None
         # Hourly screen-time update (or first tick)
         hour_key = f"{now.tm_year}-{now.tm_mon}-{now.tm_mday}-{now.tm_hour}"
-        if now.tm_min == 0 and last_hour_reported != hour_key:
+        if (now.tm_min == 0 and last_hour_reported != hour_key) or not last_hour_reported:
             last_hour_reported = hour_key
             if screen_time_minutes == 0:
                 screen_time_minutes += random.randint(10, 30)
             payload["screen_time_minutes"] = screen_time_minutes
-            payload["event"]               = "hourly_screen_time_update"
+            local_event_type = "hourly_screen_time_update"
 
         payload_json = json.dumps(payload)
         safe_print(f"[>] TX: {payload_json}")
         await ws.send(payload_json)
 
-        if payload.get("event") == "hourly_screen_time_update":
+        if local_event_type == "hourly_screen_time_update":
             safe_print(
                 f"    [↑] HOURLY SCREEN TIME: {screen_time_minutes // 60}h {screen_time_minutes % 60}m"
             )
@@ -793,6 +988,8 @@ async def run_simulator() -> None:
     safe_print(f"[i] Server    : {BASE_URL}")
     safe_print(f"[i] Apps      : {installed_apps}\n")
 
+    global last_sent_installed_apps, last_sent_battery, last_sent_charging
+
     while True:
         try:
             # websockets 10+ uses websockets.connect(); older uses websockets.connect as ctx mgr
@@ -805,9 +1002,9 @@ async def run_simulator() -> None:
                 safe_print(f"[+] CONNECTED to {BASE_URL}")
 
                 # Reset delta-tracking so first tick sends full state
-                last_sent_installed_apps = None  # noqa: F841
-                last_sent_battery        = None  # noqa: F841
-                last_sent_charging       = None  # noqa: F841
+                last_sent_installed_apps = None
+                last_sent_battery        = None
+                last_sent_charging       = None
 
                 recv_task   = asyncio.create_task(receiver(ws))
                 cmd_task    = asyncio.create_task(manual_command_sender(ws))

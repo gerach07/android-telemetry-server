@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
+        html { scrollbar-gutter: stable; }
         .spinning { animation: spin .8s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .log-entry { animation: fadeIn .2s ease; }
@@ -14,6 +15,7 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
+    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6">
 
         <!-- Nav -->
@@ -28,23 +30,19 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
-                <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
-                    <i class="ti ti-cpu text-sm"></i> C2
-                </a>
-                <a href="/apps_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
-                    <i class="ti ti-apps text-sm"></i> Apps
-                </a>
-                <a href="/selfies_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
-                    <i class="ti ti-camera text-sm"></i> Selfies
-                </a>
-                <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition">
-                    <i class="ti ti-history text-sm"></i> History
-                </a>
+                <a href="/" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-cpu text-sm"></i> C2</a>
+                <a href="/apps_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-lock text-sm"></i> Apps</a>
+                <a href="/selfies_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-camera text-sm"></i> Selfies</a>
+                <a href="/updater_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-refresh-alert text-sm"></i> Update</a>
+                <a href="/history_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-history text-sm"></i> History</a>
+                <a href="/piano_view" class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"><i class="ti ti-music text-sm"></i> Piano</a>
                 <div class="w-px h-5 bg-gray-200 mx-1"></div>
                 <select id="device-select" aria-label="Select device"
                     class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer hover:border-red-300 transition appearance-none pr-7">
                     <option value="">Loading…</option>
                 </select>
+                <div class="w-px h-5 bg-gray-200"></div>
+                <a href="/logout" class="flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition"><i class="ti ti-logout text-sm"></i> Logout</a>
             </div>
         </nav>
 

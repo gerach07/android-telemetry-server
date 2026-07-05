@@ -60,7 +60,8 @@ public final class MonitorActivity extends Activity {
     private static final String PING_INTERVAL_FILE = "/data/system/ping_interval.txt";
     private static final String LOC_FLAG_FILE      = "/data/local/tmp/location_enabled";
     private static final String DISABLE_FILE       = "/data/local/tmp/reporter_disable";
-    private static final String COORDS_FILE        = "/data/user/0/com.stealthgps/files/coords.txt";
+    // Prefer the shared, world-readable coords file written by StealthGps
+    private static final String COORDS_FILE        = "/data/local/tmp/com.stealthgps_coords.txt";
 
     // -------------------------------------------------------------------------
     // Colours

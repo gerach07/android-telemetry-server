@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
+        html { scrollbar-gutter: stable; }
         #map { height: 560px; border-radius: .75rem; z-index: 10; }
         .scroller::-webkit-scrollbar { width: 5px; }
         .scroller::-webkit-scrollbar-track { background: transparent; }
@@ -42,6 +43,8 @@
             <select id="device-select" aria-label="Select device" class="bg-white text-gray-800 font-medium text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer hover:border-cyan-300 transition appearance-none pr-7">
                 <option value="">No device</option>
             </select>
+            <div class="w-px h-5 bg-gray-200"></div>
+            <a href="/logout" class="flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition"><i class="ti ti-logout text-sm"></i> Logout</a>
         </div>
     </nav>
 
@@ -185,6 +188,7 @@
                     <tr class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100">
                         <th class="pb-2 pr-4">Time</th>
                         <th class="pb-2 pr-4">Level</th>
+                        <th class="pb-2 pr-4">State</th>
                         <th class="pb-2">Gap</th>
                     </tr>
                 </thead>
@@ -262,6 +266,7 @@ let currentDataHash = '', cachedAudioFilesStr = '', isFirstLoad = true;
 let currentPage = 1, totalPages = 1;
 let currentHistoryRows = [];
 let selectedHistoryPoints = [];
+let hasFittedBounds = false;
 
 const today = new Date();
 dateInput.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -373,7 +378,8 @@ function getPointSpeed(index, rows) {
     if (!rows || index < 0 || index >= rows.length) return '0.0 km/h';
     const row = rows[index];
     if (row.speed !== undefined && row.speed !== null) return `${row.speed} km/h`;
-    const prev = rows[index-1];
+    // The list is sorted descending by time, so index+1 is the chronological previous point.
+    const prev = rows[index+1];
     if (!prev) return '0.0 km/h';
     const ct = getTimeSeconds(row), pt = getTimeSeconds(prev);
     if (ct == null || pt == null) return '0.0 km/h';
@@ -568,6 +574,7 @@ async function fetchDeviceStatus() {
 function resetAndFetchHistory() {
     currentDataHash = ''; isFirstLoad = true; currentPage = 1;
     selectedHistoryPoints = []; updateSelectionSummary();
+    hasFittedBounds = false;
     fetchHistory(); fetchScreenTimeSummary(); fetchDeviceStatus();
 }
 
@@ -615,13 +622,18 @@ async function fetchBatteryHistory() {
                     else gapText = `${Math.floor(gap/3600)}h ${Math.floor((gap%3600)/60)}m`;
                 }
                 const lvlCls = row.level < 20 ? 'text-red-600' : 'text-emerald-600';
+                const isCharging = row.charging === 1 
+                    ? '<span class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded"><i class="ti ti-bolt text-xs"></i> Charging</span>' 
+                    : '<span class="inline-flex items-center gap-1 text-[10px] uppercase font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded"><i class="ti ti-plug-x text-xs"></i> Not Charging</span>';
+                
                 return `<tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="py-1.5 pr-4 font-mono">${timeStr}</td>
                     <td class="pr-4 font-semibold ${lvlCls}">${row.level}%</td>
+                    <td class="pr-4">${isCharging}</td>
                     <td class="text-gray-400">${gapText}</td></tr>`;
             }).join('');
         } else {
-            batteryTableBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-gray-400">No battery history for this period.</td></tr>`;
+            batteryTableBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-gray-400">No battery history for this period.</td></tr>`;
         }
     } catch(e) { console.error(e); }
 }
@@ -707,7 +719,10 @@ async function fetchHistory() {
             updateMarkerStyles();
             updateSelectionLine();
             const bounds = pathLine.getBounds();
-            if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
+            if (bounds.isValid() && !hasFittedBounds) {
+                map.fitBounds(bounds, { padding: [40, 40] });
+                hasFittedBounds = true;
+            }
         } else {
             historyPointsCount.textContent = '0';
             historyPathDistance.textContent = '0 m';
@@ -841,6 +856,7 @@ async function requestAudio() {
 selectEl.addEventListener('change', () => {
     currentDataHash = ''; cachedAudioFilesStr = ''; isFirstLoad = true; currentPage = 1;
     selectedHistoryPoints = []; updateSelectionSummary();
+    hasFittedBounds = false;
     fetchHistory(); fetchScreenTimeSummary(); fetchAudioList(); fetchDeviceStatus(); refreshLocationState();
 });
 
